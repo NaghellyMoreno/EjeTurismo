@@ -1,8 +1,8 @@
 # Aviso de privacidad: Eje Turismo
 
-Estado del documento: texto aprobado por la usuaria (D-034), con los cambios de D-037 y D-039 aplicados. Sigue sin redactar el aviso al visitante del punto 2.5 (Pendiente 4) y sin decidir el número de versión (Pendiente 5).
+Estado del documento: texto aprobado por la usuaria (D-034), con los cambios de D-037, D-039 y D-056 (tipo y número de documento en el apartado 2) aplicados. Versión "2026-11-v3", vigente desde la fecha de publicación en producción (D-050, D-056). El aviso al visitante del punto 2.5 está aprobado (D-057).
 
-Fuentes: borrador de la usuaria entregado el 2026-11-14 (D-008), adaptado de otro proyecto; `docs/00-contexto-producto.md` (secciones 2.3, 3.3, 3.8, 3.12, 3.15, 3.16 y 3.17); registro de decisiones congeladas (D-003, D-007, D-008, D-009, D-010, D-011, D-014, D-015; en la ronda 2, D-018 a D-025; en la ronda 3, D-029, D-030, D-032 y D-033; tras el informe de preparación, D-034 a D-037, D-039 y D-043).
+Fuentes: borrador de la usuaria entregado el 2026-11-14 (D-008), adaptado de otro proyecto; `docs/00-contexto-producto.md` (secciones 2.3, 3.3, 3.8, 3.12, 3.15, 3.16 y 3.17); registro de decisiones congeladas (D-003, D-007, D-008, D-009, D-010, D-011, D-014, D-015; en la ronda 2, D-018 a D-025; en la ronda 3, D-029, D-030, D-032 y D-033; tras el informe de preparación, D-034 a D-037, D-039 y D-043; tras la iteración 2 del informe, D-049 a D-051; tras la iteración 3, D-056 y D-057).
 
 Marcas:
 - **Confirmado (borrador):** dato que la usuaria confirmó para conservar.
@@ -16,7 +16,7 @@ Las marcas van entre corchetes al final de cada párrafo y se quitan del texto q
 
 ## Texto 1: Aviso de privacidad y tratamiento de datos personales
 
-**Eje Turismo. Aviso de privacidad, versión 2026-11-v2. Vigente desde el 2 de noviembre de 2026.** [Confirmado (borrador); número de versión, Pendiente 5]
+**Eje Turismo. Aviso de privacidad, versión 2026-11-v3. Vigente desde [fecha de publicación en producción].** [Confirmado (borrador); versión y vigencia, Confirmado (D-050); la fecha se completa al publicar]
 
 ### 1. Quién trata tus datos
 Eje Turismo es un prototipo académico desarrollado por un estudiante de la Universidad de Caldas, en Manizales. [Confirmado (borrador)]
@@ -31,7 +31,7 @@ Solo tratamos los datos que necesita cada uso. [Inferido]
 
 - **Todas las personas que usan el bot o la Mini App:** tu ID de Telegram, el nombre de tu cuenta de Telegram y la constancia de que aceptaste este aviso (fecha y hora, canal y versión del aviso). [Inferido a partir de secciones 2.3, 3.12, 3.15 y D-010]
 - **Si envías una solicitud de información o interés a un prestador:** tu nombre (se toma de Telegram y lo puedes cambiar), la fecha de interés, el número de personas, tu mensaje y las respuestas que te envíe el prestador. [Confirmado (sección 3.8, D-010)]
-- **Si te registras como prestador turístico:** tu número de identidad, vinculado a tu ID de Telegram, y el estado de tu autorización. También la información de tus negocios y fichas (por ejemplo, datos de contacto, horarios, fotografías, ubicación y, en rutas y experiencias, los datos de los guías). [Confirmado (secciones 2.3, 3.3, 3.5, 3.7, D-003, D-014)]
+- **Si te registras como prestador turístico:** tu tipo y número de documento de identidad, vinculados a tu ID de Telegram, y el estado de tu autorización. También la información de tus negocios y fichas (por ejemplo, datos de contacto, horarios, fotografías, ubicación y, en rutas y experiencias, los datos de los guías). [Confirmado (secciones 2.3, 3.3, 3.5, 3.7, D-003, D-014); tipo de documento, Confirmado (D-046, D-056)]
 - **Si eres administrador:** tu ID de Telegram, tu nombre de Telegram y el registro de las decisiones que tomas. A los administradores no se les pide número de identidad. Si un administrador te autoriza, guardamos tu ID de Telegram desde ese momento, aunque todavía no hayas aceptado este aviso. [Confirmado (D-007); registro de decisiones, sección 3.12; ID antes de aceptar, Confirmado (D-037)]
 - **Para trazabilidad:** fechas, estados y responsables de los cambios importantes (registros, autorizaciones, fichas y solicitudes). [Confirmado (sección 3.12)]
 
@@ -114,9 +114,9 @@ Se aplica la Política de Tratamiento de Datos Personales de la Universidad de C
 Salvo lo marcado como Confirmado, este texto es **Inferido**: el borrador de la usuaria no lo trae. En el bot, "marcar" la declaración equivale a pulsar un botón; en la Mini App puede ser una casilla y un botón. [Inferido]
 
 ### 2.1. Declaración de autorización (se muestra debajo del Texto 1, en el bot y en la Mini App)
-> Leí el aviso de privacidad de Eje Turismo, versión 2026-11-v2, y autorizo a Karen Moreno a tratar mis datos personales para las finalidades que allí se describen. Si entrego datos de otra persona, declaro que tengo su autorización. Si soy menor de edad, mi representante legal da esta autorización.
+> Leí el aviso de privacidad de Eje Turismo, versión 2026-11-v3, y autorizo a Karen Moreno a tratar mis datos personales para las finalidades que allí se describen. Si entrego datos de otra persona, declaro que tengo su autorización. Si soy menor de edad, mi representante legal da esta autorización.
 
-[Número de versión: Pendiente 5]
+[Número de versión: Confirmado (D-050)]
 
 Botones: **"Acepto"** y **"No acepto"**. [Mismo aviso y declaración en la Mini App: Confirmado (D-025)]
 
@@ -153,7 +153,9 @@ Botones: **"Declaro y envío"** y **"Cancelar"**. Sin la declaración, la ficha 
 ### 2.5. Aviso al visitante cuando se borra su solicitud porque el prestador revocó
 Se envía por el bot a cada persona cuya solicitud se borra porque el prestador revocó su autorización. [Regla: Confirmado (D-029)]
 
-[Pendiente 4: texto del aviso sin redactar.]
+> Una solicitud que enviaste ya no está disponible porque el prestador que la recibió retiró su autorización.
+
+[Regla: Confirmado (D-029); redacción por el product-manager (D-049); texto, Confirmado (D-057)]
 
 ---
 
@@ -162,8 +164,9 @@ Se envía por el bot a cada persona cuya solicitud se borra porque el prestador 
 1. **Resuelto (D-034, D-035):** los servidores están en São Paulo (Brasil) y el apartado 5 menciona la transferencia internacional. No se cita otra norma sin confirmación de la usuaria (sección 3.15). Se conserva el número para no cambiar las referencias.
 2. **Resuelto (D-034):** la frase sobre Google Maps se aprobó con el texto del aviso. Se conserva el número para no cambiar las referencias.
 3. **Retirado:** el nombre "administrador principal" quedó Confirmado (D-032). Se conserva el número para no cambiar las referencias.
-4. **Aviso al visitante del punto 2.5.** La redacción propuesta del Texto 2 quedó aprobada con el aviso (D-034), pero el texto del aviso al visitante cuando se borra su solicitud porque el prestador revocó sigue sin redactar. Pendiente.
-5. **Número de versión del aviso.** El texto cambió (D-034, D-037, D-039), pero la versión sigue como "2026-11-v2" en el Texto 1 y en la declaración del punto 2.1. ¿Se mantiene "2026-11-v2" o pasa a "2026-11-v3"? Pendiente: decide la usuaria; no se cambia hasta entonces.
+4. **Resuelto (D-057):** la usuaria aprobó el texto del punto 2.5 tal como lo redactó el product-manager (D-049). Se conserva el número para no cambiar las referencias.
+5. **Resuelto (D-050):** la versión pasa a "2026-11-v3", vigente desde la fecha de publicación en producción. La fecha exacta se escribe al publicar; hasta entonces el encabezado lo dice así. Se conserva el número para no cambiar las referencias.
+6. **Plazo para los datos recogidos después del 31 de enero de 2027 (D-051).** Se decide antes de esa fecha; si el sistema sigue en uso, se publica una versión nueva del aviso con el plazo nuevo. No bloquea la entrega del 26 de noviembre de 2026. Pendiente.
 
 Resueltos en la ronda 3 y retirados de esta lista: efectos de la revocación del prestador sobre sus fichas y solicitudes (D-029), retiro de los reportes básicos de las finalidades (D-030) y nombre "administrador principal" (D-032).
 

@@ -49,3 +49,18 @@ Solo se agregan filas al final, con `>>`. Ninguna fila se edita, se borra ni se 
 | D-043 | 3 | 1 | Eliminación del 31 de enero de 2027: se borran cuentas, consentimientos, registros, solicitudes, auditoría y fichas de prestadores con sus fotos; se conservan municipios, listas cerradas y atractivos. "Revocar rol" a un prestador solo le quita el rol y sus fichas publicadas dejan de aceptar solicitudes nuevas | 2026-11-14 |
 | D-044 | 3 | 1 | Se aprueban en conjunto las reglas Inferidas del Pendiente 22 de la arquitectura y las herramientas de la ADR 0014 | 2026-11-14 |
 | D-045 | 3 | 1 | El formato del número de identidad sigue Pendiente (sin respuesta de la usuaria en la ronda 1 de la fase 3) | 2026-11-14 |
+| D-046 | 3 | 2 | Formato del número de identidad: texto (VARCHAR/String) con tipos CC, CE, PPT y PA; cierra D-045 | 2026-11-14 |
+| D-047 | 3 | 2 | Se confirma D-038 (una cuenta administradora no se registra como prestador); coincide con D-007 y no exige cambios en los documentos | 2026-11-14 |
+| D-048 | 3 | 2 | Se agrega a la semilla un tipo de experiencia gastronómica marcado is_gastronomic (cumple la sección 3.4); D-040 queda como la lista de tipos de establecimiento del directorio. El nombre del tipo queda Pendiente | 2026-11-14 |
+| D-049 | 3 | 2 | Se aprueba que el product-manager redacte el texto del aviso 2.5, paralelo al 2.4 | 2026-11-14 |
+| D-050 | 3 | 2 | Versión del aviso "2026-11-v3", vigente desde la fecha de publicación en producción, porque el texto cambió después de la v2 (D-034, D-037 y D-039) | 2026-11-14 |
+| D-051 | 3 | 2 | Plazo de eliminación posterior al 31 de enero de 2027: se decide antes de esa fecha; si el sistema sigue en uso, se publica una versión nueva del aviso con el plazo nuevo. No bloquea la entrega del 26 de noviembre de 2026 | 2026-11-14 |
+| D-052 | 3 | 3 | Nombre del tipo de experiencia gastronómica (is_gastronomic): "Sabores de Caldas"; cierra el Pendiente de D-048 | 2026-11-14 |
+| D-053 | 3 | 3 | Mientras el nombre sea un marcador, la fila se omite en producción; con D-052 la semilla carga "Sabores de Caldas" | 2026-11-14 |
+| D-054 | 3 | 3 | El duplicado del registro compara tipo y número de documento | 2026-11-14 |
+| D-055 | 3 | 3 | Se aprueban los valores Inferidos nuevos (Pendiente 8): normalizar número (sin espacios en los extremos, letras en mayúsculas), nombres visibles de las siglas, sigla aceptada en minúsculas y máximo técnico de 4096 caracteres | 2026-11-14 |
+| D-056 | 3 | 3 | El aviso, apartado 2, dice "tu tipo y número de documento de identidad", dentro de la versión "2026-11-v3" | 2026-11-14 |
+| D-057 | 3 | 3 | Se aprueba el texto del apartado 2.5 del aviso: "Una solicitud que enviaste ya no está disponible porque el prestador que la recibió retiró su autorización." | 2026-11-14 |
+| D-058 | 3 | 3 | F017 depende de F018; se intercambian prioridades (F018 pasa a 6 y F017 a 7) | 2026-11-14 |
+| D-059 | 3 | 3 | Sin respuesta tras la ronda 3: el resto del antiguo Pendiente 8 de la arquitectura (ahora Pendiente 6) queda como Pendiente Inferido, no bloqueante | 2026-11-14 |
+| D-060 | 3 | 3 | Compuerta 2 aprobada: readiness PASS (docs/04-readiness.md); se pasa a la fase 4 | 2026-11-14 |

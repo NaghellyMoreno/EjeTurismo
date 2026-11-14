@@ -1,6 +1,6 @@
 # 0007. Tareas en segundo plano con bandeja de salida y `after()`, y tareas diarias con Vercel Cron
 
-- **Estado:** Propuesta (revisada en la iteración 1 de preparación: M-10, D-035, D-043)
+- **Estado:** Propuesta (revisada en la iteración 1 de preparación: M-10, D-035, D-043; en la iteración 2: D-051; y en la iteración 3: m-09, F038)
 - **Fecha:** 2026-11-14
 - **Fuente:** secciones 3.8, 3.15 y 3.17; HU-025, HU-030; RNF-021; D-019, D-021, D-029, D-035, D-043; documentación de Vercel (Cron Jobs, Functions), de Next.js (`after`) y precios de Supabase
 
@@ -48,7 +48,7 @@ Procedimiento:
 1. La función `app.purge_personal_data()` (`SECURITY DEFINER`, propiedad del rol de migraciones; `eje_app` solo tiene `EXECUTE`) comprueba dentro de la propia función que `now() AT TIME ZONE 'America/Bogota'` sea igual o posterior a `deadline` y que `executed_at` sea nulo. Si no se cumple, no hace nada.
 2. En una sola transacción borra el alcance anterior en orden de dependencias y marca `retention_settings.executed_at`. Devuelve el número de filas borradas por tabla, sin datos personales.
 3. Los archivos de Blob de las fichas borradas quedan sin referencia y los borra la tarea de mantenimiento. Esa tarea vuelve a intentarlo cada día si `del` falla. Por eso un fallo de Blob no deja datos de la base a medias.
-4. Se ejecuta **una sola vez**. Si la tarea falla o Vercel no la lanza ese día, se ejecuta al día siguiente, porque la condición es "igual o posterior". Después de ejecutarse, no vuelve a borrar datos nuevos. Qué plazo aplica a los datos recogidos después del 31 de enero de 2027 está Pendiente.
+4. Se ejecuta **una sola vez**. Si la tarea falla o Vercel no la lanza ese día, se ejecuta al día siguiente, porque la condición es "igual o posterior". Después de ejecutarse, no vuelve a borrar datos nuevos. El plazo para los datos recogidos después del 31 de enero de 2027 se decide antes de esa fecha; si el sistema sigue en uso, se publica una versión nueva del aviso con ese plazo (D-051), y la tarea se ajusta a él. No bloquea la entrega del 26 de noviembre de 2026.
 5. La tarea de las 0:00 a 0:59 (precisión de Hobby) deja todo borrado dentro de la primera hora del 31 de enero (hora de Bogotá).
 
 Verificación (RNF-021):
@@ -68,5 +68,5 @@ Verificación (RNF-021):
 - Más fácil: operaciones y mensajes consistentes; reintentos sin procesos permanentes.
 - Más difícil: en Hobby un mensaje fallido puede tardar hasta un día en reintentarse. Si la usuaria pasa a Pro, se cambia el horario a cada pocos minutos sin cambiar el diseño.
 - La migración futura de Cron Jobs a "Schedules" anunciada por Vercel puede exigir cambiar la configuración, no el código.
-- La eliminación no tiene funcionalidad en `feature_list.json`. Para que alguien la construya y la verifique, el product-manager debe agregarla (cambio listado en el informe de esta iteración).
+- La eliminación la construye y la verifica F038 (prioridad 12, depende de F037), con `runRetentionJob` y `runMaintenanceJob`. Sus pasos coinciden con la "Verificación" de esta ADR: fecha límite en el día actual, alcance borrado, lo conservado intacto y segunda ejecución sin cambios.
 - `PRINCIPAL_ADMIN_TELEGRAM_ID` es un dato personal guardado en las variables de Vercel, fuera de la base, y la función de eliminación no lo borra. La responsable debe quitarlo o cambiarlo a mano el 31 de enero de 2027 si el plazo lo exige.

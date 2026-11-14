@@ -1,8 +1,8 @@
 # 0002. Garantía de los invariantes en la base de datos y en la API
 
-- **Estado:** Propuesta (revisada en la iteración 1 de preparación)
+- **Estado:** Propuesta (revisada en la iteración 1 de preparación, en la iteración 2: D-046, y en la iteración 3: D-054, D-055)
 - **Fecha:** 2026-11-14
-- **Fuente:** invariantes 1 a 8 de CLAUDE.md; secciones 2.3, 3.3, 3.8, 3.11, 3.12, 3.14, 3.15 y 3.16; RNF-001 a RNF-012; D-003, D-005, D-007, D-011, D-019, D-020, D-024, D-029, D-036 a D-039, D-042, D-044
+- **Fuente:** invariantes 1 a 8 de CLAUDE.md; secciones 2.3, 3.3, 3.8, 3.11, 3.12, 3.14, 3.15 y 3.16; RNF-001 a RNF-012; D-003, D-005, D-007, D-011, D-019, D-020, D-024, D-029, D-036 a D-039, D-042, D-044, D-046, D-054, D-055
 
 ## Contexto
 Un invariante protegido solo en la interfaz se rompe con una petición directa al backend (F007, F008, F016, F033). Además, la plataforma es serverless con muchas invocaciones concurrentes, así que las comprobaciones "leer y luego escribir" necesitan transacciones y bloqueos.
@@ -24,7 +24,7 @@ Cada invariante tiene tres capas: **servicio** (regla y mensaje claro), **API** 
 Duplicados (sección 3.12; D-003):
 - Ficha: restricción de exclusión `EXCLUDE USING gist (municipality_id WITH =, name_normalized WITH =, listing_id WITH <>) WHERE (status IN ('draft','pending','published'))` sobre `listing_versions` (extensión `btree_gist`). Impide que dos fichas distintas tengan el mismo nombre en el mismo municipio, y permite que la versión publicada y la pendiente de la misma ficha compartan nombre.
 - Municipio, categoría, tipo de experiencia y tipo de establecimiento: índice único sobre el nombre normalizado.
-- Registro de prestador: índice único parcial sobre `account_id` y sobre `identity_number_hash` para registros `pending` o `approved`.
+- Registro de prestador: índice único parcial sobre `account_id` y sobre `identity_number_hash` para registros `pending` o `approved`. El hash cubre tipo y número de documento normalizado (Confirmado: D-046, D-054; normalización, D-055; ADR 0005). El tipo es un enum de la base con los cuatro valores de D-046.
 - Permiso de administrador: índice único parcial `(telegram_user_id, role) WHERE revoked_at IS NULL`.
 - Normalización del nombre: minúsculas, sin tildes (`unaccent` envuelto en función inmutable), espacios colapsados, calculada por disparador. Que "Café Luna" y "cafe luna" sean duplicados es **Inferido** (ver Pendientes de `docs/03-arquitectura.md`).
 - Límites de caracteres de D-042 (nombre 100, descripción 1500, horarios 300, contacto 200): CHECK `char_length(...) <= n` en `listing_versions`, además del `maxLength` del contrato.

@@ -1,10 +1,14 @@
 # Requisitos: Eje Turismo
 
-Fuentes: `docs/00-contexto-producto.md` (versión 1), `docs/01-brief.md` y el registro de decisiones congeladas (D-001 a D-045). Las preguntas "P<n>" remiten a la tabla de preguntas del brief; las decisiones "D-0XX", al registro.
+Fuentes: `docs/00-contexto-producto.md` (versión 1), `docs/01-brief.md` y el registro de decisiones congeladas (D-001 a D-058). Las preguntas "P<n>" remiten a la tabla de preguntas del brief; las decisiones "D-0XX", al registro.
 
 Actualización 2026-11-14 (ronda 3): se aplicaron D-002 a D-016 donde faltaban y D-029 a D-032 (efectos de la revocación del prestador, recortes, límite de fotos y "administrador principal"). HU-013, HU-022, HU-023 y HU-029 quedan fuera de esta entrega (D-030).
 
 Actualización 2026-11-14 (tras el informe de preparación): se aplican D-034 a D-045 (aviso aprobado, regiones, ID del administrador antes de aceptar, administrador no prestador, aviso antes de cualquier uso, tipos de establecimiento, catálogos en la Mini App, límites de fotos y caracteres, eliminación del 31 de enero de 2027 y "Revocar rol"). D-045 deja Pendiente el formato del número de identidad. Se agrega F038 (eliminación de datos, RNF-021).
+
+Actualización 2026-11-14 (iteración 2 del informe de preparación): se aplican D-046 (número de identidad como texto, con tipo CC, CE, PPT o PA; HU-002, criterio 4), D-048 (tipo de experiencia gastronómica en el directorio; HU-011), D-049 (texto propuesto del aviso 2.5; HU-030, criterio 8), D-050 (versión del aviso "2026-11-v3"; HU-001) y D-051 (plazo posterior al 31 de enero de 2027). D-047 no exige cambios. HU-007, criterio 4, aclara que los municipios iniciales vienen de la semilla (M-17).
+
+Actualización 2026-11-14 (iteración 3 del informe de preparación): se aplican D-052 (tipo de experiencia gastronómica "Sabores de Caldas"; HU-011), D-054 (el duplicado del registro compara tipo y número de documento; HU-002, criterio 3), D-055 (normalización del número, nombres visibles de las siglas, sigla en minúsculas y máximo técnico de 4096 caracteres; HU-002, criterio 4), D-056 (aviso, apartado 2, con el tipo de documento; HU-001), D-057 (texto del aviso 2.5 aprobado; HU-030, criterio 8) y D-058 (F017 depende de F018; prioridades F018 = 6 y F017 = 7). D-053 no exige cambios en estos documentos.
 
 Marcas: **Confirmado** sale del contexto o de una decisión congelada; **Inferido** requiere aprobación de la usuaria; **Pendiente** falta información. Cuando una historia mezcla estados, cada criterio lleva su marca.
 
@@ -23,23 +27,23 @@ Textos al usuario: el administrador fijado en la configuración de la publicaci�
   1. Dado un usuario que abre el bot por primera vez, cuando inicia la conversación, entonces el bot muestra el aviso de privacidad con un botón para aceptarlo, antes de pedir o guardar cualquier dato personal. (Confirmado)
   2. Dado un usuario que acepta, cuando vuelve a abrir el bot, entonces no se le muestra el aviso de nuevo y queda registrada la fecha y hora de aceptación (America/Bogota). (Confirmado: aceptación, sección 3.15; registro de fecha, sección 3.12)
   3. Dado un usuario que no acepta, cuando intenta continuar, entonces el bot no guarda ningún dato y le explica que debe aceptar el aviso para seguir. (Confirmado, D-008)
-  4. El texto del aviso es el de `docs/05-aviso-privacidad.md`, aprobado por la usuaria. (Confirmado, D-034; el texto del aviso al visitante del apartado 2.5 sigue Pendiente)
+  4. El texto del aviso es el de `docs/05-aviso-privacidad.md`, aprobado por la usuaria, en la versión "2026-11-v3", vigente desde la fecha de publicación en producción; la constancia de aceptación registra esa versión. El apartado 2 menciona "tu tipo y número de documento de identidad" y el apartado 2.5 tiene el texto aprobado. (Confirmado, D-034, D-050, D-056, D-057)
   5. Dado un usuario que aceptó una versión anterior del aviso, cuando se publica una versión nueva y vuelve a abrir el bot o la Mini App, entonces se le muestra el aviso nuevo y debe aceptarlo de nuevo antes de seguir. (Confirmado, D-025)
   6. Dado un usuario que entra por primera vez por la Mini App, cuando se carga, entonces ve el mismo aviso y la misma declaración que en el bot antes de cualquier otro paso. (Confirmado, D-025)
   7. Las consultas y correcciones de datos personales se atienden solo por correo electrónico y teléfono; el bot y la Mini App no ofrecen opción para consultarlos o corregirlos. (Confirmado, D-025)
-- **Estado:** Confirmado (texto del apartado 2.5 del aviso Pendiente)
+- **Estado:** Confirmado
 
 ### HU-002: Registro inicial del prestador
 - **Historia:** Como prestador turístico, quiero registrarme una sola vez con mi número de identidad, para quedar vinculado a mi ID de Telegram y esperar la autorización del administrador.
 - **Fuente:** sección 2.3
 - **Criterios de aceptación:**
-  1. Dado un usuario que aceptó el aviso de privacidad, cuando elige registrarse como prestador e ingresa su número de identidad, entonces el bot pide confirmación y, al confirmar, queda un registro pendiente que vincula ese número con su ID de Telegram. (Confirmado)
+  1. Dado un usuario que aceptó el aviso de privacidad, cuando elige registrarse como prestador, elige el tipo de documento e ingresa su número de identidad, entonces el bot pide confirmación y, al confirmar, queda un registro pendiente que vincula ese número con su ID de Telegram. (Confirmado)
   2. Dado un registro pendiente, cuando el prestador intenta usar funciones de prestador, entonces el bot le informa que su registro espera autorización y el backend no le permite operar como prestador. (Confirmado)
-  3. Dado un número de identidad o un ID de Telegram ya registrado, cuando se intenta un nuevo registro con alguno de ellos, entonces el sistema lo rechaza con un mensaje claro y no crea un duplicado. (Confirmado, sección 3.12)
-  4. Dado un número de identidad con formato inválido, cuando se envía, entonces el bot lo rechaza, explica el motivo y vuelve a pedirlo. (Confirmado: validación, sección 3.12; formato válido Pendiente, D-045)
+  3. Dado un tipo y número de documento o un ID de Telegram ya registrado, cuando se intenta un nuevo registro con alguno de ellos, entonces el sistema lo rechaza con un mensaje claro y no crea un duplicado. El duplicado compara el tipo y el número de documento juntos: el mismo número con otro tipo no es duplicado. Para comparar, el número se normaliza sin espacios al inicio ni al final y con las letras en mayúsculas, sin quitar puntos ni espacios internos (por ejemplo, " ab123 " y "AB123" del mismo tipo son duplicados). (Confirmado: regla, sección 3.12; tipo y número, D-054; normalización, D-055)
+  4. El número de identidad es un texto y va acompañado de un tipo de documento, que solo puede ser CC, CE, PPT o PA. (Confirmado, D-046) Los nombres que se muestran para cada sigla son cédula de ciudadanía, cédula de extranjería, Permiso por Protección Temporal y pasaporte, y el bot acepta la sigla escrita en minúsculas. (Confirmado, D-055) Dado un tipo de documento distinto de esos cuatro, o un número vacío, cuando se envía, entonces el sistema lo rechaza; en el bot, explica el motivo y vuelve a pedir solo ese dato. (Confirmado: validación, sección 3.12; tipos, D-046) El número admite un máximo técnico de 4096 caracteres (un mensaje de Telegram; no es regla del producto). (Confirmado, D-055) Reglas de caracteres o de longitud por tipo: no hay; D-046 no las fija. (Pendiente solo si la usuaria quiere agregarlas)
   5. Dado un usuario que no aceptó el aviso de privacidad, cuando intenta registrarse, entonces no se le pide el número de identidad. (Confirmado, sección 3.15)
   6. El número de identidad solo lo ven los administradores. (Confirmado, D-011)
-- **Estado:** Confirmado (criterio 4 Pendiente en el formato)
+- **Estado:** Confirmado (D-046, D-054, D-055)
 
 ### HU-003: Autorizar o rechazar el registro de un prestador
 - **Historia:** Como administrador, quiero revisar los registros pendientes de prestadores y autorizarlos o rechazarlos, para que solo quien yo autorice tenga rol de prestador.
@@ -93,7 +97,7 @@ Textos al usuario: el administrador fijado en la configuración de la publicaci�
   1. Dado un administrador, cuando crea un municipio con su nombre e información general y confirma, entonces el municipio queda disponible para clasificar fichas y para la exploración del visitante. (Confirmado)
   2. Dado un municipio con el mismo nombre ya existente, cuando se intenta crear otro, entonces el sistema lo rechaza sin crear duplicado. (Confirmado, sección 3.12)
   3. Dado un municipio existente, cuando el administrador edita su información y confirma, entonces el cambio se refleja y queda registrado con fecha y responsable. (Confirmado, sección 3.12)
-  4. Los municipios iniciales son Manizales, Supía y Filadelfia, del departamento de Caldas (Confirmado, D-027). "Zona" es un dato opcional del municipio, no una entidad (Confirmado, D-013).
+  4. Los municipios iniciales son Manizales, Supía y Filadelfia, del departamento de Caldas (Confirmado, D-027). Vienen cargados por la semilla de referencia en todos los entornos, así que el administrador no los crea; las pruebas de creación usan un municipio distinto (Confirmado: semilla, D-027 y ADR 0011). "Zona" es un dato opcional del municipio, no una entidad (Confirmado, D-013).
 - **Estado:** Confirmado
 
 ### HU-008: Gestionar categorías y tipos de experiencia
@@ -108,7 +112,7 @@ Textos al usuario: el administrador fijado en la configuración de la publicaci�
 
 ### Registro de contenido
 
-Campos obligatorios de toda ficha (Confirmado, D-003): nombre, municipio, categoría, descripción, horarios, contacto y enlace de Maps. Duplicado (Confirmado, D-003): mismo nombre en el mismo municipio. Los formularios largos de fichas están en la Mini App (Confirmado, D-002). Límites de caracteres (Confirmado, D-042): nombre 100, descripción 1500, horarios 300, contacto 200; los demás campos, Pendiente (arquitectura, Pendiente 6).
+Campos obligatorios de toda ficha (Confirmado, D-003): nombre, municipio, categoría, descripción, horarios, contacto y enlace de Maps. Duplicado (Confirmado, D-003): mismo nombre en el mismo municipio. Los formularios largos de fichas están en la Mini App (Confirmado, D-002). Límites de caracteres (Confirmado, D-042): nombre 100, descripción 1500, horarios 300, contacto 200; los demás campos, Pendiente (arquitectura, Pendiente 4).
 
 ### HU-009: Registrar un atractivo turístico
 - **Historia:** Como administrador, quiero registrar la ficha de un sitio natural, cultural, histórico o patrimonial, para que el visitante lo descubra.
@@ -139,7 +143,10 @@ Campos obligatorios de toda ficha (Confirmado, D-003): nombre, municipio, catego
 - **Criterios de aceptación:**
   1. Dado un prestador, cuando registra una ficha de tipo de establecimiento restaurante o café, entonces sigue el mismo flujo de estados y los mismos campos obligatorios que HU-010 (borrador, pendiente, publicada, rechazada). (Confirmado, D-003, D-004)
   2. Dado una ficha gastronómica publicada, cuando el visitante consulta el directorio gastronómico, entonces la ve. (Confirmado, sección 3.4)
-- **Estado:** Confirmado
+  3. El directorio gastronómico lo forman las fichas publicadas de establecimiento con tipo restaurante o café y las fichas publicadas de experiencia con el tipo de experiencia gastronómica "Sabores de Caldas", que carga la semilla. (Confirmado, sección 3.4; D-040, D-048, D-052)
+  4. Dado un prestador, cuando registra una experiencia con el tipo de experiencia "Sabores de Caldas", entonces sigue el mismo flujo de estados y los mismos campos obligatorios que HU-012. (Confirmado: flujo, sección 3.3; campos, D-003; tipo, D-048, D-052)
+  5. Dado una ficha de establecimiento sin tipo, o de otro tipo de establecimiento, o una experiencia con un tipo de experiencia no gastronómico, cuando se publica, entonces no aparece en el directorio gastronómico. (Confirmado, D-040, D-048)
+- **Estado:** Confirmado (D-048, D-052). La funcionalidad F017 depende de F018 y se construye después (D-058).
 
 ### HU-012: Registrar una ruta o experiencia
 - **Historia:** Como prestador autorizado, quiero registrar un recorrido, actividad o experiencia con su tipo de experiencia, para que los visitantes la encuentren.
@@ -328,9 +335,9 @@ Campos obligatorios de toda ficha (Confirmado, D-003): nombre, municipio, catego
   5. Dado un visitante que revoca, entonces conserva el uso del bot como visitante tras aceptar de nuevo el aviso, sus solicitudes se borran de inmediato y el prestador de cada una recibe un aviso de que ya no está disponible. (Confirmado, D-019)
   6. Dado un prestador que revoca, entonces se borran su número de identidad y su registro, pierde el rol de prestador y sus fichas publicadas siguen visibles hasta el 31 de enero de 2027, pero dejan de ofrecer "Solicitar información". (Confirmado, D-019, D-021, D-029; despublicar está fuera de alcance, D-014)
   7. Dado un prestador que revoca, entonces sus fichas no publicadas (borrador, pendiente, rechazada) quedan en el estado en que estaban y no son visibles al visitante. (Confirmado, D-029)
-  8. Dado un prestador que revoca, entonces las solicitudes que recibieron sus negocios se borran y cada visitante que las envió recibe un aviso por el bot. (Confirmado, D-029; texto del aviso Inferido)
+  8. Dado un prestador que revoca, entonces las solicitudes que recibieron sus negocios se borran y cada visitante que las envió recibe por el bot el aviso del apartado 2.5 de `docs/05-aviso-privacidad.md`: "Una solicitud que enviaste ya no está disponible porque el prestador que la recibió retiró su autorización." (Confirmado: regla, D-029; redacción encargada al product-manager, D-049; texto aprobado, D-057)
   9. Dado un administrador que revoca, entonces pierde el rol de administrador. Si es el administrador principal o el único administrador, el sistema no le permite revocar y le explica el motivo, nombrándolo "administrador principal" cuando corresponde. (Confirmado, D-020, D-032)
-- **Estado:** Confirmado (texto del aviso al visitante del criterio 8 Inferido)
+- **Estado:** Confirmado
 
 ## Requisitos no funcionales
 | ID | Requisito | Cómo se verifica | Fuente |
@@ -355,7 +362,7 @@ Campos obligatorios de toda ficha (Confirmado, D-003): nombre, municipio, catego
 | RNF-018 | Telegram es el canal principal; no hay interfaz web como canal principal | La Mini App solo se abre desde Telegram | Sección 3.10; guía de agentes |
 | RNF-019 | Rendimiento y accesibilidad: el contexto no fija cifras de tiempo de respuesta ni nivel de accesibilidad | No verificable hasta definir cifras | Pendiente (no hay sección que lo defina) |
 | RNF-020 | Trazabilidad de especificaciones: cada funcionalidad remite a historias y cada historia a una sección del contexto | Tabla de trazabilidad de este documento | Sección 3.13 |
-| RNF-021 | Los datos personales se conservan hasta el 31 de enero de 2027 y ese día se eliminan, una sola vez: cuentas, permisos, consentimientos (incluida la prueba de autorización y revocación), registros, solicitudes, auditoría y fichas de prestadores con sus fotos; se conservan municipios, listas cerradas, atractivos y el aviso | F038; procedimiento descrito en la ADR 0007 | Sección 3.15; D-021, D-043 |
+| RNF-021 | Los datos personales se conservan hasta el 31 de enero de 2027 y ese día se eliminan, una sola vez: cuentas, permisos, consentimientos (incluida la prueba de autorización y revocación), registros, solicitudes, auditoría y fichas de prestadores con sus fotos; se conservan municipios, listas cerradas, atractivos y el aviso. El plazo para los datos recogidos después de esa fecha se decide antes del 31 de enero de 2027 y, si el sistema sigue en uso, se publica una versión nueva del aviso con el plazo nuevo; no bloquea la entrega del 26 de noviembre de 2026 | F038; procedimiento descrito en la ADR 0007 | Sección 3.15; D-021, D-043, D-051 |
 | RNF-022 | Las consultas y correcciones de datos personales se atienden solo por correo electrónico y teléfono; el bot y la Mini App no ofrecen esa opción | Recorrido de QA por los menús del bot y de la Mini App: no existe opción para consultar o corregir datos personales | Sección 3.15; D-025 |
 | RNF-023 | El aviso de privacidad menciona la transferencia internacional de datos: base de datos, funciones y fotos en São Paulo (Brasil); la CDN de Vercel puede guardar copias en caché en otros países | Revisión del apartado 5 de `docs/05-aviso-privacidad.md` | Sección 3.15; D-022, D-034, D-035 (resuelto) |
 | RNF-024 | Las fotografías respetan estos límites: 10 por ficha enviada a aprobación, 2 GB en total por ficha, 5 MB por foto y cuota global de 900 MB | F020; el tope de 2 GB por ficha se verifica con la prueba de integración de límites | Sección 3.7; D-031, D-042 (resuelto) |
@@ -395,12 +402,14 @@ Campos obligatorios de toda ficha (Confirmado, D-003): nombre, municipio, catego
 | HU-030 | F034, F035, F036, F037, F038 |
 
 ## Pendientes
-- Formato válido del número de identidad (HU-002, criterio 4): Pendiente (D-045). Bloquea el cierre de F002.
-- Texto del aviso al visitante cuando se borra su solicitud porque el prestador revocó (apartado 2.5 del aviso): sin redactar.
-- Si las experiencias gastronómicas que nombra la sección 3.4 entran al directorio gastronómico (HU-011, F017): D-040 dice que el directorio son restaurante y café. Pendiente; la usuaria decide.
-- Contradicción entre D-044 (aprueba la regla Inferida "un administrador también puede registrarse como prestador") y D-038 (no puede): se aplica D-038 (HU-006, criterio 3). Pregunta para la usuaria en el brief.
+- Reglas de caracteres o de longitud por tipo de documento (HU-002, criterio 4): D-046 no las fija; no se aplican. Pendiente solo si la usuaria quiere agregarlas.
+- Plazo para los datos recogidos después del 31 de enero de 2027 (RNF-021): se decide antes de esa fecha (D-051). No bloquea la entrega.
 - "Revocar rol" sobre el administrador principal (HU-005, criterio 6): Inferido, pregunta 21 sin respuesta tras la ronda 3.
-- Límites de caracteres de los campos que no cubre D-042 (arquitectura, Pendiente 6).
+- Límites de caracteres de los campos que no cubre D-042 (arquitectura, Pendiente 4).
 - Cifras de rendimiento y nivel de accesibilidad (RNF-019).
 
 Resueltos tras el informe de preparación y retirados de esta lista: texto del aviso (D-034), región de los servidores (D-034, D-035), viabilidad y límites de fotos y límites de caracteres de la ficha (D-042), lista de tipos de establecimiento y quién la administra (D-040, D-041), efectos de "Revocar rol" sobre un prestador y procedimiento de eliminación del 31 de enero de 2027 (D-043; ADR 0007, F038).
+
+Resueltos en la iteración 2 del informe de preparación y retirados de esta lista: formato del número de identidad (D-046, cierra D-045), experiencias gastronómicas en el directorio (D-048; queda Pendiente solo el nombre del tipo), redacción del aviso 2.5 por el product-manager (D-049; queda Pendiente su aprobación), versión del aviso (D-050), contradicción entre D-038 y D-044 (D-047: vale D-038) y municipios iniciales frente a la semilla en F010 (M-17).
+
+Resueltos en la iteración 3 del informe de preparación y retirados de esta lista: nombre del tipo de experiencia gastronómica, "Sabores de Caldas" (D-052, D-053), duplicado del registro por tipo y número de documento (D-054), valores Inferidos de normalización, nombres de las siglas, sigla en minúsculas y máximo técnico de 4096 caracteres (D-055), tipo de documento en el apartado 2 del aviso (D-056) y texto del aviso 2.5 (D-057).

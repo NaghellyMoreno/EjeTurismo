@@ -1,11 +1,16 @@
 openapi: 3.1.0
 info:
   title: Eje Turismo API
-  version: 0.2.0
+  version: 0.3.1
   description: |
     Contrato entre la Mini App de Telegram, el bot y el backend de Eje Turismo.
     Fuente de verdad del producto: docs/00-contexto-producto.md. Arquitectura: docs/03-arquitectura.md.
     Versión 0.2.0: revisión de la iteración 1 de preparación (D-034 a D-045).
+    Versión 0.3.0: iteración 2 de preparación. Tipo y número de documento del registro de prestador (D-046, cierra D-045),
+    tipo de experiencia gastronómica en el directorio (D-048) y versión del aviso "2026-11-v3" (D-050).
+    Versión 0.3.1: iteración 3 de preparación, sin cambios de esquemas ni de operaciones. Nombre del tipo de experiencia
+    gastronómica, "Sabores de Caldas" (D-052, D-053); duplicado del registro por tipo y número (D-054); normalización del
+    número, nombres de las siglas y máximo técnico confirmados (D-055).
 
     Reglas generales:
     - Autenticación: la Mini App envía `Authorization: tma <initData>` con la cadena cruda de `Telegram.WebApp.initData`.
@@ -29,7 +34,7 @@ info:
     - Fechas y horas en ISO 8601 UTC; la interfaz las muestra en America/Bogota. Fechas sin hora (`format: date`) se interpretan en America/Bogota.
     - Límites de caracteres de fichas fijados por D-042 (nombre 100, descripción 1500, horarios 300, contacto 200).
       Los campos con `x-pending: D-013` no tienen límite de producto todavía; llevan un máximo técnico de 4096 caracteres (un mensaje de Telegram).
-      `x-pending: D-045` marca el formato del número de identidad, aún Pendiente.
+      El número de documento del registro de prestador también tiene un máximo técnico de 4096 caracteres, aprobado en D-055.
     - Ejemplos con datos ficticios.
 servers:
   - url: /
@@ -152,12 +157,17 @@ paths:
     post:
       tags: [Registro de prestadores]
       operationId: createProviderRegistration
-      summary: Registrarme como prestador con mi número de identidad
+      summary: Registrarme como prestador con mi tipo y número de documento de identidad
       description: |
-        Crea un registro pendiente que vincula el número de identidad con el ID de Telegram (HU-002).
-        Rechaza duplicados por número de identidad o por cuenta con 409 `duplicate` (sección 3.12).
+        Crea un registro pendiente que vincula el tipo y el número de documento de identidad con el ID de Telegram (HU-002).
+        Formato (D-046): `identityDocumentType` es uno de CC, CE, PPT o PA, e `identityNumber` es texto no vacío, sin caracteres
+        de control y sin reglas de caracteres ni de longitud por tipo. Un tipo fuera de la lista o un número vacío responde 422
+        `validation_failed`, con `errors[].code` igual a `not_in_list` o `required`, sin crear registro (F002, paso 2).
+        Rechaza duplicados por documento o por cuenta con 409 `duplicate` (sección 3.12). El duplicado por documento compara tipo
+        y número (D-054): "CC 123" y "CE 123" son documentos distintos. El número se compara normalizado, sin espacios al inicio
+        ni al final y con las letras en mayúsculas, sin quitar puntos ni espacios internos (D-055).
         Una cuenta con rol de administrador (incluido el administrador principal) recibe 403 `admin_cannot_register_as_provider` (D-038).
-        El formato válido del número de identidad está Pendiente (D-045). El número nunca se devuelve en la respuesta.
+        Ni el tipo ni el número se devuelven en la respuesta, y ninguno de los dos se registra en logs.
         Límite de intentos por cuenta (429; ADR 0006).
       x-roles: [consented_user]
       x-bot-equivalent: true
@@ -182,7 +192,7 @@ paths:
       tags: [Registro de prestadores]
       operationId: listProviderRegistrations
       summary: Listar registros de prestadores (administrador)
-      description: Incluye el número de identidad, visible solo para administradores (D-011). Fuente HU-003.
+      description: Incluye el tipo y el número de documento de identidad, visibles solo para administradores (D-011, D-046). Fuente HU-003.
       x-roles: [admin]
       x-bot-equivalent: true
       parameters:
@@ -208,7 +218,7 @@ paths:
       tags: [Registro de prestadores]
       operationId: getMyProviderRegistration
       summary: Consultar el estado de mi registro de prestador
-      description: No devuelve el número de identidad.
+      description: No devuelve el tipo ni el número de documento de identidad.
       x-roles: [consented_user]
       x-bot-equivalent: true
       responses:
@@ -524,7 +534,10 @@ paths:
       tags: [Catálogos]
       operationId: listExperienceTypes
       summary: Listar tipos de experiencia (lista cerrada)
-      description: Exige el aviso vigente aceptado (D-039).
+      description: |
+        Exige el aviso vigente aceptado (D-039). La semilla de referencia carga en todos los entornos el tipo de experiencia
+        gastronómica "Sabores de Caldas" con `isGastronomic` verdadero, que incluye sus fichas en el directorio gastronómico
+        (sección 3.4; D-048, D-052; ADR 0011). Los demás tipos tienen `isGastronomic` falso.
       x-roles: [consented_user]
       x-bot-equivalent: true
       responses:
@@ -542,7 +555,10 @@ paths:
       tags: [Catálogos]
       operationId: createExperienceType
       summary: Crear un tipo de experiencia
-      description: Lista cerrada administrada por el administrador (D-004). Rechaza duplicados. Canal Mini App, pantalla M11 (D-041).
+      description: |
+        Lista cerrada administrada por el administrador (D-004). Rechaza duplicados. Canal Mini App, pantalla M11 (D-041).
+        Los tipos creados por esta operación no forman parte del directorio gastronómico (`isGastronomic` falso); solo la semilla
+        marca el tipo de experiencia gastronómica (D-048).
       x-roles: [admin]
       x-bot-equivalent: false
       requestBody:
@@ -567,7 +583,9 @@ paths:
       tags: [Catálogos]
       operationId: updateExperienceType
       summary: Editar un tipo de experiencia
-      description: Canal Mini App, pantalla M11 (D-041).
+      description: |
+        Canal Mini App, pantalla M11 (D-041). Cambia el nombre, nunca `isGastronomic` (D-048). Editar el nombre del tipo de
+        experiencia gastronómica sembrado no lo saca del directorio, porque la marca va en la fila y no en el nombre.
       x-roles: [admin]
       x-bot-equivalent: false
       parameters:
@@ -1046,7 +1064,9 @@ paths:
       description: |
         Solo versiones publicadas (invariante 3). Exige el aviso vigente aceptado, también para explorar (D-039).
         Filtros por municipio y categoría (HU-019), tipo de experiencia (HU-021) y directorio gastronómico (HU-011, `gastronomic=true`):
-        fichas `establishment` cuyo tipo es restaurante o café (D-040). Nunca incluye datos personales del prestador.
+        fichas `establishment` cuyo tipo de establecimiento tiene `isGastronomic` (restaurante o café, D-040) y fichas `route_experience`
+        cuyo tipo de experiencia tiene `isGastronomic` (el tipo de experiencia gastronómica de la semilla, D-048). Con `gastronomic=true`
+        y `kind`, el filtro se restringe a ese tipo de ficha. Nunca incluye datos personales del prestador.
       x-roles: [consented_user]
       x-bot-equivalent: true
       parameters:
@@ -1531,18 +1551,21 @@ components:
       type: object
       required: [version, bodyMarkdown, declarationText, publishedAt]
       properties:
-        version: { type: string, examples: ['2026-11-v2'] }
+        version: { type: string, examples: ['2026-11-v3'], description: 'Versión vigente del aviso (D-050)' }
         bodyMarkdown: { type: string, description: 'Texto 1 aprobado por la usuaria (D-034)' }
         declarationText: { type: string, description: Declaración de autorización (Texto 2.1) }
         revocationNote: { type: string, description: 'Frase de D-023 junto a "Revocar mi autorización"' }
-        publishedAt: { type: string, format: date-time }
+        publishedAt:
+          type: string
+          format: date-time
+          description: 'Fecha de publicación en el entorno; en producción es la fecha de vigencia del aviso (D-050)'
 
     ConsentAcceptance:
       type: object
       required: [noticeVersion, accepted]
       additionalProperties: false
       properties:
-        noticeVersion: { type: string }
+        noticeVersion: { type: string, examples: ['2026-11-v3'] }
         accepted: { type: boolean, const: true }
         channel:
           allOf: [{ $ref: '#/components/schemas/ConsentChannel' }]
@@ -1589,22 +1612,39 @@ components:
       type: string
       enum: [pending, approved, rejected]
 
+    IdentityDocumentType:
+      type: string
+      enum: [CC, CE, PPT, PA]
+      description: |
+        Tipo de documento de identidad (D-046, Confirmado). Nombres que muestra la interfaz (Confirmado, D-055; HU-002 criterio 4):
+        CC, cédula de ciudadanía; CE, cédula de extranjería; PPT, Permiso por Protección Temporal; PA, pasaporte.
+        Solo lo ven los administradores; nunca se registra en logs.
+
     ProviderRegistrationCreate:
       type: object
-      required: [identityNumber, confirmed]
+      required: [identityDocumentType, identityNumber, confirmed]
       additionalProperties: false
       properties:
+        identityDocumentType:
+          allOf: [{ $ref: '#/components/schemas/IdentityDocumentType' }]
+          writeOnly: true
+          description: Fuera de la lista responde 422 con `errors[].code` `not_in_list` (D-046).
         identityNumber:
           type: string
           minLength: 1
-          description: Número de identidad. Formato válido Pendiente (D-045); hasta entonces, texto no vacío sin caracteres de control. Nunca se registra en logs.
-          x-pending: D-045
+          maxLength: 4096
+          description: |
+            Número de documento de identidad como texto (D-046). Se aceptan letras, dígitos y signos; no hay reglas de caracteres
+            ni de longitud por tipo. Solo se exige que no quede vacío tras quitar los espacios del inicio y del final, y que no tenga
+            caracteres de control (categoría Unicode Cc). Lo comprueba `validateIdentityNumber` (ADR 0005). 4096 es un máximo técnico
+            (un mensaje de Telegram), no una regla del producto (Confirmado, D-055). Vacío responde 422 `required`; con caracteres de control,
+            `invalid_format`. Nunca se registra en logs.
           writeOnly: true
         confirmed: { type: boolean, const: true }
 
     OwnProviderRegistration:
       type: object
-      description: Vista del propio prestador; no incluye el número de identidad.
+      description: Vista del propio prestador; no incluye el tipo ni el número de documento de identidad.
       required: [id, status, createdAt]
       properties:
         id: { type: string, format: uuid }
@@ -1614,13 +1654,14 @@ components:
 
     AdminProviderRegistration:
       type: object
-      description: Vista del administrador; incluye el número de identidad (D-011).
-      required: [id, telegramUserId, telegramDisplayName, identityNumber, status, createdAt]
+      description: Vista del administrador; incluye el tipo y el número de documento de identidad (D-011, D-046).
+      required: [id, telegramUserId, telegramDisplayName, identityDocumentType, identityNumber, status, createdAt]
       properties:
         id: { type: string, format: uuid }
         telegramUserId: { $ref: '#/components/schemas/TelegramUserId' }
         telegramDisplayName: { type: string }
-        identityNumber: { type: string, description: Visible solo para administradores }
+        identityDocumentType: { $ref: '#/components/schemas/IdentityDocumentType' }
+        identityNumber: { type: string, description: 'Visible solo para administradores; tal como lo escribió la persona, sin espacios al inicio ni al final' }
         status: { $ref: '#/components/schemas/ProviderRegistrationStatus' }
         createdAt: { type: string, format: date-time }
         decidedAt: { type: [string, 'null'], format: date-time }
@@ -1731,7 +1772,8 @@ components:
           description: |
             Marca del directorio gastronómico. Solo lectura: la fija la semilla de referencia, no la API.
             Tipos de establecimiento: verdadera solo en restaurante y café (D-040). Categorías: siempre falsa.
-            Tipos de experiencia: falsa mientras la usuaria no indique qué tipo es "experiencia gastronómica" (sección 3.4; Pendiente).
+            Tipos de experiencia: verdadera solo en "Sabores de Caldas", el tipo de experiencia gastronómica que carga la semilla
+            (sección 3.4; D-048, D-052).
 
     CatalogItemCreate:
       type: object
@@ -1781,7 +1823,7 @@ components:
           type: [string, 'null']
           format: uuid
           description: 'Opcional (D-040). Solo establecimientos. Restaurante o café la incluyen en el directorio gastronómico'
-        experienceTypeId: { type: string, format: uuid, description: 'Solo rutas y experiencias; obligatorio al enviar a revisión (F018)' }
+        experienceTypeId: { type: string, format: uuid, description: 'Solo rutas y experiencias; obligatorio al enviar a revisión (F018). El tipo de experiencia gastronómica la incluye en el directorio gastronómico (D-048)' }
         description: { type: string, maxLength: 1500, description: 'Descripción (D-042)' }
         schedule: { type: string, maxLength: 300, description: 'Horarios en texto (D-042)' }
         contact: { type: string, maxLength: 200, description: 'Datos de contacto que el prestador decide publicar (D-042)' }

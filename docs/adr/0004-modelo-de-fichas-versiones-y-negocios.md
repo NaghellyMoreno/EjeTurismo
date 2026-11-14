@@ -1,8 +1,8 @@
 # 0004. Prestador, negocio y ficha separados; ficha con versiones publicada y pendiente
 
-- **Estado:** Propuesta (revisada en la iteración 1 de preparación: C-02, M-13, D-040, D-043, D-044)
+- **Estado:** Propuesta (revisada en la iteración 1 de preparación: C-02, M-13, D-040, D-043, D-044; en la iteración 2: M-16, D-048; y en la iteración 3: D-052, D-058)
 - **Fecha:** 2026-11-14
-- **Fuente:** secciones 2.4, 3.2, 3.3, 3.4, 3.5 y 3.12; HU-009 a HU-012, HU-014 a HU-016, HU-028; D-003, D-004, D-005, D-006, D-014, D-019, D-024, D-029, D-040, D-043, D-044; guía de agentes (architect)
+- **Fuente:** secciones 2.4, 3.2, 3.3, 3.4, 3.5 y 3.12; HU-009 a HU-012, HU-014 a HU-016, HU-028; D-003, D-004, D-005, D-006, D-014, D-019, D-024, D-029, D-040, D-043, D-044, D-048, D-052, D-058; guía de agentes (architect)
 
 ## Contexto
 - Errores comunes señalados por la guía: modelar prestador y establecimiento como lo mismo, y sobrescribir la ficha publicada al editar.
@@ -43,10 +43,16 @@ Tipos de establecimiento (D-040):
 - Lista cerrada administrada por el administrador en la Mini App (D-041), con el mismo modelo que las categorías (`establishment_types`). La semilla de referencia carga hotel, finca cafetera, alojamiento rural, restaurante y café.
 - Es un dato opcional de la ficha de establecimiento.
 
-Directorio gastronómico (sección 3.4; D-004, D-040):
-- Lo forman las fichas publicadas `establishment` cuyo tipo de establecimiento es restaurante o café (D-040). El mecanismo es la columna `establishment_types.is_gastronomic`, que la semilla marca solo en restaurante y café. La API no permite cambiarla, para que el directorio no se aparte de D-040.
-- La sección 3.4 nombra también las "experiencias gastronómicas". La columna `experience_types.is_gastronomic` existe con valor falso por defecto, de modo que, mientras la usuaria no indique qué tipo de experiencia lo es, el directorio contiene solo restaurantes y cafés (lectura literal de D-040). Queda Pendiente en `docs/03-arquitectura.md`.
-- Una ficha de establecimiento sin tipo no aparece en el directorio gastronómico. Sí aparece en la exploración por municipio y categoría.
+Directorio gastronómico (sección 3.4; D-004, D-040, D-048):
+- Lo forman dos grupos de fichas publicadas (Confirmado, D-048):
+  - fichas `establishment` cuyo tipo de establecimiento tiene `is_gastronomic`: restaurante y café (D-040; D-048 deja D-040 como la lista de tipos de establecimiento del directorio);
+  - fichas `route_experience` cuyo tipo de experiencia tiene `is_gastronomic`: el tipo de experiencia gastronómica "Sabores de Caldas" que carga la semilla de referencia (sección 3.4, "experiencias gastronómicas"; D-048, D-052).
+- El mecanismo son las columnas `establishment_types.is_gastronomic` y `experience_types.is_gastronomic`, con valor falso por defecto. Solo la semilla de referencia las marca (ADR 0011): restaurante y café, y un único tipo de experiencia gastronómica. Las protegen dos capas:
+  - API: ningún esquema de entrada tiene el campo, y `createExperienceType`, `updateExperienceType`, `createEstablishmentType` y `updateEstablishmentType` no lo cambian;
+  - base de datos: el rol `eje_app` no tiene privilegio de columna `INSERT` ni `UPDATE` sobre `is_gastronomic` en ninguna de las dos tablas. La semilla se carga con el rol de migraciones.
+- El tipo de experiencia gastronómica se llama "Sabores de Caldas" (Confirmado, D-052). La semilla lo carga con ese nombre y un UUID fijo en todos los entornos, de modo que cambiar el nombre en M11 no cambia la fila ni la marca (ADR 0011).
+- `listPublishedListings` con `gastronomic=true` devuelve la unión de los dos grupos, con los mismos filtros de municipio y paginación que el resto de la exploración. B18 muestra los dos grupos.
+- Una ficha de establecimiento sin tipo, o una experiencia de un tipo no gastronómico, no aparece en el directorio gastronómico. Sí aparece en la exploración por municipio y categoría, y la experiencia también en la de tipo de experiencia (B17).
 
 ## Alternativas consideradas
 | Alternativa | A favor | En contra |
@@ -54,9 +60,13 @@ Directorio gastronómico (sección 3.4; D-004, D-040):
 | Una tabla `listings` con columnas duplicadas `published_*` y `pending_*` | Consultas simples | Duplica cada campo y las fotos; difícil de auditar; propenso a sobrescribir |
 | Historial como copia JSON en una tabla de auditoría | Flexible | La versión publicada no tendría restricciones ni claves foráneas |
 | Ficha ligada directamente al prestador (sin negocio) | Menos tablas | Es el error común de la guía; impide la separación por negocio y conservar fichas al revocar |
+| Experiencias gastronómicas como un nuevo `kind` de ficha | El directorio no depende del catálogo | Duplica el formulario y las reglas de `route_experience`; D-048 pide un tipo de experiencia, no un tipo de ficha |
+| Permitir que el administrador marque `is_gastronomic` en M11 | Flexible | El directorio dejaría de coincidir con D-040 y D-048 sin una decisión de la usuaria |
+| Reconocer el tipo gastronómico por su nombre | Sin columna | El administrador puede editar el nombre "Sabores de Caldas" en M11; la marca en la fila no depende del nombre |
 
 ## Consecuencias
 - Más fácil: la versión publicada nunca se modifica en sitio; el historial y la comparación entre versiones (HU-016 criterio 4) salen de comparar dos filas.
 - Más difícil: copiar fotos (referencias) al crear un borrador; limpiar fotos huérfanas de versiones descartadas (ADR 0007).
 - Al revocar un prestador, `businesses.provider_account_id` queda nulo: sus fichas no publicadas no las puede editar nadie y nunca son visibles; las publicadas siguen visibles hasta la eliminación del 31 de enero de 2027, que borra las fichas de prestadores con sus fotos (D-043).
 - Un prestador que no elige tipo de establecimiento no aparece en el directorio gastronómico, aunque su ficha sea de un restaurante. Es efecto de D-040 (tipo opcional). Se propone que el formulario M05 lo advierta junto al campo (texto Inferido).
+- Las experiencias gastronómicas entran al directorio sin cambios en el esquema de fichas: basta con la fila sembrada "Sabores de Caldas" (D-048, D-052). F017, paso 5, crea fichas `route_experience`, que es la capacidad de F018; por eso F017 depende de F018, que se construye antes (F018 con prioridad 6 y F017 con prioridad 7, D-058).

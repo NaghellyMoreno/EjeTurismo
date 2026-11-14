@@ -11,7 +11,7 @@
       "Verificar que el bot muestra el aviso de privacidad con un botón para aceptarlo antes de cualquier otra opción",
       "Pulsar la opción de no aceptar y verificar que el bot explica que debe aceptar para continuar y que no queda guardado ningún dato de la cuenta (D-008)",
       "Enviar /start de nuevo, aceptar el aviso y verificar que el bot muestra el menú inicial",
-      "Verificar que queda registrada la aceptación con fecha y hora en America/Bogota",
+      "Verificar que queda registrada la aceptación con fecha y hora en America/Bogota, canal y versión del aviso \"2026-11-v3\" (D-050)",
       "Cerrar y volver a abrir el bot con la misma cuenta y verificar que el aviso no se muestra otra vez",
       "En el entorno de pruebas, publicar una versión nueva del aviso, abrir el bot con la misma cuenta y verificar que se muestra el aviso nuevo y se pide aceptarlo de nuevo antes de seguir (D-025)"
     ],
@@ -21,16 +21,18 @@
     "id": "F002",
     "category": "functional",
     "priority": 1,
-    "description": "Un usuario que aceptó el aviso se registra en el bot como prestador con su número de identidad; el registro queda vinculado a su ID de Telegram y pendiente de autorización, sin permitir duplicados. Formato válido del número de identidad Pendiente (D-045).",
+    "description": "Un usuario que aceptó el aviso se registra en el bot como prestador con su número de identidad; el registro queda vinculado a su ID de Telegram y pendiente de autorización, sin permitir duplicados. El número de identidad es un texto con tipo de documento CC, CE, PPT o PA (D-046); el duplicado compara tipo y número de documento (D-054), con el número normalizado sin espacios en los extremos y con letras en mayúsculas (D-055).",
     "stories": ["HU-002"],
     "depends_on": ["F001"],
     "steps": [
       "Con una cuenta que aceptó el aviso, elegir en el bot la opción de registrarse como prestador",
-      "Ingresar un número de identidad con formato inválido y verificar que el bot explica el error y vuelve a pedirlo (formato válido Pendiente, D-045)",
-      "Ingresar un número de identidad válido y verificar que el bot pide confirmación antes de registrar",
+      "Verificar que el bot pide el tipo de documento y solo ofrece CC, CE, PPT y PA, cada uno con su nombre visible (cédula de ciudadanía, cédula de extranjería, Permiso por Protección Temporal y pasaporte) (D-046, D-055); escribir como texto la sigla en minúsculas, por ejemplo \"cc\", y verificar que el bot la acepta (D-055); escribir como texto un tipo distinto, por ejemplo \"TI\", y verificar que el bot explica que solo se aceptan esos cuatro tipos y vuelve a pedir el tipo; enviar directamente al backend un registro con un tipo fuera de la lista y otro con el número vacío, y verificar que ambos se rechazan sin crear registro",
+      "Elegir el tipo CC, ingresar un número de identidad no vacío y verificar que el bot pide confirmación antes de registrar",
       "Confirmar y verificar que el bot informa que el registro queda a la espera de autorización del administrador",
       "Intentar usar una función de prestador y verificar que el bot informa que el registro está pendiente y que el backend rechaza la operación",
-      "Desde otra cuenta de Telegram, intentar registrarse con el mismo número de identidad y verificar que se rechaza como duplicado",
+      "Desde otra cuenta de Telegram, intentar registrarse con el mismo tipo (CC) y el mismo número de identidad y verificar que se rechaza como duplicado (D-054)",
+      "Desde una tercera cuenta de Telegram, registrar el tipo PA con el número \"ab123\"; desde una cuarta cuenta, intentar registrar el tipo PA con \" AB123 \" y verificar que se rechaza como duplicado (normalización, D-055)",
+      "Desde la cuarta cuenta, registrar el tipo CE con el mismo número del primer registro (CC) y verificar que el sistema lo acepta, porque el duplicado compara tipo y número (D-054)",
       "Desde la primera cuenta, intentar registrarse de nuevo y verificar que se rechaza como duplicado",
       "Con una cuenta que no aceptó el aviso, intentar registrarse y verificar que no se pide el número de identidad"
     ],
@@ -227,10 +229,10 @@
     "stories": ["HU-007"],
     "depends_on": ["F005"],
     "steps": [
-      "Con una cuenta de administrador, crear el municipio Manizales con nombre e información general, sin zona, y confirmar (municipios iniciales, D-027; zona opcional, D-013)",
-      "Verificar que el municipio aparece en la lista de municipios del administrador y en la opción de explorar del visitante",
-      "Intentar crear otro municipio con el mismo nombre y verificar que se rechaza como duplicado",
-      "Editar la información del municipio, agregar una zona, confirmar y verificar que el cambio se refleja",
+      "Con una cuenta de administrador, verificar que Manizales, Supía y Filadelfia ya aparecen en la lista de municipios, cargados por la semilla (D-027); crear un municipio de prueba que no esté en la semilla con nombre e información general, sin zona, y confirmar (zona opcional, D-013)",
+      "Verificar que el municipio de prueba aparece en la lista de municipios del administrador y en la opción de explorar del visitante",
+      "Intentar crear otro municipio con el mismo nombre que el municipio de prueba, y otro llamado Manizales, y verificar que ambos se rechazan como duplicados",
+      "Editar la información del municipio de prueba, agregar una zona, confirmar y verificar que el cambio se refleja",
       "Verificar que la creación y la edición quedan registradas con fecha y administrador responsable"
     ],
     "passes": false
@@ -418,22 +420,24 @@
   {
     "id": "F017",
     "category": "functional",
-    "priority": 6,
-    "description": "El prestador registra una ficha de tipo de establecimiento restaurante o café, o una experiencia gastronómica, con los campos obligatorios de D-003; sigue el flujo borrador, pendiente, publicada o rechazada y, al publicarse, aparece en el directorio gastronómico (D-004).",
+    "priority": 7,
+    "description": "El prestador registra una ficha de tipo de establecimiento restaurante o café, o una experiencia con el tipo de experiencia gastronómica \"Sabores de Caldas\" que carga la semilla (D-048, D-052), con los campos obligatorios de D-003; sigue el flujo borrador, pendiente, publicada o rechazada y, al publicarse, aparece en el directorio gastronómico (sección 3.4; D-004, D-040, D-048).",
     "stories": ["HU-011"],
-    "depends_on": ["F014"],
+    "depends_on": ["F014", "F018"],
     "steps": [
-      "Con una cuenta de prestador, crear una ficha de establecimiento, elegir el tipo restaurante o café (D-004), completar los campos obligatorios de D-003 y enviarla a revisión con la declaración de D-024 y confirmación",
+      "Con una cuenta de prestador, crear una ficha de establecimiento, elegir el tipo restaurante o café (D-040), completar los campos obligatorios de D-003 y enviarla a revisión con la declaración de D-024 y confirmación",
       "Verificar que queda pendiente y no aparece en el directorio gastronómico del visitante",
       "Con una cuenta de administrador, aprobarla",
-      "Como visitante, abrir el directorio gastronómico del municipio y verificar que aparece la ficha"
+      "Como visitante, abrir el directorio gastronómico del municipio y verificar que aparece la ficha",
+      "Con la cuenta de prestador, crear una ficha de experiencia, elegir el tipo de experiencia \"Sabores de Caldas\" cargado por la semilla (D-048, D-052), completar los campos obligatorios de D-003, enviarla a revisión con la declaración de D-024 y confirmación; con la cuenta de administrador, aprobarla; como visitante, verificar que aparece en el directorio gastronómico del municipio",
+      "Publicar del mismo modo una ficha de establecimiento de tipo hotel y una experiencia con un tipo de experiencia no gastronómico, y verificar que ninguna de las dos aparece en el directorio gastronómico (D-040, D-048)"
     ],
     "passes": false
   },
   {
     "id": "F018",
     "category": "functional",
-    "priority": 7,
+    "priority": 6,
     "description": "El prestador registra una ruta, recorrido, actividad o experiencia con su tipo de experiencia de la lista cerrada (D-004) y los datos del guía como datos de la ficha (D-014); sigue el flujo de validación y, al publicarse, la ve el visitante.",
     "stories": ["HU-012"],
     "depends_on": ["F014"],
@@ -558,7 +562,7 @@
       "Verificar que A recibe un mensaje del bot que le informa que la solicitud ya no está disponible",
       "Como visitante V2, enviar una solicitud a la misma ficha publicada de A; dejar además a A con una ficha en borrador y otra pendiente",
       "Con la cuenta del prestador A, usar \"Revocar mi autorización\" y confirmar",
-      "Verificar que la solicitud de V2 ya no existe en el backend y que V2 recibe un mensaje del bot que le informa que ya no está disponible (D-029; texto Inferido)",
+      "Verificar que la solicitud de V2 ya no existe en el backend y que V2 recibe por el bot el aviso del apartado 2.5 de docs/05-aviso-privacidad.md: \"Una solicitud que enviaste ya no está disponible porque el prestador que la recibió retiró su autorización.\" (D-029, D-049; texto Confirmado, D-057)",
       "Como visitante, abrir en el bot la ficha publicada de A y verificar que sigue visible con su contenido publicado (D-019) y que no ofrece \"Solicitar información\" (D-029)",
       "Con la identidad de un visitante, enviar directamente al backend una solicitud para esa ficha y verificar que se rechaza y no se crea (Inferido a partir de D-029)",
       "Verificar que la ficha en borrador y la pendiente de A conservan su estado y no aparecen en ninguna consulta del visitante (D-029)"
