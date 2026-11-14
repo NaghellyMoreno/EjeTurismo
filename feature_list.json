@@ -1,0 +1,583 @@
+[
+  {
+    "id": "F001",
+    "category": "privacy",
+    "priority": 1,
+    "description": "Al iniciar el bot por primera vez, el usuario ve el aviso de privacidad y tratamiento de datos y debe aceptarlo antes de que se le pida o guarde cualquier dato personal; si no lo acepta no se guarda ningún dato (D-008). Texto del aviso aprobado (D-034), en docs/05-aviso-privacidad.md.",
+    "stories": ["HU-001"],
+    "depends_on": [],
+    "steps": [
+      "Abrir el bot con una cuenta de Telegram que nunca lo ha usado y enviar /start",
+      "Verificar que el bot muestra el aviso de privacidad con un botón para aceptarlo antes de cualquier otra opción",
+      "Pulsar la opción de no aceptar y verificar que el bot explica que debe aceptar para continuar y que no queda guardado ningún dato de la cuenta (D-008)",
+      "Enviar /start de nuevo, aceptar el aviso y verificar que el bot muestra el menú inicial",
+      "Verificar que queda registrada la aceptación con fecha y hora en America/Bogota",
+      "Cerrar y volver a abrir el bot con la misma cuenta y verificar que el aviso no se muestra otra vez",
+      "En el entorno de pruebas, publicar una versión nueva del aviso, abrir el bot con la misma cuenta y verificar que se muestra el aviso nuevo y se pide aceptarlo de nuevo antes de seguir (D-025)"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F002",
+    "category": "functional",
+    "priority": 1,
+    "description": "Un usuario que aceptó el aviso se registra en el bot como prestador con su número de identidad; el registro queda vinculado a su ID de Telegram y pendiente de autorización, sin permitir duplicados. Formato válido del número de identidad Pendiente (D-045).",
+    "stories": ["HU-002"],
+    "depends_on": ["F001"],
+    "steps": [
+      "Con una cuenta que aceptó el aviso, elegir en el bot la opción de registrarse como prestador",
+      "Ingresar un número de identidad con formato inválido y verificar que el bot explica el error y vuelve a pedirlo (formato válido Pendiente, D-045)",
+      "Ingresar un número de identidad válido y verificar que el bot pide confirmación antes de registrar",
+      "Confirmar y verificar que el bot informa que el registro queda a la espera de autorización del administrador",
+      "Intentar usar una función de prestador y verificar que el bot informa que el registro está pendiente y que el backend rechaza la operación",
+      "Desde otra cuenta de Telegram, intentar registrarse con el mismo número de identidad y verificar que se rechaza como duplicado",
+      "Desde la primera cuenta, intentar registrarse de nuevo y verificar que se rechaza como duplicado",
+      "Con una cuenta que no aceptó el aviso, intentar registrarse y verificar que no se pide el número de identidad"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F003",
+    "category": "functional",
+    "priority": 1,
+    "description": "El administrador consulta en el bot los registros pendientes de prestadores, con su número de identidad (D-011), y los autoriza o rechaza con confirmación; el usuario recibe el resultado por el bot y la decisión queda registrada.",
+    "stories": ["HU-003"],
+    "depends_on": ["F002"],
+    "steps": [
+      "Con una cuenta de administrador, abrir en el bot la lista de registros pendientes y verificar que aparece el registro creado en F002 con ID de Telegram, nombre de Telegram, número de identidad y fecha (D-011)",
+      "Elegir autorizar, cancelar en la confirmación y verificar que el registro sigue pendiente",
+      "Elegir autorizar y confirmar; verificar que el usuario recibe un mensaje del bot y que al abrir el bot ve el menú de prestador",
+      "Crear otro registro pendiente, rechazarlo con confirmación y verificar que ese usuario recibe el mensaje de rechazo y no obtiene el rol",
+      "Verificar que ambas decisiones quedan registradas con fecha, administrador responsable y resultado"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F004",
+    "category": "functional",
+    "priority": 1,
+    "description": "El administrador principal, fijado por su ID de Telegram en la configuración de la publicación, entra como administrador sin registro; un administrador autoriza el ID de Telegram de otra persona como administrador, con confirmación, sin duplicados y sin pedirle número de identidad (D-007, D-032).",
+    "stories": ["HU-004"],
+    "depends_on": ["F001"],
+    "steps": [
+      "En el entorno de pruebas, con la cuenta cuyo ID de Telegram está fijado en la configuración de la publicación, abrir el bot, aceptar el aviso y verificar que ve el menú de administrador sin registro ni número de identidad (D-007)",
+      "Con esa cuenta, elegir la opción de autorizar administrador e ingresar el ID de Telegram de otra cuenta",
+      "Confirmar y verificar que el bot informa que la autorización se completó",
+      "Abrir el bot con la cuenta autorizada y verificar que ve el menú de administrador y que en ningún momento se le pide número de identidad (D-007)",
+      "Intentar autorizar de nuevo el mismo ID y verificar que el bot informa que ya está autorizado y no crea un duplicado",
+      "Ingresar un ID con formato no numérico y verificar que se rechaza con un mensaje claro"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F005",
+    "category": "functional",
+    "priority": 1,
+    "description": "Un prestador o administrador autorizado abre el bot y ve el menú de su rol sin repetir el registro; un usuario sin rol solo ve las opciones de visitante y de registro; una cuenta de administrador no puede registrarse también como prestador (D-038).",
+    "stories": ["HU-006"],
+    "depends_on": ["F003", "F004"],
+    "steps": [
+      "Abrir el bot con la cuenta de prestador autorizada en F003 y verificar que se muestra el menú de prestador sin pedir el número de identidad",
+      "Abrir el bot con una cuenta de administrador y verificar que se muestra el menú de administrador",
+      "Con una cuenta de administrador, intentar registrarse como prestador (en el bot y con una petición directa al backend) y verificar que se rechaza y que no se crea ningún registro de prestador (D-038)",
+      "Abrir el bot con una cuenta sin rol y verificar que solo se muestran las opciones de visitante y la de registrarse como prestador",
+      "Abrir la Mini App con cada una de las tres cuentas y verificar que muestra solo las opciones del rol que informa el backend"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F006",
+    "category": "functional",
+    "priority": 1,
+    "description": "Con la opción \"Revocar rol\" del menú de administrador, el administrador quita, con confirmación, el rol de un prestador o de otro administrador; el usuario afectado pierde el acceso de inmediato (D-015, D-020). A un prestador, \"Revocar rol\" solo le quita el rol; sus fichas publicadas dejan de aceptar solicitudes nuevas (D-043).",
+    "stories": ["HU-005"],
+    "depends_on": ["F005"],
+    "steps": [
+      "Con una cuenta de administrador, abrir el menú y verificar que la opción se llama \"Revocar rol\" y es distinta de \"Revocar mi autorización\"",
+      "Elegir \"Revocar rol\" sobre un prestador autorizado, cancelar en la confirmación y verificar que el prestador conserva el rol",
+      "Elegir \"Revocar rol\" sobre el mismo prestador y confirmar",
+      "Con la cuenta del prestador revocado, intentar abrir su lista de fichas y verificar que el bot ya no muestra el menú de prestador y que el backend rechaza la petición",
+      "Elegir \"Revocar rol\" sobre un administrador autorizado en F004, confirmar y verificar que esa cuenta ya no ve el menú de administrador y que el backend rechaza sus operaciones de administrador",
+      "Verificar que cada revocación queda registrada con fecha, responsable y usuario afectado",
+      "Intentar \"Revocar rol\" sobre el administrador principal y verificar que el sistema lo impide y que el mensaje explica el motivo nombrándolo \"administrador principal\" (regla Inferida a partir de D-007 y D-020, pregunta 21 sin respuesta; nombre D-032)",
+      "Con la única cuenta de administrador, intentar revocarse el rol a sí misma y verificar que el sistema lo impide (D-020)"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F007",
+    "category": "security",
+    "priority": 1,
+    "description": "Un visitante, un usuario con registro pendiente o una petición sin identidad de Telegram válida no pueden ejecutar acciones de administrador ni de prestador, verificado contra el backend.",
+    "stories": ["HU-003", "HU-006"],
+    "depends_on": ["F005"],
+    "steps": [
+      "Enviar al backend, sin identidad de Telegram, una petición para aprobar una ficha y verificar que responde acceso denegado (401 o 403) y no cambia nada",
+      "Con la identidad de una cuenta visitante, enviar directamente al backend peticiones para crear un municipio, autorizar un ID y crear una ficha de prestador, y verificar que todas responden acceso denegado",
+      "Con la identidad de una cuenta con registro pendiente, enviar una petición para crear una ficha y verificar que responde acceso denegado",
+      "Verificar que en la base de datos no se creó ni modificó ningún registro por esas peticiones"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F008",
+    "category": "security",
+    "priority": 1,
+    "description": "Un prestador autorizado no puede ejecutar acciones de administrador (autorizar IDs, gestionar municipios o categorías, aprobar o rechazar fichas), verificado contra el backend.",
+    "stories": ["HU-004", "HU-014"],
+    "depends_on": ["F005"],
+    "steps": [
+      "Con la identidad de un prestador, enviar al backend una petición para autorizar un ID como administrador y verificar que responde acceso denegado",
+      "Con la identidad de un prestador, enviar peticiones para crear un municipio y una categoría y verificar que responden acceso denegado",
+      "Con la identidad de un prestador, enviar una petición para aprobar su propia ficha pendiente y verificar que responde acceso denegado y la ficha sigue pendiente",
+      "Verificar que el menú del prestador en el bot y en la Mini App no muestra opciones de administrador"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F009",
+    "category": "security",
+    "priority": 1,
+    "description": "El backend rechaza toda petición de la Mini App cuyos datos de inicio de Telegram no tengan firma válida o hayan sido alterados. (Inferido, sección 3.16)",
+    "stories": ["HU-006"],
+    "depends_on": ["F005"],
+    "steps": [
+      "Enviar al backend una petición de la Mini App sin datos de inicio de Telegram y verificar que responde acceso denegado",
+      "Enviar una petición con datos de inicio cuya firma fue alterada (por ejemplo, cambiando el ID de usuario por el de un administrador) y verificar que responde acceso denegado",
+      "Abrir la Mini App normalmente desde Telegram y verificar que las peticiones se aceptan"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F028",
+    "category": "ui",
+    "priority": 1,
+    "description": "En cualquier formulario conversacional del bot, el usuario puede cancelar sin que se guarde nada, las entradas inválidas se explican y repiten solo el paso afectado, y los errores del sistema muestran un mensaje claro sin datos técnicos.",
+    "stories": ["HU-027"],
+    "depends_on": ["F002"],
+    "steps": [
+      "Iniciar el registro de prestador, ingresar el número de identidad y elegir cancelar antes de confirmar; verificar que el bot confirma la cancelación, vuelve al menú y no existe registro guardado",
+      "Iniciar de nuevo el formulario, enviar una entrada inválida y verificar que el bot explica el error y repite solo ese paso",
+      "Enviar un mensaje de texto cuando el bot espera un botón y verificar que responde con una indicación clara",
+      "Provocar un error del backend en el entorno de pruebas y verificar que el bot muestra un mensaje claro en español sin detalles técnicos ni datos personales"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F034",
+    "category": "privacy",
+    "priority": 1,
+    "description": "En el inicio del bot, un usuario que aceptó el aviso usa la opción \"Revocar mi autorización\" con confirmación; se borran de inmediato sus datos y la vinculación de su chat, solo queda la prueba de autorización y revocación sin número de identidad, y para volver a usar el bot debe aceptar el aviso de nuevo (D-018, D-019, D-021, D-023).",
+    "stories": ["HU-030"],
+    "depends_on": ["F001"],
+    "steps": [
+      "Con una cuenta sin rol que aceptó el aviso, enviar /start y verificar que el menú inicial muestra la opción \"Revocar mi autorización\"",
+      "Verificar que junto a la opción aparece la frase \"El número de identidad se usa solo para verificar tu identidad y atender tu solicitud de registro como prestador\" (D-023)",
+      "Pulsar la opción y verificar que el bot pide confirmación y explica qué se borra",
+      "Pulsar \"Cancelar\" y verificar que el bot informa que no se hizo ningún cambio, vuelve al menú y la aceptación sigue registrada",
+      "Pulsar de nuevo la opción, confirmar y verificar que el bot informa que la autorización fue revocada",
+      "Verificar que se borró la vinculación del chat de Telegram de esa cuenta y que solo queda la prueba de autorización y revocación con fecha y hora en America/Bogota, canal y versión del aviso, sin número de identidad",
+      "Enviar /start con la misma cuenta y verificar que el bot muestra de nuevo el aviso de privacidad antes de cualquier otra opción",
+      "Aceptar el aviso y verificar que la cuenta vuelve a usar el bot como visitante (D-019)",
+      "Verificar que en ningún paso se pide, envía o solicita un código (D-018)"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F035",
+    "category": "privacy",
+    "priority": 1,
+    "description": "Cuando un prestador revoca su autorización en el bot, se borran su número de identidad y su registro y pierde el rol; un administrador que revoca pierde el rol, salvo el administrador principal o el único administrador, a quienes el bot no les permite revocar (D-019, D-020, D-032). Los efectos sobre fichas y solicitudes del prestador (D-029) se verifican en F037.",
+    "stories": ["HU-030"],
+    "depends_on": ["F034", "F003", "F004"],
+    "steps": [
+      "Con un prestador autorizado en F003, usar \"Revocar mi autorización\" y verificar que el mensaje de confirmación advierte que se borrará su número de identidad y perderá el rol de prestador",
+      "Confirmar y verificar que el bot ya no muestra el menú de prestador y que el backend rechaza una operación de prestador con su identidad",
+      "Verificar que su número de identidad y su registro de prestador ya no existen y que la prueba de autorización y revocación guardada no contiene el número de identidad",
+      "Con un administrador autorizado en F004 que no es el administrador principal, usar \"Revocar mi autorización\", confirmar y verificar que pierde el rol de administrador y que el backend rechaza sus operaciones de administrador",
+      "Con el administrador principal, elegir \"Revocar mi autorización\" y verificar que el bot lo impide, explica el motivo nombrándolo \"administrador principal\" (D-032) y no borra ni cambia nada",
+      "Dejar una sola cuenta de administrador, elegir con ella \"Revocar mi autorización\" y verificar que el bot lo impide y explica el motivo"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F036",
+    "category": "privacy",
+    "priority": 1,
+    "description": "Quien entra primero por la Mini App ve el mismo aviso de privacidad y la misma declaración que en el bot antes de cualquier otro paso, y en la pantalla inicial de la Mini App encuentra la opción \"Revocar mi autorización\" con los mismos efectos que en el bot (D-018, D-025).",
+    "stories": ["HU-001", "HU-030"],
+    "depends_on": ["F034", "F005", "F009"],
+    "steps": [
+      "Con una cuenta que nunca usó Eje Turismo, abrir primero la Mini App y verificar que muestra el mismo aviso y la misma declaración que el bot antes de cualquier otro paso",
+      "Pulsar \"No acepto\" y verificar que no queda guardado ningún dato de la cuenta (D-008)",
+      "Abrir de nuevo la Mini App, aceptar y verificar que queda registrada la aceptación con fecha y hora en America/Bogota, canal Mini App y versión del aviso",
+      "Abrir el bot con la misma cuenta y verificar que no se pide aceptar el aviso otra vez (Inferido)",
+      "En la pantalla inicial de la Mini App, verificar que aparece la opción \"Revocar mi autorización\" con la frase de D-023",
+      "Elegir la opción, cancelar en la confirmación y verificar que no cambia nada",
+      "Elegir la opción, confirmar y verificar los mismos efectos que en F034, con canal Mini App en la prueba de revocación",
+      "Abrir de nuevo la Mini App y verificar que muestra el aviso antes de cualquier otro paso"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F010",
+    "category": "functional",
+    "priority": 2,
+    "description": "El administrador crea y edita municipios con confirmación, sin duplicados y con registro de fecha y responsable; zona es un dato opcional (D-013).",
+    "stories": ["HU-007"],
+    "depends_on": ["F005"],
+    "steps": [
+      "Con una cuenta de administrador, crear el municipio Manizales con nombre e información general, sin zona, y confirmar (municipios iniciales, D-027; zona opcional, D-013)",
+      "Verificar que el municipio aparece en la lista de municipios del administrador y en la opción de explorar del visitante",
+      "Intentar crear otro municipio con el mismo nombre y verificar que se rechaza como duplicado",
+      "Editar la información del municipio, agregar una zona, confirmar y verificar que el cambio se refleja",
+      "Verificar que la creación y la edición quedan registradas con fecha y administrador responsable"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F011",
+    "category": "functional",
+    "priority": 2,
+    "description": "El administrador crea y edita categorías y tipos de experiencia, sin duplicados; son listas cerradas con las que se clasifican las fichas (D-004).",
+    "stories": ["HU-008"],
+    "depends_on": ["F005"],
+    "steps": [
+      "Con una cuenta de administrador, crear una categoría y un tipo de experiencia y confirmar cada uno",
+      "Verificar que ambos aparecen como opciones al registrar una ficha y que el formulario de ficha no permite escribir una categoría ni un tipo nuevo (D-004)",
+      "Intentar crear una categoría con un nombre ya existente y verificar que se rechaza",
+      "Editar el nombre de la categoría, confirmar y verificar que el nuevo nombre aparece en las fichas que la usan (Inferido)"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F012",
+    "category": "functional",
+    "priority": 3,
+    "description": "El administrador registra en la Mini App la ficha de un atractivo turístico (natural, cultural, histórico o patrimonial) con los campos obligatorios de D-003; queda publicada sin validación (D-005) y se rechazan datos inválidos y duplicados (mismo nombre en el mismo municipio).",
+    "stories": ["HU-009"],
+    "depends_on": ["F010", "F011", "F009"],
+    "steps": [
+      "Con una cuenta de administrador, abrir en la Mini App el formulario de atractivo y dejar vacío el campo de horarios; verificar que el sistema indica qué campo falta y no guarda",
+      "Completar nombre, municipio, categoría, descripción, horarios, contacto y enlace de Maps (D-003) y confirmar",
+      "Verificar que el atractivo queda publicado sin pasar por validación y aparece en la exploración del visitante para su municipio y categoría (D-005)",
+      "Intentar registrar otro atractivo con el mismo nombre en el mismo municipio y verificar que se rechaza como duplicado (D-003)",
+      "Registrar un atractivo con el mismo nombre en otro municipio y verificar que se acepta (D-003)"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F013",
+    "category": "functional",
+    "priority": 4,
+    "description": "El prestador registra en la Mini App la ficha de su establecimiento o alojamiento con los campos obligatorios de D-003, que queda en borrador asociada a su negocio, y la envía a revisión con confirmación y declaración de autorización de terceros, quedando pendiente y no visible al visitante. Un prestador puede tener varios negocios (D-006).",
+    "stories": ["HU-010"],
+    "depends_on": ["F005", "F010", "F011", "F009"],
+    "steps": [
+      "Con una cuenta de prestador, crear en la Mini App una ficha de establecimiento con nombre, municipio, categoría, descripción, horarios, contacto y enlace de Maps (D-003) y guardarla",
+      "Verificar que la ficha aparece en la lista del prestador con estado borrador y que no aparece en la exploración del visitante",
+      "Dejar vacío el campo de contacto e intentar enviar a revisión; verificar que el sistema indica el campo y no la envía",
+      "Completar los campos, elegir enviar a revisión y verificar que el sistema pide al prestador declarar que tiene la autorización de los guías y contactos cuyos datos incluye en la ficha; sin la declaración no se envía (D-024)",
+      "Hacer la declaración, confirmar y verificar que el estado pasa a pendiente",
+      "Intentar editar la ficha pendiente y verificar que el sistema no lo permite hasta que el administrador decida (Inferido)",
+      "Verificar que la ficha sigue sin aparecer en la exploración del visitante",
+      "Intentar crear otra ficha con el mismo nombre en el mismo municipio y verificar que se rechaza como duplicado (D-003)",
+      "Con el mismo prestador, crear la ficha de otro establecimiento con otro nombre y verificar que ambas aparecen en su lista (varios negocios, D-006; una ficha por negocio, Inferido)",
+      "En la Mini App, empezar una ficha nueva, cancelar antes de guardar y verificar que no se crea ninguna ficha (sección 3.12)",
+      "En el entorno de pruebas, provocar un error del backend al guardar y verificar que la Mini App muestra un mensaje claro en español sin detalles técnicos ni datos personales; abrir la Mini App con datos de inicio vencidos y verificar que pide reabrirla desde el bot (pantalla M12)"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F014",
+    "category": "functional",
+    "priority": 4,
+    "description": "El administrador aprueba en el bot una ficha pendiente (pasa a publicada y la ve el visitante) o la rechaza con motivo obligatorio (pasa a rechazada); el prestador ve el estado y el motivo, y puede corregir y reenviar.",
+    "stories": ["HU-014", "HU-015"],
+    "depends_on": ["F013"],
+    "steps": [
+      "Con una cuenta de administrador, abrir en el bot la lista de fichas pendientes y verificar que aparece la ficha de F013 (D-002)",
+      "Elegir rechazar sin escribir motivo y verificar que el sistema exige el motivo",
+      "Escribir un motivo, confirmar y verificar que la ficha pasa a rechazada y el prestador recibe un mensaje del bot (mensaje Inferido)",
+      "Con la cuenta del prestador, abrir la ficha y verificar que ve el estado rechazada y el motivo escrito",
+      "Corregir la ficha, reenviarla y verificar que vuelve a pendiente (Inferido)",
+      "Con la cuenta de administrador, aprobarla con confirmación y verificar que pasa a publicada y aparece en la exploración del visitante",
+      "Verificar que el rechazo y la aprobación quedan registrados con fecha, responsable y motivo"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F015",
+    "category": "functional",
+    "priority": 4,
+    "description": "Al editar una ficha publicada se crea una versión pendiente; el visitante sigue viendo la versión publicada hasta que el administrador apruebe la nueva, y si la rechaza se descarta y se conserva la publicada.",
+    "stories": ["HU-016"],
+    "depends_on": ["F014"],
+    "steps": [
+      "Con la cuenta del prestador, editar el horario de la ficha publicada en F014 y enviar a revisión con confirmación",
+      "Como visitante, abrir la ficha y verificar que muestra el horario anterior",
+      "Con la cuenta de administrador, abrir la versión pendiente y verificar que se distingue qué cambió respecto a la publicada (Inferido)",
+      "Rechazar la versión pendiente con motivo y verificar que el visitante sigue viendo el horario anterior y el prestador ve el motivo",
+      "Editar de nuevo, enviar a revisión y aprobar; verificar que el visitante ahora ve el nuevo horario",
+      "Verificar que el prestador no tiene opción para despublicar ni eliminar la ficha (D-014)"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F016",
+    "category": "security",
+    "priority": 4,
+    "description": "Un prestador no puede ver, editar ni enviar a revisión las fichas de otro negocio, verificado contra el backend.",
+    "stories": ["HU-010"],
+    "depends_on": ["F013"],
+    "steps": [
+      "Crear dos prestadores autorizados, A y B, cada uno con una ficha en borrador",
+      "Con la cuenta de A, verificar que su lista de fichas no muestra la ficha de B en el bot ni en la Mini App",
+      "Con la identidad de A, pedir directamente al backend la ficha en borrador de B y verificar que responde acceso denegado",
+      "Con la identidad de A, enviar al backend una edición y un envío a revisión de la ficha de B y verificar que responden acceso denegado y la ficha de B no cambia"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F029",
+    "category": "functional",
+    "priority": 4,
+    "description": "El administrador consulta el historial de estados de una ficha con fecha y hora, responsable y motivo de rechazo. (Consulta Inferida, sección 3.12)",
+    "stories": ["HU-028"],
+    "depends_on": ["F014"],
+    "steps": [
+      "Con una cuenta de administrador, abrir el historial de la ficha usada en F014",
+      "Verificar que lista en orden los cambios borrador, pendiente, rechazada, pendiente y publicada",
+      "Verificar que cada cambio muestra fecha y hora en America/Bogota y el responsable, y que el rechazo muestra su motivo"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F020",
+    "category": "functional",
+    "priority": 5,
+    "description": "El prestador o el administrador agrega fotografías a una ficha propia; se rechazan archivos que no son imagen, la foto número 11 de una ficha enviada a aprobación, lo que supere 2 GB en total por ficha (D-031), las fotos de más de 5 MB y lo que supere la cuota global de 900 MB (D-042); puede quitar una foto con confirmación, y el visitante solo ve las fotos de la versión publicada.",
+    "stories": ["HU-017"],
+    "depends_on": ["F013"],
+    "steps": [
+      "Con una cuenta de prestador, subir una fotografía a su ficha en borrador y verificar que queda asociada",
+      "Intentar subir un archivo que no es imagen y verificar que se rechaza con un mensaje claro",
+      "Subir fotos hasta completar 10 en la ficha, intentar agregar una más y verificar que se rechaza con un mensaje claro (D-031)",
+      "En el entorno de pruebas, intentar subir una foto de más de 5 MB y verificar que se rechaza (D-042); con BLOB_STORAGE_QUOTA_BYTES reducido, subir fotos hasta superar la cuota global y verificar el rechazo con un mensaje claro (D-042). El tope de 2 GB por ficha (D-031) se verifica con la prueba de integración de límites, porque con 10 fotos de 5 MB una ficha llega como máximo a 50 MB",
+      "Con una cuenta de prestador, elegir quitar una foto de su ficha en borrador, cancelar en la confirmación y verificar que la foto sigue asociada; elegir quitarla de nuevo, confirmar y verificar que ya no aparece en la ficha",
+      "Enviar a aprobación la ficha con 10 fotos y verificar que el visitante no ve las fotos mientras la ficha no esté publicada y que las ve después de la aprobación",
+      "Agregar una foto a una ficha publicada que tenga menos de 10 y verificar que el visitante no la ve hasta aprobar la nueva versión",
+      "Con una cuenta de administrador, intentar agregar una foto número 11 a un atractivo y verificar que se rechaza (mismo límite para atractivos, Inferido)"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F021",
+    "category": "functional",
+    "priority": 5,
+    "description": "El prestador o el administrador registra la ubicación de una ficha con un enlace de Google Maps, campo obligatorio (D-003); el visitante pulsa el botón de ubicación y se abre el enlace.",
+    "stories": ["HU-018"],
+    "depends_on": ["F013"],
+    "steps": [
+      "Con una cuenta de prestador, ingresar en su ficha un enlace que no es de Google Maps y verificar que se rechaza con un mensaje claro (Inferido)",
+      "Ingresar un enlace válido de Google Maps, guardar y llevar la ficha hasta publicada",
+      "Como visitante, abrir la ficha, pulsar el botón de ubicación y verificar que se abre Google Maps en el lugar indicado"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F022",
+    "category": "functional",
+    "priority": 5,
+    "description": "El visitante, sin registro, explora en el bot por municipio y categoría con botones y ve solo las fichas publicadas.",
+    "stories": ["HU-019"],
+    "depends_on": ["F012", "F014"],
+    "steps": [
+      "Con una cuenta sin rol que aceptó el aviso, elegir explorar y verificar que el bot muestra los municipios como botones",
+      "Elegir un municipio y una categoría y verificar que se listan solo las fichas publicadas de ese municipio y categoría",
+      "Verificar que no aparecen las fichas en borrador, pendiente ni rechazada creadas en pruebas anteriores",
+      "Elegir un municipio y una categoría sin fichas publicadas y verificar que el bot lo informa y ofrece volver"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F023",
+    "category": "functional",
+    "priority": 5,
+    "description": "El visitante abre en el bot la ficha de detalle de un elemento publicado y ve fotografías, horarios, datos de contacto y el botón de ubicación.",
+    "stories": ["HU-020"],
+    "depends_on": ["F022", "F020", "F021"],
+    "steps": [
+      "Como visitante, desde la lista de F022, abrir una ficha publicada con fotos y ubicación",
+      "Verificar que el bot muestra las fotografías, los horarios y los datos de contacto",
+      "Pulsar el botón de ubicación y verificar que abre Google Maps",
+      "Volver a la lista con el botón de regreso y verificar que se conserva el municipio y la categoría elegidos"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F017",
+    "category": "functional",
+    "priority": 6,
+    "description": "El prestador registra una ficha de tipo de establecimiento restaurante o café, o una experiencia gastronómica, con los campos obligatorios de D-003; sigue el flujo borrador, pendiente, publicada o rechazada y, al publicarse, aparece en el directorio gastronómico (D-004).",
+    "stories": ["HU-011"],
+    "depends_on": ["F014"],
+    "steps": [
+      "Con una cuenta de prestador, crear una ficha de establecimiento, elegir el tipo restaurante o café (D-004), completar los campos obligatorios de D-003 y enviarla a revisión con la declaración de D-024 y confirmación",
+      "Verificar que queda pendiente y no aparece en el directorio gastronómico del visitante",
+      "Con una cuenta de administrador, aprobarla",
+      "Como visitante, abrir el directorio gastronómico del municipio y verificar que aparece la ficha"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F018",
+    "category": "functional",
+    "priority": 7,
+    "description": "El prestador registra una ruta, recorrido, actividad o experiencia con su tipo de experiencia de la lista cerrada (D-004) y los datos del guía como datos de la ficha (D-014); sigue el flujo de validación y, al publicarse, la ve el visitante.",
+    "stories": ["HU-012"],
+    "depends_on": ["F014"],
+    "steps": [
+      "Con una cuenta de prestador, crear una ficha de ruta o experiencia con los campos obligatorios de D-003, elegir un tipo de experiencia de la lista, registrar los datos del guía como datos de la ficha y enviarla a revisión con la declaración de D-024 y confirmación",
+      "Intentar enviarla sin tipo de experiencia y verificar que el sistema lo exige",
+      "Verificar que el guía no recibe usuario ni rol en el sistema (D-014)",
+      "Verificar que queda pendiente y no la ve el visitante",
+      "Con una cuenta de administrador, aprobarla y verificar que el visitante la ve en la exploración de su municipio"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F024",
+    "category": "functional",
+    "priority": 10,
+    "description": "El visitante filtra en el bot las rutas y experiencias publicadas por tipo de experiencia.",
+    "stories": ["HU-021"],
+    "depends_on": ["F018", "F022"],
+    "steps": [
+      "Como visitante, elegir un municipio y luego la opción de rutas y experiencias",
+      "Elegir un tipo de experiencia y verificar que se listan solo las rutas y experiencias publicadas de ese tipo en ese municipio",
+      "Elegir un tipo sin fichas publicadas y verificar que el bot lo informa"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F027",
+    "category": "privacy",
+    "priority": 10,
+    "description": "El número de identidad del prestador nunca se muestra al visitante ni a otros prestadores, ni aparece en mensajes de error o registros técnicos; solo lo ven administradores (D-011).",
+    "stories": ["HU-002", "HU-020"],
+    "depends_on": ["F023"],
+    "steps": [
+      "Como visitante, abrir en el bot una ficha publicada del prestador registrado en F002 y verificar que su número de identidad no aparece",
+      "Pedir directamente al backend, con identidad de visitante, esa ficha con getPublishedListing y la lista que la contiene con listPublishedListings, y verificar que ninguna respuesta incluye el número de identidad",
+      "Pedir al backend los mismos datos con la identidad de otro prestador y verificar que la respuesta no incluye el número de identidad (D-011)",
+      "Provocar un error en el registro de prestador y verificar que el mensaje no muestra el número de identidad",
+      "Revisar los registros técnicos generados durante las pruebas y verificar que no contienen el número de identidad"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F030",
+    "category": "functional",
+    "priority": 11,
+    "description": "Desde una ficha publicada de un prestador, el visitante envía por el bot una solicitud de información o interés con nombre (tomado de Telegram y editable, D-010), fecha de interés, número de personas y mensaje; queda en estado nueva y se le aclara que no es una reserva confirmada.",
+    "stories": ["HU-024"],
+    "depends_on": ["F023"],
+    "steps": [
+      "Con una cuenta que no aceptó el aviso, enviar /start o cualquier mensaje y verificar que el bot muestra el aviso antes de mostrar fichas o pedir datos (D-039)",
+      "Aceptar el aviso, elegir \"Solicitar información\" y verificar que el bot propone como nombre el de la cuenta de Telegram y permite cambiarlo (D-010)",
+      "Cambiar el nombre y verificar que el bot pide fecha de interés, número de personas y mensaje",
+      "Ingresar una fecha pasada y verificar que el bot la rechaza y vuelve a pedirla",
+      "Ingresar 0 como número de personas y verificar que se rechaza y se vuelve a pedir",
+      "Completar los datos válidos, confirmar y verificar que el bot informa el envío y aclara que no es una reserva confirmada",
+      "Verificar que la solicitud queda en estado nueva, dirigida al negocio de la ficha, con el nombre cambiado",
+      "Verificar que en ningún paso se ofrecen pagos, cupos ni confirmación automática"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F031",
+    "category": "notification",
+    "priority": 11,
+    "description": "Al registrarse una solicitud, el prestador del negocio recibe una alerta en Telegram con sus datos y un botón para atenderla; ningún otro prestador la recibe.",
+    "stories": ["HU-025"],
+    "depends_on": ["F030"],
+    "steps": [
+      "Con dos prestadores autorizados, A y B, enviar como visitante una solicitud a una ficha publicada de A",
+      "Verificar que A recibe un mensaje del bot con nombre, fecha de interés, número de personas, mensaje y un botón para atenderla",
+      "Verificar que B no recibe ninguna alerta"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F032",
+    "category": "functional",
+    "priority": 11,
+    "description": "El prestador responde una solicitud por el bot en texto libre (D-010), el visitante recibe la respuesta, y el prestador cambia el estado de nueva a atendida y a cerrada con confirmación y registro de fecha y responsable.",
+    "stories": ["HU-026"],
+    "depends_on": ["F031"],
+    "steps": [
+      "Con la cuenta del prestador A, abrir la solicitud desde la alerta, escribir una respuesta en texto libre y confirmar",
+      "Verificar que el visitante recibe la respuesta en el bot",
+      "Marcar la solicitud como atendida, confirmar y verificar el nuevo estado",
+      "Marcarla como cerrada, confirmar y verificar el nuevo estado",
+      "Intentar devolver la solicitud cerrada a nueva y verificar que el sistema lo impide (Inferido)",
+      "Abrir la lista de solicitudes del prestador, filtrar por estado y verificar que la solicitud aparece como cerrada (filtro Inferido)",
+      "Verificar que cada cambio de estado quedó registrado con fecha, hora y responsable"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F033",
+    "category": "security",
+    "priority": 11,
+    "description": "Solo el prestador del negocio ve los datos de sus solicitudes y cambia su estado; otro prestador y el administrador no pueden verlos (D-011), y nadie más puede cambiar el estado, verificado contra el backend.",
+    "stories": ["HU-026"],
+    "depends_on": ["F032"],
+    "steps": [
+      "Con la identidad del prestador B, pedir al backend la solicitud de A y verificar que responde acceso denegado",
+      "Con la identidad de un administrador, pedir al backend la solicitud de A y verificar que responde acceso denegado (D-011)",
+      "Con la identidad de B, enviar un cambio de estado de la solicitud de A y verificar que responde acceso denegado",
+      "Con la identidad del visitante que la envió, enviar un cambio de estado y verificar que responde acceso denegado",
+      "Con la identidad de un administrador, enviar un cambio de estado y verificar que responde acceso denegado",
+      "Verificar que el estado de la solicitud no cambió"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F037",
+    "category": "privacy",
+    "priority": 11,
+    "description": "Cuando un visitante revoca su autorización, sus solicitudes se borran de inmediato y el prestador recibe un aviso (D-019). Cuando un prestador revoca, sus fichas publicadas siguen visibles pero dejan de ofrecer \"Solicitar información\", sus fichas no publicadas quedan como están y sin ser visibles, y las solicitudes que recibió se borran con aviso a cada visitante (D-019, D-029).",
+    "stories": ["HU-030", "HU-024"],
+    "depends_on": ["F035", "F031"],
+    "steps": [
+      "Como visitante V1, enviar una solicitud a una ficha publicada del prestador A y verificar que A la ve en su lista de solicitudes",
+      "Con la cuenta de V1, usar \"Revocar mi autorización\" y confirmar",
+      "Verificar que la solicitud de V1 ya no existe: no aparece en la lista de A y el backend no la devuelve",
+      "Verificar que A recibe un mensaje del bot que le informa que la solicitud ya no está disponible",
+      "Como visitante V2, enviar una solicitud a la misma ficha publicada de A; dejar además a A con una ficha en borrador y otra pendiente",
+      "Con la cuenta del prestador A, usar \"Revocar mi autorización\" y confirmar",
+      "Verificar que la solicitud de V2 ya no existe en el backend y que V2 recibe un mensaje del bot que le informa que ya no está disponible (D-029; texto Inferido)",
+      "Como visitante, abrir en el bot la ficha publicada de A y verificar que sigue visible con su contenido publicado (D-019) y que no ofrece \"Solicitar información\" (D-029)",
+      "Con la identidad de un visitante, enviar directamente al backend una solicitud para esa ficha y verificar que se rechaza y no se crea (Inferido a partir de D-029)",
+      "Verificar que la ficha en borrador y la pendiente de A conservan su estado y no aparecen en ninguna consulta del visitante (D-029)"
+    ],
+    "passes": false
+  },
+  {
+    "id": "F038",
+    "category": "privacy",
+    "priority": 12,
+    "description": "Eliminación de datos del 31 de enero de 2027: ese día se borran cuentas, permisos, consentimientos, registros, solicitudes, auditoría y fichas de prestadores con sus fotos, y se conservan municipios, listas cerradas, atractivos y el aviso; la eliminación se hace una sola vez (RNF-021; D-021, D-043).",
+    "stories": ["HU-030"],
+    "depends_on": ["F037"],
+    "steps": [
+      "En el entorno de pruebas, fijar la fecha límite de eliminación en el día actual y ejecutar la tarea de eliminación con datos en todas las tablas",
+      "Verificar que se borraron cuentas, permisos, consentimientos, registros, solicitudes, auditoría y fichas de prestadores con sus fotos (D-043)",
+      "Verificar que se conservan municipios, listas cerradas, atractivos y el aviso (D-043)",
+      "Ejecutar la tarea de nuevo y verificar que no cambia nada"
+    ],
+    "passes": false
+  }
+]
