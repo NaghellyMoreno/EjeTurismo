@@ -1,0 +1,2183 @@
+openapi: 3.1.0
+info:
+  title: Eje Turismo API
+  version: 0.2.0
+  description: |
+    Contrato entre la Mini App de Telegram, el bot y el backend de Eje Turismo.
+    Fuente de verdad del producto: docs/00-contexto-producto.md. Arquitectura: docs/03-arquitectura.md.
+    Versión 0.2.0: revisión de la iteración 1 de preparación (D-034 a D-045).
+
+    Reglas generales:
+    - Autenticación: la Mini App envía `Authorization: tma <initData>` con la cadena cruda de `Telegram.WebApp.initData`.
+      El backend valida la firma HMAC y la vigencia de `auth_date` en cada petición (ADR 0003). No hay cookies ni sesiones.
+      Una firma inválida responde 401 sin consultar la base y sin registrar la IP (D-008).
+    - El bot no usa esta API por HTTP: llama a los mismos servicios dentro del proceso (ADR 0001). Cada operación indica en
+      `x-bot-equivalent` si el bot la usa.
+    - Roles por operación en la extensión `x-roles`:
+      `public` (sin identidad; solo el aviso de privacidad), `telegram_user` (identidad válida, haya aceptado o no el aviso),
+      `account_holder` (tiene cuenta: aceptó alguna versión del aviso, vigente o anterior),
+      `consented_user` (aceptó la versión vigente del aviso), `provider` (permiso de prestador activo),
+      `admin` (permiso de administrador activo o administrador principal).
+      `x-ownership` describe la verificación de negocio o recurso.
+    - El aviso se acepta antes de cualquier uso, incluida la exploración de fichas y catálogos (D-039). Sin la versión vigente
+      aceptada solo se permite leer el aviso, consultar `getMe`, aceptar y, con cuenta, revocar; el resto responde 403
+      con `code: consent_required` (D-008, D-025, D-039).
+    - Los límites de intentos (429) solo cuentan cuentas con aviso aceptado; nunca se guarda el ID ni la IP de quien no aceptó (ADR 0006).
+    - Las operaciones importantes exigen `confirmed: true` en el cuerpo (invariante 8). Sin él responden 422.
+    - Recursos de otro negocio responden 403 `forbidden` sin revelar si existen (invariante 2).
+    - Errores: `application/problem+json` con el esquema `Problem`. Nunca contienen número de identidad ni datos de solicitudes.
+    - Fechas y horas en ISO 8601 UTC; la interfaz las muestra en America/Bogota. Fechas sin hora (`format: date`) se interpretan en America/Bogota.
+    - Límites de caracteres de fichas fijados por D-042 (nombre 100, descripción 1500, horarios 300, contacto 200).
+      Los campos con `x-pending: D-013` no tienen límite de producto todavía; llevan un máximo técnico de 4096 caracteres (un mensaje de Telegram).
+      `x-pending: D-045` marca el formato del número de identidad, aún Pendiente.
+    - Ejemplos con datos ficticios.
+servers:
+  - url: /
+    description: Mismo origen que la Mini App (Vercel)
+security:
+  - telegramInitData: []
+tags:
+  - name: Privacidad
+  - name: Sesión
+  - name: Registro de prestadores
+  - name: Roles
+  - name: Catálogos
+  - name: Fichas gestionadas
+  - name: Fotografías
+  - name: Revisión
+  - name: Consulta pública
+  - name: Solicitudes
+  - name: Integraciones internas
+
+paths:
+  /api/v1/privacy-notices/current:
+    get:
+      tags: [Privacidad]
+      operationId: getCurrentPrivacyNotice
+      summary: Obtener el aviso de privacidad vigente y su declaración
+      description: No guarda ningún dato (D-008). Fuente HU-001, D-025.
+      security: []
+      x-roles: [public]
+      x-bot-equivalent: true
+      responses:
+        '200':
+          description: Aviso vigente
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrivacyNotice' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/me:
+    get:
+      tags: [Sesión]
+      operationId: getMe
+      summary: Consultar mi estado (aviso, roles y registro) según el backend
+      description: |
+        Devuelve lo que el backend sabe de la persona identificada por `initData`. Solo lee: si no ha aceptado el aviso,
+        `consent.required` es verdadero y no se guarda nada (D-008). La Mini App muestra solo las opciones del rol que informa
+        esta respuesta (HU-006 criterio 4) y, si `consent.required`, solo el aviso (D-039).
+      x-roles: [telegram_user]
+      x-bot-equivalent: true
+      responses:
+        '200':
+          description: Estado de la persona
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/consents:
+    post:
+      tags: [Privacidad]
+      operationId: acceptPrivacyNotice
+      summary: Aceptar el aviso de privacidad vigente
+      description: |
+        Crea o actualiza la cuenta y registra la aceptación con fecha, canal y versión (HU-001; D-025).
+        La prueba en `consent_events` guarda solo evento, fecha, canal y versión, sin identificador de la persona (D-036).
+        Es idempotente: si la cuenta ya aceptó esa versión, responde 201 con el mismo estado sin duplicar la prueba.
+        Si `noticeVersion` no es la vigente responde 409 `notice_version_outdated`.
+      x-roles: [telegram_user]
+      x-bot-equivalent: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConsentAcceptance' }
+      responses:
+        '201':
+          description: Aceptación registrada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/consents/revocations:
+    post:
+      tags: [Privacidad]
+      operationId: revokeMyAuthorization
+      summary: Revocar mi autorización de tratamiento de datos
+      description: |
+        "Revocar mi autorización" (D-018). En una transacción: borra las solicitudes enviadas por la persona y avisa al prestador;
+        si es prestador, borra su número de identidad, su registro y su rol, borra las solicitudes recibidas por sus negocios y avisa a cada visitante,
+        y deja sus fichas como están (D-019, D-029); si es administrador, pierde el rol (D-020).
+        Conserva solo la prueba de autorización y revocación: evento, fecha, canal y versión del aviso, sin número de identidad
+        ni ningún pseudónimo del ID de Telegram (D-021, D-036). Borra todas las filas de permisos con su ID de Telegram.
+        Disponible para cualquier persona con cuenta, aunque haya aceptado una versión anterior del aviso (HU-030 criterio 1; ADR 0005).
+        Responde 409 `principal_admin_protected` si es el administrador principal y 409 `last_admin_protected` si es el único administrador (D-020, D-032).
+      x-roles: [account_holder]
+      x-bot-equivalent: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Confirmation' }
+      responses:
+        '200':
+          description: Autorización revocada y datos eliminados
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RevocationResult' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/provider-registrations:
+    post:
+      tags: [Registro de prestadores]
+      operationId: createProviderRegistration
+      summary: Registrarme como prestador con mi número de identidad
+      description: |
+        Crea un registro pendiente que vincula el número de identidad con el ID de Telegram (HU-002).
+        Rechaza duplicados por número de identidad o por cuenta con 409 `duplicate` (sección 3.12).
+        Una cuenta con rol de administrador (incluido el administrador principal) recibe 403 `admin_cannot_register_as_provider` (D-038).
+        El formato válido del número de identidad está Pendiente (D-045). El número nunca se devuelve en la respuesta.
+        Límite de intentos por cuenta (429; ADR 0006).
+      x-roles: [consented_user]
+      x-bot-equivalent: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProviderRegistrationCreate' }
+      responses:
+        '201':
+          description: Registro pendiente de autorización
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OwnProviderRegistration' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    get:
+      tags: [Registro de prestadores]
+      operationId: listProviderRegistrations
+      summary: Listar registros de prestadores (administrador)
+      description: Incluye el número de identidad, visible solo para administradores (D-011). Fuente HU-003.
+      x-roles: [admin]
+      x-bot-equivalent: true
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/ProviderRegistrationStatus' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Registros
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminProviderRegistrationPage' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/provider-registrations/me:
+    get:
+      tags: [Registro de prestadores]
+      operationId: getMyProviderRegistration
+      summary: Consultar el estado de mi registro de prestador
+      description: No devuelve el número de identidad.
+      x-roles: [consented_user]
+      x-bot-equivalent: true
+      responses:
+        '200':
+          description: Mi registro
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OwnProviderRegistration' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/provider-registrations/{registrationId}/approval:
+    post:
+      tags: [Registro de prestadores]
+      operationId: approveProviderRegistration
+      summary: Autorizar el registro de un prestador
+      description: |
+        El registro pasa a aprobado y se crea el permiso de prestador (invariante 4). Se avisa al usuario por el bot y se registra fecha,
+        responsable y resultado (HU-003). Responde 409 `invalid_state_transition` si el registro no está pendiente y
+        409 `role_conflict` si la cuenta obtuvo entretanto el rol de administrador (D-038).
+      x-roles: [admin]
+      x-bot-equivalent: true
+      parameters:
+        - $ref: '#/components/parameters/RegistrationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Confirmation' }
+      responses:
+        '200':
+          description: Registro aprobado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminProviderRegistration' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/provider-registrations/{registrationId}/rejection:
+    post:
+      tags: [Registro de prestadores]
+      operationId: rejectProviderRegistration
+      summary: Rechazar el registro de un prestador
+      description: El usuario no obtiene el rol y recibe un mensaje del bot (HU-003 criterio 3, Inferido). Queda registrado.
+      x-roles: [admin]
+      x-bot-equivalent: true
+      parameters:
+        - $ref: '#/components/parameters/RegistrationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegistrationRejection' }
+      responses:
+        '200':
+          description: Registro rechazado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminProviderRegistration' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/role-grants:
+    get:
+      tags: [Roles]
+      operationId: listRoleGrants
+      summary: Listar usuarios autorizados (administradores y prestadores)
+      description: Base de la opción "Revocar rol" (D-020). No incluye número de identidad.
+      x-roles: [admin]
+      x-bot-equivalent: true
+      parameters:
+        - name: role
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/Role' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Permisos activos
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoleGrantPage' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    post:
+      tags: [Roles]
+      operationId: authorizeAdministrator
+      summary: Autorizar el ID de Telegram de otra persona como administrador
+      description: |
+        Solo crea permisos de administrador; el de prestador nace únicamente al aprobar un registro (invariante 4).
+        No pide número de identidad (D-007). Si el ID ya es administrador responde 409 `duplicate` (HU-004).
+        Guarda el ID de Telegram aunque esa persona aún no haya aceptado el aviso; el aviso lo menciona (D-037).
+        El permiso solo se usa cuando la persona acepta el aviso vigente (D-039).
+        Si el ID tiene un permiso de prestador activo o un registro pendiente responde 409 `role_conflict`
+        (Inferido a partir de D-038; Pendiente de aprobación en docs/03-arquitectura.md).
+      x-roles: [admin]
+      x-bot-equivalent: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdministratorAuthorization' }
+      responses:
+        '201':
+          description: Administrador autorizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoleGrant' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/role-grants/{grantId}/revocation:
+    post:
+      tags: [Roles]
+      operationId: revokeRole
+      summary: Revocar el rol de un administrador o prestador ("Revocar rol")
+      description: |
+        La siguiente operación del usuario afectado con ese rol es rechazada (D-015). Queda registrada con fecha, responsable y usuario afectado.
+        409 `principal_admin_protected` sobre el administrador principal (regla aprobada en D-044) y 409 `last_admin_protected` si deja sin administradores (D-020).
+        Sobre un prestador solo quita el rol: sus fichas no cambian de estado y sus fichas publicadas dejan de aceptar solicitudes nuevas
+        (`acceptsRequests` falso); las solicitudes existentes se conservan sin acceso (D-043). No borra datos personales.
+      x-roles: [admin]
+      x-bot-equivalent: true
+      parameters:
+        - name: grantId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Confirmation' }
+      responses:
+        '200':
+          description: Rol revocado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoleGrant' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/municipalities:
+    get:
+      tags: [Catálogos]
+      operationId: listMunicipalities
+      summary: Listar municipios
+      description: Exige el aviso vigente aceptado (D-039).
+      x-roles: [consented_user]
+      x-bot-equivalent: true
+      responses:
+        '200':
+          description: Municipios
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Municipality' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    post:
+      tags: [Catálogos]
+      operationId: createMunicipality
+      summary: Crear un municipio
+      description: Rechaza nombres duplicados (409 `duplicate`). Zona es dato opcional (D-013). Fuente HU-007. Canal Mini App, pantalla M10 (D-041).
+      x-roles: [admin]
+      x-bot-equivalent: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MunicipalityCreate' }
+      responses:
+        '201':
+          description: Municipio creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Municipality' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/municipalities/{municipalityId}:
+    patch:
+      tags: [Catálogos]
+      operationId: updateMunicipality
+      summary: Editar un municipio
+      description: Registra fecha y responsable (HU-007 criterio 3). Canal Mini App, pantalla M10 (D-041).
+      x-roles: [admin]
+      x-bot-equivalent: false
+      parameters:
+        - name: municipalityId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MunicipalityUpdate' }
+      responses:
+        '200':
+          description: Municipio actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Municipality' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/categories:
+    get:
+      tags: [Catálogos]
+      operationId: listCategories
+      summary: Listar categorías (lista cerrada)
+      description: Exige el aviso vigente aceptado (D-039).
+      x-roles: [consented_user]
+      x-bot-equivalent: true
+      responses:
+        '200':
+          description: Categorías
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CatalogItem' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    post:
+      tags: [Catálogos]
+      operationId: createCategory
+      summary: Crear una categoría
+      description: Lista cerrada administrada por el administrador (D-004). Rechaza duplicados. Canal Mini App, pantalla M11 (D-041).
+      x-roles: [admin]
+      x-bot-equivalent: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CatalogItemCreate' }
+      responses:
+        '201':
+          description: Categoría creada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogItem' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/categories/{categoryId}:
+    patch:
+      tags: [Catálogos]
+      operationId: updateCategory
+      summary: Editar una categoría
+      description: El cambio se refleja en las fichas que la usan (HU-008 criterio 4, Inferido). Canal Mini App, pantalla M11 (D-041).
+      x-roles: [admin]
+      x-bot-equivalent: false
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CatalogItemUpdate' }
+      responses:
+        '200':
+          description: Categoría actualizada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogItem' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/experience-types:
+    get:
+      tags: [Catálogos]
+      operationId: listExperienceTypes
+      summary: Listar tipos de experiencia (lista cerrada)
+      description: Exige el aviso vigente aceptado (D-039).
+      x-roles: [consented_user]
+      x-bot-equivalent: true
+      responses:
+        '200':
+          description: Tipos de experiencia
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CatalogItem' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    post:
+      tags: [Catálogos]
+      operationId: createExperienceType
+      summary: Crear un tipo de experiencia
+      description: Lista cerrada administrada por el administrador (D-004). Rechaza duplicados. Canal Mini App, pantalla M11 (D-041).
+      x-roles: [admin]
+      x-bot-equivalent: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CatalogItemCreate' }
+      responses:
+        '201':
+          description: Tipo creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogItem' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/experience-types/{experienceTypeId}:
+    patch:
+      tags: [Catálogos]
+      operationId: updateExperienceType
+      summary: Editar un tipo de experiencia
+      description: Canal Mini App, pantalla M11 (D-041).
+      x-roles: [admin]
+      x-bot-equivalent: false
+      parameters:
+        - name: experienceTypeId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CatalogItemUpdate' }
+      responses:
+        '200':
+          description: Tipo actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogItem' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/establishment-types:
+    get:
+      tags: [Catálogos]
+      operationId: listEstablishmentTypes
+      summary: Listar tipos de establecimiento (lista cerrada)
+      description: |
+        Lista cerrada administrada por el administrador; carga inicial: hotel, finca cafetera, alojamiento rural, restaurante y café (D-040).
+        `isGastronomic` es verdadero solo en restaurante y café (directorio gastronómico, D-040). Exige el aviso vigente aceptado (D-039).
+      x-roles: [consented_user]
+      x-bot-equivalent: true
+      responses:
+        '200':
+          description: Tipos de establecimiento
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CatalogItem' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    post:
+      tags: [Catálogos]
+      operationId: createEstablishmentType
+      summary: Crear un tipo de establecimiento
+      description: |
+        Lista cerrada administrada por el administrador (D-040). Rechaza duplicados. Canal Mini App, pantalla M11 (D-041).
+        Los tipos creados por esta operación no forman parte del directorio gastronómico (`isGastronomic` falso; D-040).
+      x-roles: [admin]
+      x-bot-equivalent: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CatalogItemCreate' }
+      responses:
+        '201':
+          description: Tipo creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogItem' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/establishment-types/{establishmentTypeId}:
+    patch:
+      tags: [Catálogos]
+      operationId: updateEstablishmentType
+      summary: Editar un tipo de establecimiento
+      description: Canal Mini App, pantalla M11 (D-041). No cambia `isGastronomic` (D-040).
+      x-roles: [admin]
+      x-bot-equivalent: false
+      parameters:
+        - name: establishmentTypeId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CatalogItemUpdate' }
+      responses:
+        '200':
+          description: Tipo actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogItem' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/managed-listings:
+    get:
+      tags: [Fichas gestionadas]
+      operationId: listManagedListings
+      summary: Listar las fichas que puedo gestionar
+      description: |
+        Prestador: solo las fichas de sus negocios (invariante 2; F016). Administrador: los atractivos y las fichas de prestadores
+        desde que se envían a revisión: pendientes, publicadas o rechazadas (sin acceso a borradores ajenos; valor por defecto pendiente de aprobación).
+      x-roles: [provider, admin]
+      x-ownership: "prestador: listings.business_id ∈ negocios del actor"
+      x-bot-equivalent: true
+      parameters:
+        - name: kind
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/ListingKind' }
+        - name: displayStatus
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/ListingDisplayStatus' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Fichas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ManagedListingSummaryPage' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    post:
+      tags: [Fichas gestionadas]
+      operationId: createListing
+      summary: Crear una ficha
+      description: |
+        Prestador: `kind` `establishment` o `route_experience`; crea negocio, ficha y versión en borrador no visible al visitante (HU-010 a HU-012; D-006).
+        Administrador: `kind` `attraction`; exige los campos obligatorios de D-003 y queda publicada sin validación (HU-009; D-005).
+        Cualquier otra combinación responde 403. Duplicado (mismo nombre en el mismo municipio, D-003) responde 409 `duplicate`.
+      x-roles: [provider, admin]
+      x-bot-equivalent: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ListingCreate' }
+      responses:
+        '201':
+          description: Ficha creada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ManagedListing' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/managed-listings/{listingId}:
+    get:
+      tags: [Fichas gestionadas]
+      operationId: getManagedListing
+      summary: Ver una ficha gestionada con su versión publicada, su versión de trabajo y el motivo de rechazo
+      description: El prestador ve estado y motivo de rechazo (HU-015). Las fotos traen URLs firmadas de corta vigencia.
+      x-roles: [provider, admin]
+      x-ownership: "prestador: dueño del negocio de la ficha"
+      x-bot-equivalent: true
+      parameters:
+        - $ref: '#/components/parameters/ListingId'
+      responses:
+        '200':
+          description: Ficha
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ManagedListing' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/managed-listings/{listingId}/draft:
+    put:
+      tags: [Fichas gestionadas]
+      operationId: saveListingDraft
+      summary: Guardar el borrador de una ficha (crear o actualizar)
+      description: |
+        Si hay borrador, lo actualiza. Si no, crea uno nuevo copiando contenido y fotos de la versión más reciente (publicada o rechazada),
+        sin tocar la publicada, que sigue visible (HU-016). Una versión pendiente no se edita: 409 `invalid_state_transition` (HU-010 criterio 2; regla aprobada en D-044).
+        Solo fichas de prestador. Los atractivos no tienen borrador en esta entrega.
+      x-roles: [provider]
+      x-ownership: "dueño del negocio de la ficha"
+      x-bot-equivalent: false
+      parameters:
+        - $ref: '#/components/parameters/ListingId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ListingDraftSave' }
+      responses:
+        '200':
+          description: Borrador guardado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ManagedListing' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/managed-listings/{listingId}/submission:
+    post:
+      tags: [Fichas gestionadas]
+      operationId: submitListingForReview
+      summary: Enviar el borrador a revisión
+      description: |
+        Borrador a pendiente. Exige exactamente los campos obligatorios de D-003 (nombre, municipio, categoría, descripción,
+        horarios, contacto y enlace de Maps) y, en rutas y experiencias, el tipo de experiencia (F018). El tipo de establecimiento
+        es opcional (D-040). Además exige que no haya duplicado, la declaración de autorización de guías y contactos (D-024) y confirmación.
+        Si falta un campo responde 422 con `errors[]` por campo. Sin borrador responde 409.
+      x-roles: [provider]
+      x-ownership: "dueño del negocio de la ficha"
+      x-bot-equivalent: false
+      parameters:
+        - $ref: '#/components/parameters/ListingId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ListingSubmission' }
+      responses:
+        '200':
+          description: Ficha pendiente de revisión
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ManagedListing' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/managed-listings/{listingId}/status-history:
+    get:
+      tags: [Fichas gestionadas]
+      operationId: getListingStatusHistory
+      summary: Consultar el historial de estados de una ficha
+      description: Cada cambio con fecha y hora, responsable y motivo de rechazo (HU-028, consulta Inferida).
+      x-roles: [admin]
+      x-bot-equivalent: true
+      parameters:
+        - $ref: '#/components/parameters/ListingId'
+      responses:
+        '200':
+          description: Historial en orden cronológico
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ListingStatusEvent' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/managed-listings/{listingId}/versions/{versionId}/photo-uploads:
+    post:
+      tags: [Fotografías]
+      operationId: createPhotoUpload
+      summary: Pedir una URL firmada para subir una fotografía
+      description: |
+        Verifica permiso y que la versión sea editable: borrador propio del prestador, o versión publicada de un atractivo
+        en el caso del administrador (ADR 0009). Con otra versión responde 409 `invalid_state_transition`.
+        Comprueba: menos de 10 fotos en la versión (D-031), tipo permitido, tamaño por foto de hasta 5 000 000 bytes (D-042),
+        total de la versión hasta 2 GB (D-031) y cuota global del almacén (900 000 000 bytes en producción, D-042; configurable por entorno).
+        Errores 409 con `code` `photo_limit_exceeded`, `photo_total_size_exceeded` o `storage_quota_exceeded`; 422 por tipo o tamaño.
+        Límite de intentos por cuenta (429; ADR 0006).
+      x-roles: [provider, admin]
+      x-ownership: "prestador: dueño del negocio; administrador: solo atractivos"
+      x-bot-equivalent: false
+      parameters:
+        - $ref: '#/components/parameters/ListingId'
+        - $ref: '#/components/parameters/VersionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PhotoUploadRequest' }
+      responses:
+        '201':
+          description: URL de subida emitida
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PhotoUploadTicket' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/managed-listings/{listingId}/versions/{versionId}/photos:
+    post:
+      tags: [Fotografías]
+      operationId: registerPhoto
+      summary: Registrar una fotografía ya subida
+      description: |
+        Verifica en Vercel Blob el tamaño real y la firma de imagen (JPEG o PNG) y vuelve a comprobar los límites con bloqueo.
+        Si el tamaño real supera el máximo por foto responde 422 `photo_too_large`; si no es imagen, 422 `validation_failed`.
+        Si falla, borra el archivo subido. El visitante solo verá la foto cuando la versión que la contiene esté publicada (HU-017 criterio 1).
+      x-roles: [provider, admin]
+      x-ownership: "el mismo actor que pidió la subida"
+      x-bot-equivalent: false
+      parameters:
+        - $ref: '#/components/parameters/ListingId'
+        - $ref: '#/components/parameters/VersionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PhotoRegistration' }
+      responses:
+        '201':
+          description: Foto registrada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Photo' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/managed-listings/{listingId}/versions/{versionId}/photos/{photoId}:
+    delete:
+      tags: [Fotografías]
+      operationId: removePhoto
+      summary: Quitar una fotografía de una versión editable
+      description: |
+        Solo en versiones editables: borrador del prestador, o versión publicada de un atractivo en el caso del administrador (ADR 0009).
+        Exige `confirmed=true` en la consulta (invariante 8). En fichas de prestador no afecta la versión publicada.
+      x-roles: [provider, admin]
+      x-ownership: "prestador: dueño del negocio; administrador: solo atractivos"
+      x-bot-equivalent: false
+      parameters:
+        - $ref: '#/components/parameters/ListingId'
+        - $ref: '#/components/parameters/VersionId'
+        - name: photoId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: confirmed
+          in: query
+          required: true
+          schema: { type: boolean, const: true }
+      responses:
+        '204':
+          description: Foto quitada
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/reviews:
+    get:
+      tags: [Revisión]
+      operationId: listPendingReviews
+      summary: Listar versiones de fichas pendientes de revisión
+      x-roles: [admin]
+      x-bot-equivalent: true
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Versiones pendientes, la más antigua primero
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReviewSummaryPage' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/reviews/{versionId}:
+    get:
+      tags: [Revisión]
+      operationId: getReview
+      summary: Ver una versión pendiente y qué cambia respecto a la publicada
+      description: Fuente HU-016 criterio 4 (Inferido).
+      x-roles: [admin]
+      x-bot-equivalent: true
+      parameters:
+        - $ref: '#/components/parameters/VersionId'
+      responses:
+        '200':
+          description: Revisión
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Review' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/reviews/{versionId}/approval:
+    post:
+      tags: [Revisión]
+      operationId: approveListingVersion
+      summary: Aprobar una versión pendiente
+      description: |
+        Pendiente a publicada; la publicada anterior pasa a reemplazada en la misma transacción (HU-014, HU-016; invariante 3).
+        Se avisa al prestador por el bot (Inferido) y se registra fecha y responsable.
+      x-roles: [admin]
+      x-bot-equivalent: true
+      parameters:
+        - $ref: '#/components/parameters/VersionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Confirmation' }
+      responses:
+        '200':
+          description: Versión publicada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ManagedListing' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/reviews/{versionId}/rejection:
+    post:
+      tags: [Revisión]
+      operationId: rejectListingVersion
+      summary: Rechazar una versión pendiente con motivo
+      description: |
+        Motivo obligatorio (HU-014 criterio 2). Si la ficha tenía versión publicada, esta se conserva (HU-016 criterio 3).
+        El prestador ve el motivo y recibe un mensaje del bot (Inferido).
+      x-roles: [admin]
+      x-bot-equivalent: true
+      parameters:
+        - $ref: '#/components/parameters/VersionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ListingRejection' }
+      responses:
+        '200':
+          description: Versión rechazada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ManagedListing' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/public/listings:
+    get:
+      tags: [Consulta pública]
+      operationId: listPublishedListings
+      summary: Explorar fichas publicadas
+      description: |
+        Solo versiones publicadas (invariante 3). Exige el aviso vigente aceptado, también para explorar (D-039).
+        Filtros por municipio y categoría (HU-019), tipo de experiencia (HU-021) y directorio gastronómico (HU-011, `gastronomic=true`):
+        fichas `establishment` cuyo tipo es restaurante o café (D-040). Nunca incluye datos personales del prestador.
+      x-roles: [consented_user]
+      x-bot-equivalent: true
+      parameters:
+        - name: municipalityId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+        - name: categoryId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+        - name: kind
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/ListingKind' }
+        - name: experienceTypeId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+        - name: gastronomic
+          in: query
+          required: false
+          schema: { type: boolean }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Fichas publicadas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicListingSummaryPage' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/public/listings/{listingId}:
+    get:
+      tags: [Consulta pública]
+      operationId: getPublishedListing
+      summary: Ver el detalle publicado de una ficha
+      description: |
+        Fotos, horarios, contacto y enlace de ubicación (HU-020). Responde 404 si la ficha no tiene versión publicada.
+        Exige el aviso vigente aceptado (D-039).
+        No incluye número de identidad ni otros datos del prestador (D-011; F027). `acceptsRequests` es falso en atractivos
+        (regla aprobada en D-044), en fichas de prestadores que revocaron su autorización (D-029) y en las de prestadores
+        a quienes se aplicó "Revocar rol" (D-043).
+      x-roles: [consented_user]
+      x-bot-equivalent: true
+      parameters:
+        - $ref: '#/components/parameters/ListingId'
+      responses:
+        '200':
+          description: Ficha publicada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicListingDetail' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/public/listings/{listingId}/information-requests:
+    post:
+      tags: [Solicitudes]
+      operationId: createInformationRequest
+      summary: Enviar una solicitud de información o interés al prestador
+      description: |
+        No es una reserva ni confirma nada (secciones 3.8 y 3.14). Exige aviso vigente aceptado (HU-024 criterio 2; D-039).
+        Valida fecha no pasada (America/Bogota) y número de personas entero mayor que cero (reglas aprobadas en D-044).
+        409 `listing_not_accepting_requests` en atractivos o fichas de prestadores sin rol activo (D-029, D-043). Queda en estado `new`
+        y se encola la alerta al prestador del negocio (HU-025). Límite de intentos por cuenta (429; ADR 0006).
+      x-roles: [consented_user]
+      x-bot-equivalent: true
+      parameters:
+        - $ref: '#/components/parameters/ListingId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InformationRequestCreate' }
+      responses:
+        '201':
+          description: Solicitud enviada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InformationRequestReceipt' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/information-requests:
+    get:
+      tags: [Solicitudes]
+      operationId: listMyBusinessInformationRequests
+      summary: Listar las solicitudes recibidas por mis negocios
+      description: Solo las de los negocios del prestador (D-011; HU-026 criterio 6). El administrador no tiene acceso.
+      x-roles: [provider]
+      x-ownership: "information_requests.business_id ∈ negocios del actor"
+      x-bot-equivalent: true
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/InformationRequestStatus' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Solicitudes
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InformationRequestPage' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/information-requests/{requestId}:
+    get:
+      tags: [Solicitudes]
+      operationId: getInformationRequest
+      summary: Ver una solicitud de mi negocio
+      description: Otro prestador o un administrador reciben 403 (D-011; F033).
+      x-roles: [provider]
+      x-ownership: "dueño del negocio de la solicitud"
+      x-bot-equivalent: true
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+      responses:
+        '200':
+          description: Solicitud
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InformationRequest' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/information-requests/{requestId}/replies:
+    post:
+      tags: [Solicitudes]
+      operationId: replyToInformationRequest
+      summary: Responder una solicitud en texto libre
+      description: El visitante recibe la respuesta por el bot (D-010; HU-026 criterio 1). En solicitudes cerradas responde 409.
+      x-roles: [provider]
+      x-ownership: "dueño del negocio de la solicitud"
+      x-bot-equivalent: true
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InformationRequestReplyCreate' }
+      responses:
+        '201':
+          description: Respuesta registrada y encolada para el visitante
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InformationRequestReply' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/information-requests/{requestId}/status-changes:
+    post:
+      tags: [Solicitudes]
+      operationId: changeInformationRequestStatus
+      summary: Cambiar el estado de una solicitud (nueva, atendida, cerrada)
+      description: |
+        Solo el prestador del negocio (invariante 5). Orden permitido: nueva a atendida a cerrada; no se vuelve atrás (HU-026 criterio 5; regla aprobada en D-044).
+        Visitante, administrador u otro prestador reciben 403. Transición no permitida: 409 `invalid_state_transition`.
+      x-roles: [provider]
+      x-ownership: "dueño del negocio de la solicitud"
+      x-bot-equivalent: true
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InformationRequestStatusChange' }
+      responses:
+        '200':
+          description: Estado cambiado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InformationRequest' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/telegram/webhook:
+    post:
+      tags: [Integraciones internas]
+      operationId: receiveTelegramUpdate
+      summary: Recibir actualizaciones del bot desde Telegram
+      description: |
+        Solo Telegram. Cabecera `X-Telegram-Bot-Api-Secret-Token` obligatoria; sin ella o con valor distinto responde 401.
+        Idempotente por `update_id`. El cuerpo es un objeto `Update` de la Bot API (esquema externo).
+      security:
+        - telegramWebhookSecret: []
+      x-roles: [telegram_platform]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Objeto Update de la Bot API de Telegram
+              required: [update_id]
+              properties:
+                update_id: { type: integer }
+              additionalProperties: true
+      responses:
+        '200':
+          description: Actualización procesada o ya procesada
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/internal/cron/outbox:
+    get:
+      tags: [Integraciones internas]
+      operationId: runOutboxRetryJob
+      summary: Reintentar mensajes pendientes de la bandeja de salida
+      security:
+        - cronSecret: []
+      x-roles: [vercel_cron]
+      responses:
+        '200':
+          description: Resultado del trabajo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobResult' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/internal/cron/maintenance:
+    get:
+      tags: [Integraciones internas]
+      operationId: runMaintenanceJob
+      summary: Limpiar fotos sin referencia, subidas vencidas, contadores, formularios del bot vencidos y actualizaciones procesadas
+      description: Diario, 3:00 a 3:59 en Bogotá (ADR 0007). También borra de Blob las fotos de las fichas eliminadas el 31 de enero de 2027.
+      security:
+        - cronSecret: []
+      x-roles: [vercel_cron]
+      responses:
+        '200':
+          description: Resultado del trabajo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobResult' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/internal/cron/retention:
+    get:
+      tags: [Integraciones internas]
+      operationId: runRetentionJob
+      summary: Eliminar los datos personales en la fecha límite (31 de enero de 2027)
+      description: |
+        Diario, 0:00 a 0:59 en Bogotá. No hace nada antes de la fecha límite (America/Bogota) ni después de haberse ejecutado una vez.
+        Alcance (D-043): borra cuentas, permisos, sesiones, contadores, consentimientos, registros, solicitudes, auditoría e historial,
+        bandeja de salida y fichas de prestadores con sus fotos; conserva municipios, listas cerradas, atractivos y el aviso.
+        Las fotos de Blob sin referencia las borra la tarea de mantenimiento (ADR 0007). `processed` es el total de filas borradas.
+      security:
+        - cronSecret: []
+      x-roles: [vercel_cron]
+      responses:
+        '200':
+          description: Resultado del trabajo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobResult' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+components:
+  securitySchemes:
+    telegramInitData:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: |
+        Valor `tma <initData>`, donde `<initData>` es la cadena cruda de `Telegram.WebApp.initData`.
+        Se valida la firma HMAC-SHA256 con el token del bot y la vigencia de `auth_date` (ADR 0003).
+    telegramWebhookSecret:
+      type: apiKey
+      in: header
+      name: X-Telegram-Bot-Api-Secret-Token
+      description: Secreto fijado con setWebhook(secret_token).
+    cronSecret:
+      type: http
+      scheme: bearer
+      description: "`Authorization: Bearer <CRON_SECRET>` enviado por Vercel Cron."
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, default: 1 }
+    PageSize:
+      name: pageSize
+      in: query
+      required: false
+      description: Parámetro técnico de paginación.
+      schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+    ListingId:
+      name: listingId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    VersionId:
+      name: versionId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    RegistrationId:
+      name: registrationId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    RequestId:
+      name: requestId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    Unauthenticated:
+      description: Sin identidad de Telegram válida (initData ausente, alterado o vencido; secreto incorrecto)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          example:
+            type: about:blank
+            title: No autenticado
+            status: 401
+            code: unauthenticated
+            detail: No pudimos verificar tu identidad de Telegram. Abre de nuevo la Mini App.
+    Forbidden:
+      description: Sin rol, sin permiso, recurso de otro negocio o aviso no aceptado
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          example:
+            type: about:blank
+            title: Acceso denegado
+            status: 403
+            code: forbidden
+            detail: No tienes permiso para realizar esta acción.
+    NotFound:
+      description: Recurso inexistente o no visible para este rol
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Conflict:
+      description: Duplicado, estado que no permite la operación o regla protegida
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          example:
+            type: about:blank
+            title: Registro duplicado
+            status: 409
+            code: duplicate
+            detail: Ya existe una ficha con ese nombre en ese municipio.
+    ValidationFailed:
+      description: Datos inválidos o falta la confirmación
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          example:
+            type: about:blank
+            title: Datos inválidos
+            status: 422
+            code: validation_failed
+            detail: Revisa los campos marcados.
+            errors:
+              - field: schedule
+                code: required
+                message: Los horarios son obligatorios.
+    RateLimited:
+      description: Demasiados intentos
+      headers:
+        Retry-After:
+          schema: { type: integer }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    InternalError:
+      description: Error del sistema, sin detalles técnicos ni datos personales
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          example:
+            type: about:blank
+            title: Error del sistema
+            status: 500
+            code: internal_error
+            detail: Ocurrió un error. Intenta de nuevo en unos minutos.
+
+  schemas:
+    Problem:
+      type: object
+      description: Formato único de error (RFC 9457). Textos en español; nunca incluye número de identidad, datos de solicitudes ni trazas.
+      required: [type, title, status, code]
+      properties:
+        type: { type: string, default: 'about:blank' }
+        title: { type: string }
+        status: { type: integer }
+        code: { $ref: '#/components/schemas/ErrorCode' }
+        detail: { type: string }
+        errors:
+          type: array
+          items: { $ref: '#/components/schemas/FieldError' }
+    ErrorCode:
+      type: string
+      enum:
+        - unauthenticated
+        - forbidden
+        - consent_required
+        - not_found
+        - validation_failed
+        - confirmation_required
+        - duplicate
+        - invalid_state_transition
+        - notice_version_outdated
+        - principal_admin_protected
+        - last_admin_protected
+        - listing_not_accepting_requests
+        - admin_cannot_register_as_provider
+        - role_conflict
+        - photo_limit_exceeded
+        - photo_total_size_exceeded
+        - photo_too_large
+        - storage_quota_exceeded
+        - upload_not_found
+        - rate_limited
+        - internal_error
+    FieldError:
+      type: object
+      required: [field, code, message]
+      properties:
+        field: { type: string }
+        code: { type: string, examples: [required, invalid_format, too_long, not_in_list, must_be_future, must_be_positive] }
+        message: { type: string }
+
+    Confirmation:
+      type: object
+      description: Confirmación explícita de una operación importante (invariante 8).
+      required: [confirmed]
+      additionalProperties: false
+      properties:
+        confirmed: { type: boolean, const: true }
+
+    TelegramUserId:
+      type: string
+      description: ID numérico de Telegram como texto (evita pérdida de precisión).
+      pattern: '^[1-9][0-9]{0,15}$'
+      examples: ['100000001']
+
+    Role:
+      type: string
+      enum: [admin, provider]
+
+    ConsentChannel:
+      type: string
+      enum: [bot, mini_app]
+
+    PrivacyNotice:
+      type: object
+      required: [version, bodyMarkdown, declarationText, publishedAt]
+      properties:
+        version: { type: string, examples: ['2026-11-v2'] }
+        bodyMarkdown: { type: string, description: 'Texto 1 aprobado por la usuaria (D-034)' }
+        declarationText: { type: string, description: Declaración de autorización (Texto 2.1) }
+        revocationNote: { type: string, description: 'Frase de D-023 junto a "Revocar mi autorización"' }
+        publishedAt: { type: string, format: date-time }
+
+    ConsentAcceptance:
+      type: object
+      required: [noticeVersion, accepted]
+      additionalProperties: false
+      properties:
+        noticeVersion: { type: string }
+        accepted: { type: boolean, const: true }
+        channel:
+          allOf: [{ $ref: '#/components/schemas/ConsentChannel' }]
+          default: mini_app
+          description: La API HTTP siempre registra `mini_app`; el bot registra `bot` dentro del proceso.
+
+    Me:
+      type: object
+      required: [telegramUserId, consent, roles, isPrincipalAdmin, providerRegistrationStatus, canRegisterAsProvider]
+      properties:
+        telegramUserId: { $ref: '#/components/schemas/TelegramUserId' }
+        displayName: { type: [string, 'null'], description: Nombre de la cuenta de Telegram; nulo si no ha aceptado el aviso }
+        consent:
+          type: object
+          required: [required, currentVersion, canRevoke]
+          properties:
+            required: { type: boolean, description: Verdadero si debe aceptar la versión vigente antes de seguir }
+            currentVersion: { type: string }
+            acceptedVersion: { type: [string, 'null'], description: 'Versión aceptada por la cuenta; si es anterior a la vigente, la persona puede revocar sin aceptar la nueva (ADR 0005)' }
+            acceptedAt: { type: [string, 'null'], format: date-time }
+            canRevoke:
+              type: boolean
+              description: 'Verdadero si tiene cuenta y no es el administrador principal ni el único administrador; la interfaz muestra "Revocar mi autorización" (D-018, D-020)'
+        roles:
+          type: array
+          description: Roles activos según la base de datos; vacío si no ha aceptado el aviso.
+          items: { $ref: '#/components/schemas/Role' }
+        isPrincipalAdmin: { type: boolean }
+        providerRegistrationStatus:
+          type: string
+          enum: [none, pending, approved, rejected]
+        canRegisterAsProvider:
+          type: boolean
+          description: 'Verdadero solo para cuentas con aviso vigente, sin rol y sin registro pendiente o aprobado (HU-006 criterio 3; D-038)'
+
+    RevocationResult:
+      type: object
+      required: [revokedAt, message]
+      properties:
+        revokedAt: { type: string, format: date-time }
+        message: { type: string, examples: ['Revocaste tu autorización. Tus datos fueron eliminados.'] }
+
+    ProviderRegistrationStatus:
+      type: string
+      enum: [pending, approved, rejected]
+
+    ProviderRegistrationCreate:
+      type: object
+      required: [identityNumber, confirmed]
+      additionalProperties: false
+      properties:
+        identityNumber:
+          type: string
+          minLength: 1
+          description: Número de identidad. Formato válido Pendiente (D-045); hasta entonces, texto no vacío sin caracteres de control. Nunca se registra en logs.
+          x-pending: D-045
+          writeOnly: true
+        confirmed: { type: boolean, const: true }
+
+    OwnProviderRegistration:
+      type: object
+      description: Vista del propio prestador; no incluye el número de identidad.
+      required: [id, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/ProviderRegistrationStatus' }
+        createdAt: { type: string, format: date-time }
+        decidedAt: { type: [string, 'null'], format: date-time }
+
+    AdminProviderRegistration:
+      type: object
+      description: Vista del administrador; incluye el número de identidad (D-011).
+      required: [id, telegramUserId, telegramDisplayName, identityNumber, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        telegramUserId: { $ref: '#/components/schemas/TelegramUserId' }
+        telegramDisplayName: { type: string }
+        identityNumber: { type: string, description: Visible solo para administradores }
+        status: { $ref: '#/components/schemas/ProviderRegistrationStatus' }
+        createdAt: { type: string, format: date-time }
+        decidedAt: { type: [string, 'null'], format: date-time }
+        decidedBy: { $ref: '#/components/schemas/ActorRef' }
+        rejectionReason: { type: [string, 'null'] }
+
+    AdminProviderRegistrationPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/AdminProviderRegistration' }
+
+    RegistrationRejection:
+      type: object
+      required: [confirmed]
+      additionalProperties: false
+      properties:
+        confirmed: { type: boolean, const: true }
+        reason: { type: string, maxLength: 4096, description: Opcional (HU-003 no lo exige), x-pending: D-013 }
+
+    AdministratorAuthorization:
+      type: object
+      required: [telegramUserId, confirmed]
+      additionalProperties: false
+      properties:
+        telegramUserId: { $ref: '#/components/schemas/TelegramUserId' }
+        confirmed: { type: boolean, const: true }
+
+    RoleGrant:
+      type: object
+      required: [id, telegramUserId, role, isPrincipal, grantedAt]
+      properties:
+        id: { type: string, format: uuid }
+        telegramUserId: { $ref: '#/components/schemas/TelegramUserId' }
+        displayName: { type: [string, 'null'], description: Nulo si la persona aún no aceptó el aviso }
+        role: { $ref: '#/components/schemas/Role' }
+        isPrincipal: { type: boolean, description: Administrador principal (D-032) }
+        grantedAt: { type: string, format: date-time }
+        grantedBy: { $ref: '#/components/schemas/ActorRef' }
+        revokedAt: { type: [string, 'null'], format: date-time }
+        revokedBy: { $ref: '#/components/schemas/ActorRef' }
+
+    RoleGrantPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/RoleGrant' }
+
+    ActorRef:
+      type: [object, 'null']
+      description: Responsable de un cambio. `displayName` nulo cuando la persona revocó su autorización o tras la eliminación del 31 de enero de 2027 ("Usuario eliminado"; valor por defecto pendiente de aprobación).
+      required: [role]
+      properties:
+        displayName: { type: [string, 'null'] }
+        role: { type: string, enum: [admin, provider, visitor, system] }
+
+    Municipality:
+      type: object
+      required: [id, name, department, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, examples: [Manizales] }
+        department: { type: string, examples: [Caldas] }
+        generalInfo: { type: [string, 'null'] }
+        zone: { type: [string, 'null'], description: 'Dato opcional, no entidad (D-013)' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    MunicipalityCreate:
+      type: object
+      required: [name, department, confirmed]
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 1, maxLength: 4096, x-pending: D-013 }
+        department: { type: string, minLength: 1, maxLength: 4096, x-pending: D-013 }
+        generalInfo: { type: string, maxLength: 4096, x-pending: D-013 }
+        zone: { type: string, maxLength: 4096, x-pending: D-013 }
+        confirmed: { type: boolean, const: true }
+
+    MunicipalityUpdate:
+      type: object
+      required: [confirmed]
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 1, maxLength: 4096, x-pending: D-013 }
+        department: { type: string, minLength: 1, maxLength: 4096, x-pending: D-013 }
+        generalInfo: { type: [string, 'null'], maxLength: 4096, x-pending: D-013 }
+        zone: { type: [string, 'null'], maxLength: 4096, x-pending: D-013 }
+        confirmed: { type: boolean, const: true }
+
+    CatalogItem:
+      type: object
+      required: [id, name, isGastronomic]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        isGastronomic:
+          type: boolean
+          readOnly: true
+          description: |
+            Marca del directorio gastronómico. Solo lectura: la fija la semilla de referencia, no la API.
+            Tipos de establecimiento: verdadera solo en restaurante y café (D-040). Categorías: siempre falsa.
+            Tipos de experiencia: falsa mientras la usuaria no indique qué tipo es "experiencia gastronómica" (sección 3.4; Pendiente).
+
+    CatalogItemCreate:
+      type: object
+      required: [name, confirmed]
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 1, maxLength: 4096, x-pending: D-013 }
+        confirmed: { type: boolean, const: true }
+
+    CatalogItemUpdate:
+      type: object
+      required: [confirmed]
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 1, maxLength: 4096, x-pending: D-013 }
+        confirmed: { type: boolean, const: true }
+
+    ListingKind:
+      type: string
+      enum: [attraction, establishment, route_experience]
+      description: attraction = atractivo (administrador); establishment = establecimiento, alojamiento, restaurante o café; route_experience = ruta o experiencia.
+
+    ListingVersionStatus:
+      type: string
+      enum: [draft, pending, published, rejected, superseded]
+
+    ListingDisplayStatus:
+      type: string
+      enum: [draft, pending, published, rejected]
+      description: Estado que ve el prestador (sección 3.3).
+
+    ListingContentInput:
+      type: object
+      description: |
+        Contenido editable. En borrador solo son obligatorios `name` y `municipalityId` (para detectar duplicados).
+        Para enviar a revisión (prestador) o crear un atractivo (administrador) son obligatorios exactamente los campos de D-003:
+        `name`, `municipalityId`, `categoryId`, `description`, `schedule`, `contact` y `mapsUrl`; además `experienceTypeId` en rutas y
+        experiencias (F018). `establishmentTypeId` es opcional en todos los estados (D-040); solo se admite en `establishment`.
+        `experienceTypeId` y `guidesInfo` solo se admiten en `route_experience`. Otra combinación responde 422.
+        Límites de caracteres de D-042: nombre 100, descripción 1500, horarios 300, contacto 200.
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100, description: 'Nombre de la ficha (D-042)' }
+        municipalityId: { type: string, format: uuid }
+        categoryId: { type: string, format: uuid }
+        establishmentTypeId:
+          type: [string, 'null']
+          format: uuid
+          description: 'Opcional (D-040). Solo establecimientos. Restaurante o café la incluyen en el directorio gastronómico'
+        experienceTypeId: { type: string, format: uuid, description: 'Solo rutas y experiencias; obligatorio al enviar a revisión (F018)' }
+        description: { type: string, maxLength: 1500, description: 'Descripción (D-042)' }
+        schedule: { type: string, maxLength: 300, description: 'Horarios en texto (D-042)' }
+        contact: { type: string, maxLength: 200, description: 'Datos de contacto que el prestador decide publicar (D-042)' }
+        mapsUrl: { type: string, format: uri, maxLength: 2048, description: Enlace de Google Maps validado (ADR 0016) }
+        guidesInfo:
+          type: string
+          maxLength: 4096
+          description: 'Solo rutas y experiencias; datos de guías como texto, no usuarios (D-014). Máximo técnico; límite de producto Pendiente'
+          x-pending: D-013
+
+    ListingCreate:
+      type: object
+      required: [kind, content, confirmed]
+      additionalProperties: false
+      properties:
+        kind: { $ref: '#/components/schemas/ListingKind' }
+        content:
+          allOf:
+            - $ref: '#/components/schemas/ListingContentInput'
+            - required: [name, municipalityId]
+        confirmed: { type: boolean, const: true }
+
+    ListingDraftSave:
+      type: object
+      required: [content, confirmed]
+      additionalProperties: false
+      properties:
+        content:
+          allOf:
+            - $ref: '#/components/schemas/ListingContentInput'
+            - required: [name, municipalityId]
+        confirmed: { type: boolean, const: true }
+
+    ListingSubmission:
+      type: object
+      required: [confirmed, thirdPartyAuthorizationDeclared]
+      additionalProperties: false
+      properties:
+        confirmed: { type: boolean, const: true }
+        thirdPartyAuthorizationDeclared:
+          type: boolean
+          const: true
+          description: Declaración de autorización de guías y contactos (D-024)
+
+    NamedRef:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+
+    ListingContentView:
+      type: object
+      required: [name, municipality]
+      properties:
+        name: { type: string }
+        municipality: { $ref: '#/components/schemas/NamedRef' }
+        category: { oneOf: [{ $ref: '#/components/schemas/NamedRef' }, { type: 'null' }] }
+        establishmentType: { oneOf: [{ $ref: '#/components/schemas/NamedRef' }, { type: 'null' }] }
+        experienceType: { oneOf: [{ $ref: '#/components/schemas/NamedRef' }, { type: 'null' }] }
+        description: { type: [string, 'null'] }
+        schedule: { type: [string, 'null'] }
+        contact: { type: [string, 'null'] }
+        mapsUrl: { type: [string, 'null'], format: uri }
+        guidesInfo: { type: [string, 'null'] }
+
+    Photo:
+      type: object
+      required: [id, url, urlExpiresAt, contentType, sizeBytes, position]
+      properties:
+        id: { type: string, format: uuid }
+        url: { type: string, format: uri, description: 'URL firmada de lectura de corta vigencia (almacén privado, ADR 0009)' }
+        urlExpiresAt: { type: string, format: date-time }
+        contentType: { type: string, enum: [image/jpeg, image/png] }
+        sizeBytes: { type: integer, minimum: 1 }
+        position: { type: integer, minimum: 1, maximum: 10 }
+
+    ListingVersion:
+      type: object
+      required: [id, versionNumber, status, content, photos, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        versionNumber: { type: integer, minimum: 1 }
+        status: { $ref: '#/components/schemas/ListingVersionStatus' }
+        content: { $ref: '#/components/schemas/ListingContentView' }
+        photos:
+          type: array
+          maxItems: 10
+          items: { $ref: '#/components/schemas/Photo' }
+        photosTotalBytes: { type: integer, minimum: 0 }
+        thirdPartyDeclaredAt: { type: [string, 'null'], format: date-time }
+        submittedAt: { type: [string, 'null'], format: date-time }
+        decidedAt: { type: [string, 'null'], format: date-time }
+        decidedBy: { $ref: '#/components/schemas/ActorRef' }
+        rejectionReason: { type: [string, 'null'] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ManagedListing:
+      type: object
+      required: [id, kind, displayStatus, hasPublishedVersion, acceptsRequests, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { $ref: '#/components/schemas/ListingKind' }
+        businessId: { type: [string, 'null'], format: uuid, description: Nulo en atractivos }
+        displayStatus: { $ref: '#/components/schemas/ListingDisplayStatus' }
+        hasPublishedVersion: { type: boolean }
+        published: { oneOf: [{ $ref: '#/components/schemas/ListingVersion' }, { type: 'null' }] }
+        working:
+          oneOf: [{ $ref: '#/components/schemas/ListingVersion' }, { type: 'null' }]
+          description: Versión en borrador, pendiente o la última rechazada después de la publicada
+        lastRejection:
+          type: [object, 'null']
+          properties:
+            reason: { type: string }
+            rejectedAt: { type: string, format: date-time }
+        acceptsRequests: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    ManagedListingSummary:
+      type: object
+      required: [id, kind, name, municipality, displayStatus, hasPublishedVersion, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { $ref: '#/components/schemas/ListingKind' }
+        name: { type: string }
+        municipality: { $ref: '#/components/schemas/NamedRef' }
+        displayStatus: { $ref: '#/components/schemas/ListingDisplayStatus' }
+        hasPublishedVersion: { type: boolean }
+        updatedAt: { type: string, format: date-time }
+
+    ManagedListingSummaryPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/ManagedListingSummary' }
+
+    ListingStatusEvent:
+      type: object
+      required: [occurredAt, versionId, toStatus]
+      properties:
+        occurredAt: { type: string, format: date-time }
+        versionId: { type: string, format: uuid }
+        versionNumber: { type: integer }
+        fromStatus: { oneOf: [{ $ref: '#/components/schemas/ListingVersionStatus' }, { type: 'null' }] }
+        toStatus: { $ref: '#/components/schemas/ListingVersionStatus' }
+        actor: { $ref: '#/components/schemas/ActorRef' }
+        reason: { type: [string, 'null'], description: Motivo cuando hubo rechazo }
+
+    PhotoUploadRequest:
+      type: object
+      required: [fileName, contentType, sizeBytes]
+      additionalProperties: false
+      properties:
+        fileName: { type: string, minLength: 1, maxLength: 255 }
+        contentType: { type: string, enum: [image/jpeg, image/png], description: 'Tipos permitidos (Inferido; valor por defecto pendiente de aprobación)' }
+        sizeBytes:
+          type: integer
+          minimum: 1
+          maximum: 5000000
+          description: Tamaño declarado en bytes. Máximo por foto 5 MB (D-042), configurado en `PHOTO_MAX_BYTES`.
+
+    PhotoUploadTicket:
+      type: object
+      required: [uploadId, uploadUrl, method, expiresAt, maxSizeBytes, contentType]
+      properties:
+        uploadId: { type: string, format: uuid }
+        uploadUrl: { type: string, format: uri, description: 'URL firmada PUT de Vercel Blob, restringida a una ruta, tipo y tamaño' }
+        method: { type: string, const: PUT }
+        expiresAt: { type: string, format: date-time }
+        maxSizeBytes: { type: integer }
+        contentType: { type: string, enum: [image/jpeg, image/png] }
+        remainingPhotos: { type: integer, minimum: 0, maximum: 9 }
+        remainingBytes: { type: integer, minimum: 0 }
+
+    PhotoRegistration:
+      type: object
+      required: [uploadId]
+      additionalProperties: false
+      properties:
+        uploadId: { type: string, format: uuid }
+
+    ReviewSummary:
+      type: object
+      required: [versionId, listingId, kind, name, municipality, submittedAt, isEditOfPublished]
+      properties:
+        versionId: { type: string, format: uuid }
+        listingId: { type: string, format: uuid }
+        kind: { $ref: '#/components/schemas/ListingKind' }
+        name: { type: string }
+        municipality: { $ref: '#/components/schemas/NamedRef' }
+        submittedAt: { type: string, format: date-time }
+        isEditOfPublished: { type: boolean, description: Verdadero si la ficha ya tiene versión publicada }
+
+    ReviewSummaryPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/ReviewSummary' }
+
+    Review:
+      type: object
+      required: [versionId, listingId, kind, proposed, changedFields]
+      properties:
+        versionId: { type: string, format: uuid }
+        listingId: { type: string, format: uuid }
+        kind: { $ref: '#/components/schemas/ListingKind' }
+        proposed: { $ref: '#/components/schemas/ListingVersion' }
+        published: { oneOf: [{ $ref: '#/components/schemas/ListingVersion' }, { type: 'null' }] }
+        changedFields:
+          type: array
+          description: Campos que cambian respecto a la versión publicada (HU-016 criterio 4, Inferido)
+          items:
+            type: string
+            enum: [name, municipality, category, establishmentType, experienceType, description, schedule, contact, mapsUrl, guidesInfo, photos]
+
+    ListingRejection:
+      type: object
+      required: [confirmed, reason]
+      additionalProperties: false
+      properties:
+        confirmed: { type: boolean, const: true }
+        reason: { type: string, minLength: 1, maxLength: 4096, description: Motivo visible para el prestador, x-pending: D-013 }
+
+    PublicListingSummary:
+      type: object
+      required: [id, kind, name, municipality]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { $ref: '#/components/schemas/ListingKind' }
+        name: { type: string }
+        municipality: { $ref: '#/components/schemas/NamedRef' }
+        category: { $ref: '#/components/schemas/NamedRef' }
+        experienceType: { oneOf: [{ $ref: '#/components/schemas/NamedRef' }, { type: 'null' }] }
+
+    PublicListingSummaryPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/PublicListingSummary' }
+
+    PublicListingDetail:
+      type: object
+      description: Solo la versión publicada. Sin número de identidad ni datos del prestador fuera del contacto publicado (D-011).
+      required: [id, kind, name, municipality, category, description, schedule, contact, mapsUrl, photos, acceptsRequests, publishedAt]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { $ref: '#/components/schemas/ListingKind' }
+        name: { type: string }
+        municipality: { $ref: '#/components/schemas/NamedRef' }
+        category: { $ref: '#/components/schemas/NamedRef' }
+        establishmentType: { oneOf: [{ $ref: '#/components/schemas/NamedRef' }, { type: 'null' }] }
+        experienceType: { oneOf: [{ $ref: '#/components/schemas/NamedRef' }, { type: 'null' }] }
+        description: { type: string }
+        schedule: { type: string }
+        contact: { type: string }
+        mapsUrl: { type: string, format: uri }
+        guidesInfo: { type: [string, 'null'] }
+        photos:
+          type: array
+          maxItems: 10
+          items: { $ref: '#/components/schemas/Photo' }
+        acceptsRequests: { type: boolean, description: Falso en atractivos y en fichas de prestadores sin rol activo (D-029) }
+        publishedAt: { type: string, format: date-time }
+      examples:
+        - id: 3f1c2b9e-0000-4000-8000-000000000001
+          kind: establishment
+          name: Finca Ejemplo
+          municipality: { id: 3f1c2b9e-0000-4000-8000-0000000000a1, name: Manizales }
+          category: { id: 3f1c2b9e-0000-4000-8000-0000000000b1, name: Categoría de ejemplo }
+          establishmentType: { id: 3f1c2b9e-0000-4000-8000-0000000000c1, name: Tipo de ejemplo }
+          experienceType: null
+          description: Descripción ficticia.
+          schedule: Lunes a domingo, 8:00 a 17:00
+          contact: 'Teléfono ficticio 300 000 0000'
+          mapsUrl: https://maps.app.goo.gl/ejemplo
+          guidesInfo: null
+          photos: []
+          acceptsRequests: true
+          publishedAt: '2026-11-20T15:00:00Z'
+
+    InformationRequestStatus:
+      type: string
+      enum: [new, attended, closed]
+      description: nueva, atendida, cerrada (sección 3.8)
+
+    InformationRequestCreate:
+      type: object
+      required: [requesterName, interestDate, partySize, message, confirmed]
+      additionalProperties: false
+      properties:
+        requesterName: { type: string, minLength: 1, maxLength: 4096, description: Propuesto desde Telegram y editable (D-010), x-pending: D-013 }
+        interestDate: { type: string, format: date, description: 'No anterior a hoy en America/Bogota (regla aprobada en D-044)' }
+        partySize: { type: integer, minimum: 1, description: 'Entero mayor que cero (regla aprobada en D-044)' }
+        message: { type: string, minLength: 1, maxLength: 4096, description: 'Máximo técnico; el aviso al prestador se divide en varios mensajes si hace falta', x-pending: D-013 }
+        confirmed: { type: boolean, const: true }
+
+    InformationRequestReceipt:
+      type: object
+      description: Respuesta al visitante; aclara que no es una reserva confirmada.
+      required: [id, status, createdAt, notice]
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string, const: new }
+        createdAt: { type: string, format: date-time }
+        notice: { type: string, examples: ['Tu solicitud fue enviada al prestador. No es una reserva confirmada.'] }
+
+    InformationRequestReply:
+      type: object
+      required: [id, body, sentAt]
+      properties:
+        id: { type: string, format: uuid }
+        body: { type: string }
+        sentAt: { type: string, format: date-time }
+        deliveryStatus: { type: string, enum: [queued, sent, failed] }
+
+    InformationRequestReplyCreate:
+      type: object
+      required: [body, confirmed]
+      additionalProperties: false
+      properties:
+        body: { type: string, minLength: 1, maxLength: 4096, description: Texto libre (D-010); 4096 es el máximo de un mensaje de Telegram }
+        confirmed: { type: boolean, const: true }
+
+    InformationRequestStatusChange:
+      type: object
+      required: [status, confirmed]
+      additionalProperties: false
+      properties:
+        status: { type: string, enum: [attended, closed] }
+        confirmed: { type: boolean, const: true }
+
+    InformationRequest:
+      type: object
+      description: Solo para el prestador del negocio (D-011).
+      required: [id, listingId, listingName, requesterName, interestDate, partySize, message, status, createdAt, updatedAt, replies, statusHistory]
+      properties:
+        id: { type: string, format: uuid }
+        listingId: { type: string, format: uuid }
+        listingName: { type: string }
+        requesterName: { type: string }
+        interestDate: { type: string, format: date }
+        partySize: { type: integer, minimum: 1 }
+        message: { type: string }
+        status: { $ref: '#/components/schemas/InformationRequestStatus' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        replies:
+          type: array
+          items: { $ref: '#/components/schemas/InformationRequestReply' }
+        statusHistory:
+          type: array
+          items:
+            type: object
+            required: [occurredAt, toStatus]
+            properties:
+              occurredAt: { type: string, format: date-time }
+              fromStatus: { oneOf: [{ $ref: '#/components/schemas/InformationRequestStatus' }, { type: 'null' }] }
+              toStatus: { $ref: '#/components/schemas/InformationRequestStatus' }
+              actor: { $ref: '#/components/schemas/ActorRef' }
+
+    InformationRequestPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/InformationRequest' }
+
+    PageMeta:
+      type: object
+      required: [page, pageSize, total]
+      properties:
+        page: { type: integer, minimum: 1 }
+        pageSize: { type: integer, minimum: 1 }
+        total: { type: integer, minimum: 0 }
+
+    JobResult:
+      type: object
+      required: [job, ranAt, processed]
+      properties:
+        job: { type: string, enum: [outbox, maintenance, retention] }
+        ranAt: { type: string, format: date-time }
+        processed: { type: integer, minimum: 0 }
+        skippedReason: { type: [string, 'null'], examples: ['retention_deadline_not_reached'] }
