@@ -15,7 +15,7 @@
       "Cerrar y volver a abrir el bot con la misma cuenta y verificar que el aviso no se muestra otra vez",
       "En el entorno de pruebas, publicar una versión nueva del aviso, abrir el bot con la misma cuenta y verificar que se muestra el aviso nuevo y se pide aceptarlo de nuevo antes de seguir (D-025)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F002",
