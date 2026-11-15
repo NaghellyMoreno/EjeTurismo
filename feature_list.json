@@ -52,7 +52,7 @@
       "Crear otro registro pendiente, rechazarlo con confirmación y verificar que ese usuario recibe el mensaje de rechazo y no obtiene el rol",
       "Verificar que ambas decisiones quedan registradas con fecha, administrador responsable y resultado"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F004",
