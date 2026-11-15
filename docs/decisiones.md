@@ -64,3 +64,8 @@ Solo se agregan filas al final, con `>>`. Ninguna fila se edita, se borra ni se 
 | D-058 | 3 | 3 | F017 depende de F018; se intercambian prioridades (F018 pasa a 6 y F017 a 7) | 2026-11-14 |
 | D-059 | 3 | 3 | Sin respuesta tras la ronda 3: el resto del antiguo Pendiente 8 de la arquitectura (ahora Pendiente 6) queda como Pendiente Inferido, no bloqueante | 2026-11-14 |
 | D-060 | 3 | 3 | Compuerta 2 aprobada: readiness PASS (docs/04-readiness.md); se pasa a la fase 4 | 2026-11-14 |
+| D-061 | 4 | 1 | Se agrega /api/health al contrato api/openapi.yaml | 2026-11-15 |
+| D-062 | 4 | 1 | TypeScript se queda en 5.x (openapi-typescript 7.13 falla con la 7) | 2026-11-15 |
+| D-063 | 4 | 2 | Base local de desarrollo y pruebas: PostgreSQL instalado con Homebrew en lugar de Docker; cambia lo que dice la ADR 0014 sobre Docker | 2026-11-15 |
+| D-064 | 4 | 2 | /api/health queda solo como prueba de vida; el architect anota D-062 (TypeScript 5.x) en la ADR 0014 | 2026-11-15 |
+| D-065 | 4 | 3 | Se aprueban las recomendaciones del architect (Pendiente 7): PostgreSQL 17, autenticación local trust solo en localhost, contraseña de eje_app fijada por la usuaria fuera del repositorio y solo en DATABASE_URL de Vercel, y los nombres propuestos de scripts y variables locales | 2026-11-15 |
