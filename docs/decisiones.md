@@ -69,3 +69,8 @@ Solo se agregan filas al final, con `>>`. Ninguna fila se edita, se borra ni se 
 | D-063 | 4 | 2 | Base local de desarrollo y pruebas: PostgreSQL instalado con Homebrew en lugar de Docker; cambia lo que dice la ADR 0014 sobre Docker | 2026-11-15 |
 | D-064 | 4 | 2 | /api/health queda solo como prueba de vida; el architect anota D-062 (TypeScript 5.x) en la ADR 0014 | 2026-11-15 |
 | D-065 | 4 | 3 | Se aprueban las recomendaciones del architect (Pendiente 7): PostgreSQL 17, autenticación local trust solo en localhost, contraseña de eje_app fijada por la usuaria fuera del repositorio y solo en DATABASE_URL de Vercel, y los nombres propuestos de scripts y variables locales | 2026-11-15 |
+| D-066 | 5 | 1 | F001: el aviso se envía en 3 mensajes consecutivos partidos por apartados completos (límite de 4096 caracteres de Telegram), con los botones "Acepto" y "No acepto" solo en el último | 2026-11-15 |
+| D-067 | 5 | 1 | F001: "No acepto" usa el texto del apartado 2.1 de docs/05-aviso-privacidad.md, ofrece "Volver a ver el aviso" y no guarda ningún dato | 2026-11-15 |
+| D-068 | 5 | 1 | F001: B02 es un menú mínimo con bienvenida y lista de comandos disponibles, sin opciones de rol | 2026-11-15 |
+| D-069 | 5 | 1 | F001: "Revocar mi autorización" en B01 queda fuera (es de F034); riesgo anotado: el apartado 9 del aviso solo se publica en producción cuando F034 exista | 2026-11-15 |
+| D-070 | 5 | 1 | F001: incluye las rutas HTTP y la autenticación por initData (getMe), sin la pantalla M01 | 2026-11-15 |
