@@ -69,7 +69,7 @@
       "Intentar autorizar de nuevo el mismo ID y verificar que el bot informa que ya está autorizado y no crea un duplicado",
       "Ingresar un ID con formato no numérico y verificar que se rechaza con un mensaje claro"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F005",
