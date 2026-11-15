@@ -89,6 +89,18 @@ export interface AuditEventsTable {
   details: ColumnType<unknown, string | undefined, never>;
 }
 
+export interface NotificationOutboxTable {
+  id: Generated<string>;
+  recipient_telegram_user_id: ColumnType<string, string | number | bigint, string | number | bigint>;
+  template: string;
+  payload: ColumnType<unknown, string | undefined, never>;
+  status: Generated<"pending" | "sent" | "failed">;
+  attempts: Generated<number>;
+  next_attempt_at: Timestamp | null;
+  created_at: DefaultedTimestamp;
+  sent_at: Timestamp | null;
+}
+
 export interface Database {
   privacy_notice_versions: PrivacyNoticeVersionsTable;
   accounts: AccountsTable;
@@ -99,4 +111,5 @@ export interface Database {
   provider_registrations: ProviderRegistrationsTable;
   role_grants: RoleGrantsTable;
   audit_events: AuditEventsTable;
+  notification_outbox: NotificationOutboxTable;
 }

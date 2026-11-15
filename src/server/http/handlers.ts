@@ -3,16 +3,20 @@ import type { components } from "@/shared/api/schema";
 import type { Actor } from "@/server/auth/actor";
 import { assertConsented } from "@/server/auth/consent-guard";
 import { parseAuthorization, verifyInitData } from "@/server/auth/init-data";
+import { scheduleDelivery, telegramSender } from "@/server/notifications";
 import { logError } from "@/server/observability/logger";
 import { AppError } from "@/server/errors";
 import {
   acceptPrivacyNotice,
+  approveProviderRegistration,
   createProviderRegistration,
   getActiveRoles,
   getConsentState,
   getCurrentPrivacyNotice,
   getMe,
   getMyProviderRegistration,
+  listProviderRegistrations,
+  rejectProviderRegistration,
 } from "@/server/services";
 import type { ConsentState } from "@/server/services";
 import type { Deps } from "./deps";
@@ -147,3 +151,41 @@ export function withProviderGuard(deps: Deps, handler: (actor: Actor, request: R
       return handler(actor, request);
     });
 }
+
+// GET /api/v1/provider-registrations (listProviderRegistrations): solo administradores. 401, 403 y 422 los aplica el servicio.
+export function listProviderRegistrationsHandler(deps: Deps) {
+  return (request: Request) =>
+    guarded("provider_registration.list_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const params = new URL(request.url).searchParams;
+      const query = { status: params.get("status"), page: params.get("page"), pageSize: params.get("pageSize") };
+      return json(await listProviderRegistrations(deps.db(), deps.config(), actor, query));
+    });
+}
+
+type RegistrationRoute = { params: Promise<{ registrationId: string }> };
+
+// POST .../{registrationId}/approval y .../rejection. Después de responder, `after()` envía el aviso (ADR 0007).
+function decisionHandler(deps: Deps, event: string, decide: typeof approveProviderRegistration) {
+  return (request: Request, context: RegistrationRoute) =>
+    guarded(event, async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const { registrationId } = await context.params;
+      const body: unknown = await request.json().catch(() => undefined);
+      const result = await decide(deps.db(), deps.config(), actor, registrationId, body, deps.now());
+      scheduleDelivery(result.notificationIds, {
+        db: deps.db,
+        now: deps.now,
+        send: deps.send ?? telegramSender(deps.config()),
+      });
+      return json(result.registration);
+    });
+}
+
+export const approveProviderRegistrationHandler = (deps: Deps) =>
+  decisionHandler(deps, "provider_registration.approve_failed", approveProviderRegistration);
+
+export const rejectProviderRegistrationHandler = (deps: Deps) =>
+  decisionHandler(deps, "provider_registration.reject_failed", rejectProviderRegistration);

@@ -17,3 +17,11 @@ export {
   PROVIDER_REGISTRATION_ACTION,
 } from "./provider-registration";
 export type { AccountContext, OwnProviderRegistration, RegistrationStatus, Role } from "./provider-registration";
+export {
+  approveProviderRegistration,
+  assertAdmin,
+  findProviderRegistration,
+  listProviderRegistrations,
+  rejectProviderRegistration,
+} from "./provider-review";
+export type { AdminProviderRegistration, AdminProviderRegistrationPage, Decision } from "./provider-review";

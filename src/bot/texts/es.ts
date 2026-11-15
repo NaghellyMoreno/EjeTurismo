@@ -13,6 +13,8 @@ export const es = {
     // B02, menú mínimo (D-068, D-071). El botón de registro solo lo ven cuentas sin rol y sin registro (D-074).
     welcome: "Te damos la bienvenida a Eje Turismo.\n\nComandos disponibles:\n/start: mostrar este menú",
     registerButton: "Registrarme como prestador",
+    // Mínimo de B02 para quien ya tiene el permiso de prestador (D-090, D-091); el menú completo es de F005.
+    providerAvailable: "Ya tienes el rol de prestador. Las opciones de prestador estarán disponibles pronto.",
   },
   // B04, B05 y B21 mínimo del registro de prestador. Textos aprobados en D-079; ninguno incluye el número ni lo escrito por la persona.
   provider: {
@@ -38,6 +40,29 @@ export const es = {
     pending: "Tu registro como prestador queda a la espera de autorización del administrador.",
     rateLimited: "Hiciste demasiados intentos. Espera un momento y vuelve a intentarlo.",
     error: "No pude completar el registro. Inténtalo de nuevo más tarde.",
+    // B20: avisos al usuario tras la decisión (D-090). Nunca incluyen el tipo, el número ni el motivo.
+    approved: "Tu registro como prestador fue autorizado. Escribe /start para continuar.",
+    rejected: "Tu registro como prestador no fue autorizado. Si crees que es un error, comunícate con el administrador.",
+  },
+  // B06, B07: revisión de registros de prestadores por el administrador (D-090, D-096).
+  admin: {
+    pendingButton: "Registros pendientes",
+    noPending: "No hay registros de prestadores pendientes.",
+    registrationDetail: (d: { telegramUserId: string; displayName: string; typeName: string; number: string; createdAt: string }) =>
+      `Registro de prestador pendiente\nID de Telegram: ${d.telegramUserId}\nNombre de Telegram: ${d.displayName}\nDocumento: ${d.typeName}\nNúmero de identidad: ${d.number}\nFecha de registro: ${d.createdAt}`,
+    approveButton: "Autorizar",
+    rejectButton: "Rechazar",
+    confirmApprove: "¿Confirmas que autorizas a esta persona como prestador?",
+    confirmReject: "¿Confirmas que rechazas el registro de esta persona como prestador?",
+    confirmButton: "Confirmar",
+    cancelButton: "Cancelar",
+    cancelled: "No se hizo ningún cambio. El registro sigue pendiente.",
+    approved: "Registro autorizado. La persona recibirá un aviso.",
+    rejected: "Registro rechazado. La persona recibirá un aviso.",
+    alreadyDecided: "Este registro ya fue decidido o no está disponible.",
+    forbidden: "No tienes permiso para hacer esta acción.",
+    error: "No pude completar la acción. Inténtalo de nuevo más tarde.",
+    morePending: 'Hay más registros pendientes. Decide estos y vuelve a pulsar "Registros pendientes".',
   },
   errors: {
     generic: "Ocurrió un error. Intenta de nuevo en unos minutos.",

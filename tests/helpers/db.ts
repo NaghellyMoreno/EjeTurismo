@@ -14,7 +14,7 @@ export function appDb() {
 }
 
 export async function resetDb(owner: Pool): Promise<void> {
-  await owner.query("truncate app.audit_events, app.role_grants, app.provider_registrations, app.bot_sessions, app.rate_limit_counters, app.processed_updates, app.consent_events, app.accounts restart identity");
+  await owner.query("truncate app.notification_outbox, app.audit_events, app.role_grants, app.provider_registrations, app.bot_sessions, app.rate_limit_counters, app.processed_updates, app.consent_events, app.accounts restart identity");
   await owner.query("delete from app.privacy_notice_versions where version <> $1", [NOTICE_VERSION]);
   await owner.query("update app.privacy_notice_versions set is_current = (version = $1)", [NOTICE_VERSION]);
 }

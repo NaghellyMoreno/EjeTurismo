@@ -4,6 +4,7 @@ const REDACTED_KEYS = new Set(
     "initdata", "authorization", "text", "message", "data", "body", "update", "from", "chat",
     "telegramuserid", "telegram_user_id", "userid", "id", "displayname", "first_name", "last_name", "username",
     "identitynumber", "identitydocumenttype", "secret", "token", "hash",
+    "reason", "rejectionreason", "rejection_reason", "callback_data", "callbackdata", "payload",
   ],
 );
 // Familias de claves con sufijo: identity_number, identity_number_encrypted, sealedIdentity, sealedIdentityIv... (ADR 0005).

@@ -7,6 +7,8 @@ export interface Deps {
   config: () => Config;
   db: () => Db;
   now: () => Date;
+  // Remitente de los avisos de la bandeja de salida (ADR 0007); por defecto, la API de Telegram con el token del bot.
+  send?: (chatId: string, text: string) => Promise<unknown>;
 }
 
 export const defaultDeps: Deps = { config: getConfig, db: getDb, now: () => new Date() };
