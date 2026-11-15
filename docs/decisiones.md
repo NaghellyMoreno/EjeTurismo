@@ -104,3 +104,14 @@ Solo se agregan filas al final, con `>>`. Ninguna fila se edita, se borra ni se 
 | D-098 | 5 | 2 | F003: un reason vacío o solo de espacios se guarda como nulo | 2026-11-15 |
 | D-099 | 5 | 2 | F028: /CANCELAR y /cancelar@otro_bot se aceptan como número de identidad en el paso del número; no cambia la validación de F002 | 2026-11-15 |
 | D-100 | 5 | 2 | F028: un mensaje no textual en los pasos del tipo y del número se trata como entrada inválida y repite el paso | 2026-11-15 |
+| D-101 | 5 | 1 | F004 P1: la fila is_principal se crea al aceptar el aviso y en el siguiente /start si falta; el guardián reconoce al principal por la configuración | 2026-11-15 |
+| D-102 | 5 | 1 | F004 P2: B06 agrega Autorizar administrador como segundo botón y se actualizan las 4 aserciones de pruebas del criterio 36 | 2026-11-15 |
+| D-103 | 5 | 1 | F004 P3: se aprueban los textos nuevos de B06 y B08 propuestos en contracts/F004.md | 2026-11-15 |
+| D-104 | 5 | 1 | F004 P4: listRoleGrants queda en F006, no en F004 | 2026-11-15 |
+| D-105 | 5 | 1 | F004 P5: traza role_grant.admin_authorized, entity_type role_grant, actor_role admin, sin datos personales en details | 2026-11-15 |
+| D-106 | 5 | 1 | F004 P6: role_conflict con permiso provider activo o registro pending; rejected o permiso revocado no bloquea; no se avisa a la persona autorizada | 2026-11-15 |
+| D-107 | 5 | 1 | F004 P7: el ID sigue el patrón ^[1-9][0-9]{0,15}$ y el bot ignora espacios al inicio y al final | 2026-11-15 |
+| D-108 | 5 | 1 | F004 P8: orden 401, 403 consent_required, 403 forbidden, 422, 409 duplicate, 409 role_conflict; un permiso admin revocado no cuenta como duplicado | 2026-11-15 |
+| D-109 | 5 | 1 | F004 P9: si cambia PRINCIPAL_ADMIN_TELEGRAM_ID el nuevo entra por configuración y la fila del anterior no se toca; riesgo anotado | 2026-11-15 |
+| D-110 | 5 | 1 | F004 P10: sin postgresql@17 local las pruebas de integración se reportan como bloqueo (FALLA), no como éxito | 2026-11-15 |
+| D-111 | 5 | 1 | F004 P11: la sesión de B08 vence a los 600 s (ADR 0015) y pulsar Autorizar administrador con otro formulario abierto la reemplaza sin copiar el borrador | 2026-11-15 |
