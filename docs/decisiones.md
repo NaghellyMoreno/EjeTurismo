@@ -82,3 +82,7 @@ Solo se agregan filas al final, con `>>`. Ninguna fila se edita, se borra ni se 
 | D-076 | 5 | 1 | F002: la creación del registro de prestador se registra en audit_events | 2026-11-15 |
 | D-077 | 5 | 1 | F002: límite de 5 registros por hora, leído de RATE_LIMITS | 2026-11-15 |
 | D-078 | 5 | 1 | F002: IDENTITY_ENCRYPTION_KEY e IDENTITY_HASH_KEY en base64 de 32 bytes | 2026-11-15 |
+| D-079 | 5 | 2 | F002: se aprueban los textos de B04 y B05 de contracts/F002.md, "Textos propuestos", sin la frase "Te avisaremos cuando haya una decisión" en provider.pending (depende de F003) | 2026-11-15 |
+| D-080 | 5 | 2 | F002: el bot no borra el mensaje con el número de identidad en el chat (sin deleteMessage) | 2026-11-15 |
+| D-081 | 5 | 2 | F002: actor_role='none' en la auditoría de quien se registra sin rol | 2026-11-15 |
+| D-082 | 5 | 2 | F002: al límite de 5 registros por hora suman los éxitos, los 409 y los 500; no suman 401, 403, 422 ni 429 | 2026-11-15 |
