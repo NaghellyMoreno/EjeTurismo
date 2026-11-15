@@ -1,0 +1,40 @@
+import { Pool } from "pg";
+import { createDb } from "@/server/db";
+
+export const NOTICE_VERSION = "2026-11-v3";
+export const COUNTED_TABLES = ["accounts", "consent_events", "bot_sessions", "rate_limit_counters", "processed_updates"] as const;
+
+// Conexión con el rol propietario (postgres): reinicia datos, inspecciona y crea disparadores. La aplicación usa eje_app.
+export function ownerPool(): Pool {
+  return new Pool({ connectionString: process.env.TEST_OWNER_URL, max: 2 });
+}
+
+export function appDb() {
+  return createDb(process.env.TEST_APP_URL!);
+}
+
+export async function resetDb(owner: Pool): Promise<void> {
+  await owner.query("truncate app.bot_sessions, app.rate_limit_counters, app.processed_updates, app.consent_events, app.accounts restart identity");
+  await owner.query("delete from app.privacy_notice_versions where version <> $1", [NOTICE_VERSION]);
+  await owner.query("update app.privacy_notice_versions set is_current = (version = $1)", [NOTICE_VERSION]);
+}
+
+export async function counts(owner: Pool): Promise<Record<string, number>> {
+  const out: Record<string, number> = {};
+  for (const table of COUNTED_TABLES) {
+    out[table] = Number((await owner.query(`select count(*) from app.${table}`)).rows[0].count);
+  }
+  return out;
+}
+
+export const EMPTY_COUNTS = Object.fromEntries(COUNTED_TABLES.map((t) => [t, 0]));
+
+// Cuenta las filas de las 5 tablas cuyo contenido (todas las columnas) menciona el texto dado.
+export async function rowsMentioning(owner: Pool, needle: string): Promise<number> {
+  let total = 0;
+  for (const table of COUNTED_TABLES) {
+    const res = await owner.query(`select count(*) from app.${table} t where row_to_json(t)::text like $1`, [`%${needle}%`]);
+    total += Number(res.rows[0].count);
+  }
+  return total;
+}
