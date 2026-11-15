@@ -99,3 +99,8 @@ Solo se agregan filas al final, con `>>`. Ninguna fila se edita, se borra ni se 
 | D-093 | 5 | 1 | F003: no se construye la tarea diaria cron/outbox de reintento; riesgo anotado: una notificación fallida no se reintenta hasta que exista | 2026-11-15 |
 | D-094 | 5 | 1 | F003: si una cuenta rechazada puede volver a registrarse por HTTP queda para decidirse en F005; en el bot no ve el botón | 2026-11-15 |
 | D-095 | 5 | 1 | F003: la lista de registros va del más antiguo al más reciente y, sin status, trae todos los estados | 2026-11-15 |
+| D-096 | 5 | 2 | F003: el bot envía como máximo 10 registros pendientes por pulsación y, si hay más, el mensaje admin.morePending propuesto en contracts/F003.md | 2026-11-15 |
+| D-097 | 5 | 2 | F003: orden de comprobaciones 409: primero invalid_state_transition y luego role_conflict; rechazar el registro de una cuenta con permiso admin responde 200 | 2026-11-15 |
+| D-098 | 5 | 2 | F003: un reason vacío o solo de espacios se guarda como nulo | 2026-11-15 |
+| D-099 | 5 | 2 | F028: /CANCELAR y /cancelar@otro_bot se aceptan como número de identidad en el paso del número; no cambia la validación de F002 | 2026-11-15 |
+| D-100 | 5 | 2 | F028: un mensaje no textual en los pasos del tipo y del número se trata como entrada inválida y repite el paso | 2026-11-15 |
