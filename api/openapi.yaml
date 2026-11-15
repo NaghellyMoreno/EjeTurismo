@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Eje Turismo API
-  version: 0.3.1
+  version: 0.3.2
   description: |
     Contrato entre la Mini App de Telegram, el bot y el backend de Eje Turismo.
     Fuente de verdad del producto: docs/00-contexto-producto.md. Arquitectura: docs/03-arquitectura.md.
@@ -11,6 +11,8 @@ info:
     Versión 0.3.1: iteración 3 de preparación, sin cambios de esquemas ni de operaciones. Nombre del tipo de experiencia
     gastronómica, "Sabores de Caldas" (D-052, D-053); duplicado del registro por tipo y número (D-054); normalización del
     número, nombres de las siglas y máximo técnico confirmados (D-055).
+    Versión 0.3.2: se agrega el endpoint de salud `GET /api/health` (D-061), público y fuera de `/api/v1`, tal como está
+    implementado. No cambia ningún otro esquema ni operación.
 
     Reglas generales:
     - Autenticación: la Mini App envía `Authorization: tma <initData>` con la cadena cruda de `Telegram.WebApp.initData`.
@@ -53,8 +55,38 @@ tags:
   - name: Consulta pública
   - name: Solicitudes
   - name: Integraciones internas
+  - name: Operación
+    description: Endpoints técnicos de la plataforma, sin datos del producto
 
 paths:
+  /api/health:
+    get:
+      tags: [Operación]
+      operationId: getHealth
+      summary: Consultar si el backend responde
+      description: |
+        Prueba de vida del despliegue (D-061). Está fuera de `/api/v1` porque no forma parte de la API del producto.
+        Pública: no lleva `initData` ni secretos, no consulta la base de datos ni Vercel Blob y la ruta no guarda ningún
+        dato (ni ID de Telegram ni IP). Solo informa que la función respondió y la hora del servidor; no revela versión,
+        entorno ni configuración. La respuesta se genera en cada petición (sin caché estática).
+        No verifica Supabase ni Vercel Blob: un 200 no garantiza que esos servicios estén disponibles.
+      security: []
+      x-roles: [public]
+      x-bot-equivalent: false
+      responses:
+        '200':
+          description: El backend responde
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthStatus' }
+              example:
+                status: ok
+                timestamp: '2026-11-15T00:00:00.000Z'
+        '500':
+          description: |
+            Fallo de la plataforma al ejecutar la función. La ruta no lo genera ni lo traduce a `Problem`; el cuerpo es el
+            que devuelva Next.js y no tiene esquema garantizado.
+
   /api/v1/privacy-notices/current:
     get:
       tags: [Privacidad]
@@ -1480,6 +1512,21 @@ components:
             detail: Ocurrió un error. Intenta de nuevo en unos minutos.
 
   schemas:
+    HealthStatus:
+      type: object
+      description: Estado del backend (D-061). Coincide con `getHealth()` de `src/server/health.ts`.
+      required: [status, timestamp]
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum: [ok]
+          description: Siempre `ok` cuando la función responde
+        timestamp:
+          type: string
+          format: date-time
+          description: Hora del servidor en ISO 8601 UTC con milisegundos (`Date.prototype.toISOString()`)
+          examples: ['2026-11-15T00:00:00.000Z']
     Problem:
       type: object
       description: Formato único de error (RFC 9457). Textos en español; nunca incluye número de identidad, datos de solicitudes ni trazas.

@@ -1,6 +1,6 @@
 # Arquitectura: Eje Turismo
 
-Fuentes: `docs/00-contexto-producto.md` (versión 1), `docs/01-brief.md`, `docs/02-requisitos.md`, `docs/05-aviso-privacidad.md`, `feature_list.json` (35 funcionalidades), `docs/guia-agentes.md` (sección architect) y el registro de decisiones congeladas D-001 a D-058. Stack y publicación fijos en `CLAUDE.md`. Contrato: `api/openapi.yaml` (versión 0.3.1). Decisiones: `docs/adr/0001` a `docs/adr/0016`.
+Fuentes: `docs/00-contexto-producto.md` (versión 1), `docs/01-brief.md`, `docs/02-requisitos.md`, `docs/05-aviso-privacidad.md`, `feature_list.json` (35 funcionalidades), `docs/guia-agentes.md` (sección architect) y el registro de decisiones congeladas D-001 a D-058. Stack y publicación fijos en `CLAUDE.md`. Contrato: `api/openapi.yaml` (versión 0.3.2, que agrega `GET /api/health` por D-061). Decisiones: `docs/adr/0001` a `docs/adr/0016`.
 
 Fecha: 2026-11-14. Revisión: iteración 1 de preparación (`docs/04-readiness.md`), con D-034 a D-045 aplicadas, iteración 2, con D-046 a D-051 (hallazgos M-01 y M-16; D-047 no exige cambios de diseño), e iteración 3, con D-052 a D-058 y el hallazgo m-09 (D-056 y D-057 son textos del aviso y no exigen cambios de diseño). Marcas: **Confirmado** (contexto o decisión congelada), **Inferido** (requiere aprobación), **Pendiente** (falta información; lista al final). Las versiones y los límites de proveedores se verificaron en su documentación oficial y en el registro de npm el 2026-11-14. Las herramientas de la ADR 0014 están aprobadas (D-044).
 
@@ -56,6 +56,7 @@ Reglas de la visión (Confirmado salvo indicación):
 | Webhook (`/api/v1/telegram/webhook`) | Verificar el secreto de Telegram, idempotencia por `update_id` para cuentas existentes, entregar la actualización a grammY | Next.js route handler, `webhookCallback(bot, 'std/http', { secretToken })` | 0003, 0008 |
 | Mini App (`src/app/(miniapp)`, `src/miniapp`) | Aviso, inicio por rol, revocación, formularios largos de fichas y fotos (D-002), y municipios y listas cerradas del administrador (D-041) | Next.js 16 App Router, `telegram-web-app.js`, `openapi-fetch` | 0013 |
 | API HTTP (`/api/v1/...`) | Validar la entrada (Zod), autenticar `initData`, construir el actor, llamar al servicio y mapear errores a `problem+json` | Next.js route handlers | 0003, 0006 |
+| Salud (`/api/health`, `src/server/health.ts`) | Prueba de vida pública fuera de `/api/v1` (D-061): responde `{ status: "ok", timestamp }` sin autenticación, sin consultar la base ni Blob y sin guardar datos. No sustituye la verificación de Supabase ni de Blob | Next.js route handler (`force-dynamic`) | 0012, 0013 |
 | Capa de servicios (`src/server/services`) | Casos de uso. Es la única puerta a los datos: verifica cuenta, aviso vigente, rol, negocio y permiso en cada operación, y abre las transacciones | TypeScript, Kysely | 0001, 0002 |
 | Dominio (`src/server/domain`) | Reglas puras: transiciones de estado, campos obligatorios (D-003), límites (D-042), normalización de nombres, validación de enlaces de Maps, de solicitudes y del documento de identidad (`validateIdentityNumber`: tipo CC, CE, PPT o PA y número como texto, D-046), armado de mensajes del bot | TypeScript | 0002, 0004, 0008, 0016 |
 | Autenticación (`src/server/auth`) | Validación HMAC de `initData`, construcción del actor, roles desde la base, administrador principal | `node:crypto` | 0003 |
@@ -251,6 +252,7 @@ api/openapi.yaml
 src/
   app/
     (miniapp)/                    pantallas de la Mini App
+    api/health/route.ts           salud del backend, pública y sin versión (D-061)
     api/v1/**/route.ts            API HTTP
     api/v1/telegram/webhook/route.ts
     api/v1/internal/cron/{outbox,maintenance,retention}/route.ts
