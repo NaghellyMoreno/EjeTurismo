@@ -77,3 +77,8 @@ Solo se agregan filas al final, con `>>`. Ninguna fila se edita, se borra ni se 
 | D-071 | 5 | 2 | F001: texto de B02 aprobado: "Te damos la bienvenida a Eje Turismo. Comandos disponibles: /start: mostrar este menú" | 2026-11-15 |
 | D-072 | 5 | 2 | F001: aviso repartido en 3 mensajes: título y apartados 1 a 4; apartados 5 a 9; apartados 10 a 13 y declaración con los botones | 2026-11-15 |
 | D-073 | 5 | 2 | F001: la fecha en America/Bogota no se muestra en ninguna pantalla; se guarda en UTC y se prueba formatBogota y el ISO UTC de getMe | 2026-11-15 |
+| D-074 | 5 | 1 | F002: B02 muestra un botón en línea "Registrarme como prestador" solo a cuentas sin rol y sin registro previo; sustituye a D-068 y D-071 únicamente en lo del teclado de B02 y cambia los criterios 10 y 14 de F001 | 2026-11-15 |
+| D-075 | 5 | 1 | F002: el developer propone los textos exactos de B04 y B05 en el contrato y la usuaria los aprueba antes de implementar; el paso 5 se prueba con el guardián de rol sobre una ruta de prueba | 2026-11-15 |
+| D-076 | 5 | 1 | F002: la creación del registro de prestador se registra en audit_events | 2026-11-15 |
+| D-077 | 5 | 1 | F002: límite de 5 registros por hora, leído de RATE_LIMITS | 2026-11-15 |
+| D-078 | 5 | 1 | F002: IDENTITY_ENCRYPTION_KEY e IDENTITY_HASH_KEY en base64 de 32 bytes | 2026-11-15 |
