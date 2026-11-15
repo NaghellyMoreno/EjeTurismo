@@ -86,3 +86,16 @@ Solo se agregan filas al final, con `>>`. Ninguna fila se edita, se borra ni se 
 | D-080 | 5 | 2 | F002: el bot no borra el mensaje con el número de identidad en el chat (sin deleteMessage) | 2026-11-15 |
 | D-081 | 5 | 2 | F002: actor_role='none' en la auditoría de quien se registra sin rol | 2026-11-15 |
 | D-082 | 5 | 2 | F002: al límite de 5 registros por hora suman los éxitos, los 409 y los 500; no suman 401, 403, 422 ni 429 | 2026-11-15 |
+| D-083 | 5 | 1 | F028: se aprueban los textos nuevos common.nothingToCancel, common.useButtons y common.sessionConflict propuestos en contracts/F028.md | 2026-11-15 |
+| D-084 | 5 | 1 | F028: botón "Cancelar" en los pasos de tipo y número del formulario; cambia los criterios 4, 6 y 10 de F002, que se ajustan explícitamente | 2026-11-15 |
+| D-085 | 5 | 1 | F028: ante un choque de sesión el bot muestra common.sessionConflict y repite el paso (ADR 0015) | 2026-11-15 |
+| D-086 | 5 | 1 | F028: provider.error solo si falla createProviderRegistration al confirmar; errors.generic en cualquier otro fallo | 2026-11-15 |
+| D-087 | 5 | 1 | F028: cancelar sin formulario en curso responde common.nothingToCancel | 2026-11-15 |
+| D-088 | 5 | 1 | F028: un mensaje que no es texto cuando se espera un botón repite el paso con common.useButtons | 2026-11-15 |
+| D-089 | 5 | 1 | F028: /cancelar funciona siempre pero no se agrega a BOT_COMMANDS ni al texto de B02 (D-071) | 2026-11-15 |
+| D-090 | 5 | 1 | F003: se aprueban los textos de B06, B07 y B20 y menu.providerAvailable propuestos en contracts/F003.md | 2026-11-15 |
+| D-091 | 5 | 1 | F003: el menú de prestador es mínimo (Registros pendientes para administradores y menu.providerAvailable para prestadores); el menú completo es de F005 | 2026-11-15 |
+| D-092 | 5 | 1 | F003: el motivo del rechazo no se pide en el bot; la API lo acepta opcional y no se envía a la persona | 2026-11-15 |
+| D-093 | 5 | 1 | F003: no se construye la tarea diaria cron/outbox de reintento; riesgo anotado: una notificación fallida no se reintenta hasta que exista | 2026-11-15 |
+| D-094 | 5 | 1 | F003: si una cuenta rechazada puede volver a registrarse por HTTP queda para decidirse en F005; en el bot no ve el botón | 2026-11-15 |
+| D-095 | 5 | 1 | F003: la lista de registros va del más antiguo al más reciente y, sin status, trae todos los estados | 2026-11-15 |
