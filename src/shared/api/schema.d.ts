@@ -4,6 +4,30 @@
  */
 
 export interface paths {
+    "/api/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Consultar si el backend responde
+         * @description Prueba de vida del despliegue (D-061). Está fuera de `/api/v1` porque no forma parte de la API del producto.
+         *     Pública: no lleva `initData` ni secretos, no consulta la base de datos ni Vercel Blob y la ruta no guarda ningún
+         *     dato (ni ID de Telegram ni IP). Solo informa que la función respondió y la hora del servidor; no revela versión,
+         *     entorno ni configuración. La respuesta se genera en cada petición (sin caché estática).
+         *     No verifica Supabase ni Vercel Blob: un 200 no garantiza que esos servicios estén disponibles.
+         */
+        get: operations["getHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/privacy-notices/current": {
         parameters: {
             query?: never;
@@ -921,6 +945,20 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Estado del backend (D-061). Coincide con `getHealth()` de `src/server/health.ts`. */
+        HealthStatus: {
+            /**
+             * @description Siempre `ok` cuando la función responde
+             * @enum {string}
+             */
+            status: "ok";
+            /**
+             * Format: date-time
+             * @description Hora del servidor en ISO 8601 UTC con milisegundos (`Date.prototype.toISOString()`)
+             * @example 2026-11-15T00:00:00.000Z
+             */
+            timestamp: string;
+        };
         /** @description Formato único de error (RFC 9457). Textos en español; nunca incluye número de identidad, datos de solicitudes ni trazas. */
         Problem: {
             /** @default about:blank */
@@ -1690,6 +1728,42 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description El backend responde */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "status": "ok",
+                     *       "timestamp": "2026-11-15T00:00:00.000Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["HealthStatus"];
+                };
+            };
+            /**
+             * @description Fallo de la plataforma al ejecutar la función. La ruta no lo genera ni lo traduce a `Problem`; el cuerpo es el
+             *     que devuelva Next.js y no tiene esquema garantizado.
+             */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getCurrentPrivacyNotice: {
         parameters: {
             query?: never;

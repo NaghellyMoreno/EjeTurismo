@@ -10,7 +10,10 @@ describe("salud del backend", () => {
   it("el endpoint responde 200 con estado ok", async () => {
     const res = GET();
     expect(res.status).toBe(200);
-    expect((await res.json()).status).toBe("ok");
+    const body = await res.json();
+    expect(body.status).toBe("ok");
+    expect(body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+    expect(new Date(body.timestamp).toISOString()).toBe(body.timestamp);
   });
 });
 
