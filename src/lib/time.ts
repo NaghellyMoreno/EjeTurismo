@@ -30,3 +30,10 @@ export function formatBogota(instant: Date): string {
   const suffix = p.hour < 12 ? "a. m." : "p. m.";
   return `${formatBogotaDate(instant)}, ${hour12}:${String(p.minute).padStart(2, "0")} ${suffix}`;
 }
+
+// "15/11/2026 22:30" (DD/MM/AAAA HH:mm, 24 horas) para los mensajes del bot al administrador.
+export function formatBogotaShort(instant: Date): string {
+  const p = bogotaParts(instant);
+  const two = (n: number) => String(n).padStart(2, "0");
+  return `${two(p.day)}/${two(p.month + 1)}/${p.year} ${two(p.hour)}:${two(p.minute)}`;
+}

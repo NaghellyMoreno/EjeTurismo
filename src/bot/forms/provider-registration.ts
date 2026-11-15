@@ -22,6 +22,7 @@ import {
   saveBotSession,
 } from "@/server/services";
 import type { AccountContext, Db } from "@/server/services";
+import { adminKeyboard, handleAdminCallback, isAdminCallback } from "../admin";
 import { send } from "../send";
 import { es } from "../texts/es";
 
@@ -67,7 +68,16 @@ const confirmKeyboard = () => new InlineKeyboard().text(es.provider.confirmButto
 // B02: el botón de registro solo para cuentas sin rol, sin registro previo y que no sean el administrador principal (D-074).
 const canRegister = (info: AccountContext) => info.roles.length === 0 && !info.isPrincipalAdmin && info.registrationStatus === null;
 
+const isAdmin = (info: AccountContext) => info.isPrincipalAdmin || info.roles.includes("admin");
+
 async function showMenu(ctx: Context, info: AccountContext) {
+  // B06 mínimo (D-091): el administrador solo ve "Registros pendientes"; el menú completo es de F004 y F006.
+  if (isAdmin(info)) return send(ctx, es.menu.welcome, adminKeyboard());
+  // Mínimo de B02 para el prestador (D-090, D-091); el menú completo es de F005.
+  if (info.roles.includes("provider")) {
+    await send(ctx, es.menu.welcome);
+    return send(ctx, es.menu.providerAvailable);
+  }
   // B05: con el registro pendiente, el estado ocupa el lugar del menú.
   if (info.registrationStatus === "pending") return send(ctx, es.provider.pending);
   return send(ctx, es.menu.welcome, canRegister(info) ? new InlineKeyboard().text(es.menu.registerButton, REGISTER) : undefined);
@@ -84,6 +94,12 @@ export async function handleAccountUpdate(ctx: Context, deps: FormDeps, actor: A
   const config = deps.config();
   const now = deps.now();
   const info = await getAccountContext(db, config, accountId, actor.telegramUserId);
+  const callback = ctx.callbackQuery?.data;
+  // Botones de revisión (B07): el rol de administrador se lee de la base en cada pulsación (ADR 0003), no del botón.
+  if (isAdminCallback(callback)) {
+    if (!isAdmin(info)) return void (await send(ctx, es.admin.forbidden));
+    return handleAdminCallback(ctx, deps, actor, callback);
+  }
   if (!canRegister(info)) return void (await showMenu(ctx, info));
 
   const stored = await loadBotSession(db, accountId);
@@ -91,7 +107,6 @@ export async function handleAccountUpdate(ctx: Context, deps: FormDeps, actor: A
   const save = async (next: Session) => {
     if (!(await saveBotSession(db, accountId, next, stored?.updatedAt ?? null, now))) throw new Error("session_conflict");
   };
-  const callback = ctx.callbackQuery?.data;
   const hasText = callback === undefined && ctx.message !== undefined;
   const text = ctx.message?.text ?? "";
 

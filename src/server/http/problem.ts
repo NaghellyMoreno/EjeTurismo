@@ -11,6 +11,8 @@ const TITLES: Partial<Record<ErrorCode, string>> = {
   duplicate: "Registro duplicado",
   admin_cannot_register_as_provider: "Un administrador no puede registrarse como prestador",
   rate_limited: "Demasiados intentos",
+  invalid_state_transition: "Registro ya decidido",
+  role_conflict: "Conflicto de roles",
   validation_failed: "Datos inválidos",
   notice_version_outdated: "El aviso cambió",
   internal_error: "Error del sistema",
@@ -44,6 +46,8 @@ const PUBLIC_DETAILS: Partial<Record<ErrorCode, string>> = {
   duplicate: "Ese registro ya existe.",
   admin_cannot_register_as_provider: "Una cuenta de administrador no puede registrarse como prestador.",
   rate_limited: "Hiciste demasiados intentos. Espera un momento y vuelve a intentarlo.",
+  invalid_state_transition: "Este registro ya fue decidido.",
+  role_conflict: "Esta cuenta ya tiene el rol de administrador y no puede ser prestador.",
 };
 
 // Traduce un error esperado de un servicio; cualquier otro error es un 500 genérico.
