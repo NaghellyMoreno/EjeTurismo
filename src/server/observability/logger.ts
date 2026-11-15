@@ -6,12 +6,18 @@ const REDACTED_KEYS = new Set(
     "identitynumber", "identitydocumenttype", "secret", "token", "hash",
   ],
 );
+// Familias de claves con sufijo: identity_number, identity_number_encrypted, sealedIdentity, sealedIdentityIv... (ADR 0005).
+const REDACTED_PREFIXES = ["identity_number", "identity_document_type", "sealedidentity", "identitynumber"];
+const isRedacted = (key: string) => {
+  const lower = key.toLowerCase();
+  return REDACTED_KEYS.has(lower) || REDACTED_PREFIXES.some((p) => lower.startsWith(p));
+};
 
 export function redact(value: unknown, depth = 0): unknown {
   if (Array.isArray(value)) return value.map((v) => redact(v, depth + 1));
   if (value && typeof value === "object" && depth < 6) {
     return Object.fromEntries(
-      Object.entries(value).map(([k, v]) => [k, REDACTED_KEYS.has(k.toLowerCase()) ? "[redactado]" : redact(v, depth + 1)]),
+      Object.entries(value).map(([k, v]) => [k, isRedacted(k) ? "[redactado]" : redact(v, depth + 1)]),
     );
   }
   return value;

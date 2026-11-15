@@ -14,7 +14,7 @@ export function appDb() {
 }
 
 export async function resetDb(owner: Pool): Promise<void> {
-  await owner.query("truncate app.bot_sessions, app.rate_limit_counters, app.processed_updates, app.consent_events, app.accounts restart identity");
+  await owner.query("truncate app.audit_events, app.role_grants, app.provider_registrations, app.bot_sessions, app.rate_limit_counters, app.processed_updates, app.consent_events, app.accounts restart identity");
   await owner.query("delete from app.privacy_notice_versions where version <> $1", [NOTICE_VERSION]);
   await owner.query("update app.privacy_notice_versions set is_current = (version = $1)", [NOTICE_VERSION]);
 }
@@ -33,6 +33,24 @@ export const EMPTY_COUNTS = Object.fromEntries(COUNTED_TABLES.map((t) => [t, 0])
 export async function rowsMentioning(owner: Pool, needle: string): Promise<number> {
   let total = 0;
   for (const table of COUNTED_TABLES) {
+    const res = await owner.query(`select count(*) from app.${table} t where row_to_json(t)::text like $1`, [`%${needle}%`]);
+    total += Number(res.rows[0].count);
+  }
+  return total;
+}
+
+// Las siete tablas del criterio 33 de F002: de esas, cuenta filas y busca un texto en el contenido completo.
+export const F002_TABLES = ["accounts", "consent_events", "bot_sessions", "provider_registrations", "rate_limit_counters", "audit_events", "role_grants"] as const;
+
+export async function countsF002(owner: Pool): Promise<Record<string, number>> {
+  const out: Record<string, number> = {};
+  for (const table of F002_TABLES) out[table] = Number((await owner.query(`select count(*) from app.${table}`)).rows[0].count);
+  return out;
+}
+
+export async function rowsMentioningF002(owner: Pool, needle: string): Promise<number> {
+  let total = 0;
+  for (const table of F002_TABLES) {
     const res = await owner.query(`select count(*) from app.${table} t where row_to_json(t)::text like $1`, [`%${needle}%`]);
     total += Number(res.rows[0].count);
   }

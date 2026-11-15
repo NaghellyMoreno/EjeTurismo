@@ -1,6 +1,7 @@
 import type { Transformer } from "grammy";
 import type { Update, UserFromGetMe } from "grammy/types";
 import { createBot, type BotDeps } from "@/bot/bot";
+import { testConfig } from "./config";
 import { appDb } from "./db";
 
 export interface ApiCall {
@@ -28,7 +29,7 @@ const BOT_INFO: UserFromGetMe = {
 export function createTestBot(deps?: Partial<BotDeps>) {
   const calls: ApiCall[] = [];
   const db = appDb();
-  const bot = createBot("123456:TEST-bot-token", { db: () => db, now: () => new Date(), ...deps }, { botInfo: BOT_INFO });
+  const bot = createBot("123456:TEST-bot-token", { db: () => db, config: () => testConfig(), now: () => new Date(), ...deps }, { botInfo: BOT_INFO });
   const intercept: Transformer = async (_prev, method, payload) => {
     calls.push({ method, payload: payload as Record<string, unknown> });
     return { ok: true, result: method === "sendMessage" ? { message_id: calls.length, date: 0, chat: { id: 1, type: "private" } } : true } as never;

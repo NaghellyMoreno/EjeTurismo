@@ -50,6 +50,45 @@ export interface RateLimitCountersTable {
   count: number;
 }
 
+export type IdentityDocumentTypeColumn = "CC" | "CE" | "PPT" | "PA";
+export type ProviderRegistrationStatusColumn = "pending" | "approved" | "rejected";
+
+export interface ProviderRegistrationsTable {
+  id: Generated<string>;
+  account_id: string;
+  identity_document_type: IdentityDocumentTypeColumn;
+  identity_number_encrypted: Buffer;
+  identity_number_hash: Buffer;
+  status: Generated<ProviderRegistrationStatusColumn>;
+  created_at: DefaultedTimestamp;
+  decided_at: Timestamp | null;
+  decided_by_account_id: string | null;
+  rejection_reason: string | null;
+}
+
+export interface RoleGrantsTable {
+  id: Generated<string>;
+  telegram_user_id: ColumnType<string, string | number | bigint, string | number | bigint>;
+  role: "admin" | "provider";
+  is_principal: boolean;
+  provider_registration_id: string | null;
+  granted_by_account_id: string | null;
+  granted_at: DefaultedTimestamp;
+  revoked_at: Timestamp | null;
+  revoked_by_account_id: string | null;
+}
+
+export interface AuditEventsTable {
+  id: Generated<string>;
+  occurred_at: DefaultedTimestamp;
+  actor_account_id: string | null;
+  actor_role: string;
+  action: string;
+  entity_type: string;
+  entity_id: string;
+  details: ColumnType<unknown, string | undefined, never>;
+}
+
 export interface Database {
   privacy_notice_versions: PrivacyNoticeVersionsTable;
   accounts: AccountsTable;
@@ -57,4 +96,7 @@ export interface Database {
   processed_updates: ProcessedUpdatesTable;
   bot_sessions: BotSessionsTable;
   rate_limit_counters: RateLimitCountersTable;
+  provider_registrations: ProviderRegistrationsTable;
+  role_grants: RoleGrantsTable;
+  audit_events: AuditEventsTable;
 }

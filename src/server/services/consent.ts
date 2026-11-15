@@ -15,6 +15,7 @@ export interface PrivacyNotice {
 }
 
 export interface AccountConsent {
+  id: string;
   displayName: string | null;
   acceptedVersion: string;
   acceptedAt: Date;
@@ -56,6 +57,7 @@ export async function getConsentState(db: Db, telegramUserId: string): Promise<C
   const row = await db.selectFrom("accounts").selectAll().where("telegram_user_id", "=", telegramUserId).executeTakeFirst();
   const account: AccountConsent | null = row
     ? {
+        id: row.id,
         displayName: row.telegram_display_name,
         acceptedVersion: row.consent_notice_version,
         acceptedAt: row.consent_accepted_at,

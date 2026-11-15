@@ -122,13 +122,14 @@ describe("paso 3: no acepta (criterios 7, 8, 9; D-008, D-067)", () => {
 });
 
 describe("paso 4: aceptar y menú (criterios 10, 11, 12, 13, 14)", () => {
-  it('"Acepto" envía solo el menú B02, sin teclado ni texto del aviso', async () => {
+  it('"Acepto" envía solo el menú B02, con el botón de registro y sin texto del aviso', async () => {
     await t.send(accept());
     expect(t.messages()).toHaveLength(1);
     const [menu] = t.messages();
     expect(menu.payload.text).toBe("Te damos la bienvenida a Eje Turismo.\n\nComandos disponibles:\n/start: mostrar este menú");
     expect(menu.payload.text).toBe(es.menu.welcome);
-    expect(menu.payload.reply_markup).toBeUndefined();
+    // D-074: un único botón en línea para la cuenta recién aceptada (sin rol y sin registro).
+    expect(buttonsOf(menu.payload)).toEqual(["Registrarme como prestador"]);
     expect(t.texts().join("")).not.toContain("Aviso de privacidad");
     // La única otra llamada es el acuse del botón (answerCallbackQuery), que no es un mensaje.
     expect(t.calls.map((c) => c.method).sort()).toEqual(["answerCallbackQuery", "sendMessage"]);
@@ -168,7 +169,7 @@ describe("el bot no ofrece consultar ni corregir datos (criterio 14; HU-001, cri
     expect(BOT_COMMANDS.map((c) => c.command)).toEqual(["start"]);
   });
 
-  it("los teclados son solo los de B01 y la respuesta a No acepto, y B02 no tiene teclado y lista solo /start", async () => {
+  it("los teclados son solo los de B01 y la respuesta a No acepto, y B02 solo tiene el botón de registro y lista solo /start", async () => {
     await t.send(start());
     expect(buttonsOf(t.messages()[2].payload)).toEqual(["Acepto", "No acepto"]);
     t.clear();
@@ -176,7 +177,8 @@ describe("el bot no ofrece consultar ni corregir datos (criterio 14; HU-001, cri
     expect(buttonsOf(t.messages()[0].payload)).toEqual(["Volver a ver el aviso"]);
     t.clear();
     await t.send(accept());
-    expect(t.messages()[0].payload.reply_markup).toBeUndefined();
+    // D-074 y D-071: B02 solo trae el botón de registro (cuenta sin rol y sin registro); los comandos siguen siendo solo /start.
+    expect(buttonsOf(t.messages()[0].payload)).toEqual(["Registrarme como prestador"]);
     expect(es.menu.welcome.match(/\/\w+/g)).toEqual(["/start"]);
   });
 

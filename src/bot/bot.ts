@@ -6,10 +6,14 @@ import { AppError } from "@/server/errors";
 import { logError } from "@/server/observability/logger";
 import { acceptPrivacyNotice, claimUpdate, getConsentState } from "@/server/services";
 import type { Db, PrivacyNotice } from "@/server/services";
+import type { Config } from "@/server/config";
+import { handleAccountUpdate, showAccountMenu } from "./forms/provider-registration";
+import { send } from "./send";
 import { es } from "./texts/es";
 
 export interface BotDeps {
   db: () => Db;
+  config: () => Config;
   now: () => Date;
 }
 
@@ -32,11 +36,6 @@ export function createBot(token: string, deps: BotDeps, options: { botInfo?: Use
   return bot;
 }
 
-async function send(ctx: Context, text: string, keyboard?: InlineKeyboard) {
-  // Sin parse_mode: el texto se envía plano (ADR 0006).
-  return ctx.api.sendMessage(ctx.chatId ?? ctx.from!.id, text, keyboard ? { reply_markup: keyboard } : undefined);
-}
-
 // B01: el aviso en 3 mensajes (D-066); "Acepto" y "No acepto" solo en el último.
 async function showNotice(ctx: Context, notice: PrivacyNotice) {
   const [first, second, third] = buildNoticeMessages(notice);
@@ -48,8 +47,6 @@ async function showNotice(ctx: Context, notice: PrivacyNotice) {
     new InlineKeyboard().text(es.notice.accept, `${ACCEPT}${notice.version}`).text(es.notice.decline, DECLINE),
   );
 }
-
-const showMenu = (ctx: Context) => send(ctx, es.menu.welcome);
 
 async function handle(ctx: Context, deps: BotDeps): Promise<void> {
   // El actor sale solo de `from.id` de una actualización ya autenticada por el secreto del webhook; nunca de `chat.id`.
@@ -68,7 +65,7 @@ async function handle(ctx: Context, deps: BotDeps): Promise<void> {
     // Solo las cuentas con el aviso vigente escriben en processed_updates (ADR 0008).
     if (!(await claimUpdate(db, ctx.update.update_id))) return;
     await acknowledge();
-    await showMenu(ctx);
+    await handleAccountUpdate(ctx, deps, actor, state.account!.id);
     return;
   }
 
@@ -79,7 +76,9 @@ async function handle(ctx: Context, deps: BotDeps): Promise<void> {
     try {
       await acceptPrivacyNotice(db, actor, { noticeVersion: callbackData.slice(ACCEPT.length), channel: "bot" }, deps.now());
       await acknowledge();
-      await showMenu(ctx);
+      // Recién aceptada: B02 con el botón de registro si no tiene rol ni registro (D-074).
+      const accepted = await getConsentState(db, actor.telegramUserId);
+      await showAccountMenu(ctx, deps, actor, accepted.account!.id);
       return;
     } catch (error) {
       // Botón de un aviso viejo: no crea nada y se muestra el aviso vigente.

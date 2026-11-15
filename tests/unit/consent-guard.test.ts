@@ -5,10 +5,11 @@ import type { Deps } from "@/server/http/deps";
 import { withConsentGuard } from "@/server/http/handlers";
 import type { ConsentState } from "@/server/services";
 import { failingDb } from "../helpers/failing-db";
-import { BOT_TOKEN, signInitData, tma } from "../helpers/telegram";
+import { testConfig } from "../helpers/config";
+import { signInitData, tma } from "../helpers/telegram";
 
 const notice = { version: "2026-11-v3", bodyMarkdown: "b", declarationText: "d", revocationNote: null, publishedAt: new Date() };
-const account = (acceptedVersion: string) => ({ displayName: "P", acceptedVersion, acceptedAt: new Date(), channel: "bot" as const });
+const account = (acceptedVersion: string) => ({ id: "a1", displayName: "P", acceptedVersion, acceptedAt: new Date(), channel: "bot" as const });
 const states: Record<string, ConsentState> = {
   sinCuenta: { notice, account: null, accepted: false },
   versionAnterior: { notice, account: account("2026-10-v1"), accepted: false },
@@ -31,7 +32,7 @@ describe("guardián de consentimiento (criterio 28b; D-039)", () => {
 
   // Ruta de ejemplo definida solo aquí: ninguna ruta de F001 usa el guardián.
   const deps: Deps = {
-    config: () => ({ botToken: BOT_TOKEN, webhookSecret: "s", databaseUrl: "x", initDataMaxAgeSeconds: 86400 }),
+    config: () => testConfig(),
     db: () => failingDb().db,
     now: () => new Date(),
   };

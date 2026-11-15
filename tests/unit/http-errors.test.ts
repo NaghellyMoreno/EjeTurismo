@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Deps } from "@/server/http/deps";
 import { acceptPrivacyNoticeHandler, getCurrentPrivacyNoticeHandler, getMeHandler } from "@/server/http/handlers";
+import { testConfig } from "../helpers/config";
 import { validateSchema } from "../helpers/openapi";
 import { failingDb } from "../helpers/failing-db";
-import { BOT_TOKEN, signInitData, tma } from "../helpers/telegram";
+import { signInitData, tma } from "../helpers/telegram";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -13,7 +14,7 @@ const authDate = Math.floor(now.getTime() / 1000);
 function setup() {
   const fake = failingDb("fallo-interno-secreto");
   const deps: Deps = {
-    config: () => ({ botToken: BOT_TOKEN, webhookSecret: "s", databaseUrl: "x", initDataMaxAgeSeconds: 86400 }),
+    config: () => testConfig(),
     db: () => fake.db,
     now: () => now,
   };

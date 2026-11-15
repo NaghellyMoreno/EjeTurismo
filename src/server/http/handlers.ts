@@ -4,7 +4,16 @@ import type { Actor } from "@/server/auth/actor";
 import { assertConsented } from "@/server/auth/consent-guard";
 import { parseAuthorization, verifyInitData } from "@/server/auth/init-data";
 import { logError } from "@/server/observability/logger";
-import { acceptPrivacyNotice, getConsentState, getCurrentPrivacyNotice, getMe } from "@/server/services";
+import { AppError } from "@/server/errors";
+import {
+  acceptPrivacyNotice,
+  createProviderRegistration,
+  getActiveRoles,
+  getConsentState,
+  getCurrentPrivacyNotice,
+  getMe,
+  getMyProviderRegistration,
+} from "@/server/services";
 import type { ConsentState } from "@/server/services";
 import type { Deps } from "./deps";
 import { fromError, internalError, json, problem, unauthenticated } from "./problem";
@@ -98,6 +107,43 @@ export function withConsentGuard(
       const actor = authenticate(request, deps);
       if (actor instanceof Response) return actor;
       assertConsented(await load(actor));
+      return handler(actor, request);
+    });
+}
+
+// POST /api/v1/provider-registrations (createProviderRegistration). Orden: 401, 403 `consent_required`,
+// 403 `admin_cannot_register_as_provider`, 422, 429 y la inserción (409 o 201); lo aplica el servicio.
+export function createProviderRegistrationHandler(deps: Deps) {
+  return (request: Request) =>
+    guarded("provider_registration.create_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const body: unknown = await request.json().catch(() => undefined);
+      return json(await createProviderRegistration(deps.db(), deps.config(), actor, body, deps.now()), 201);
+    });
+}
+
+// GET /api/v1/provider-registrations/me (getMyProviderRegistration): solo lectura, sin tipo ni número.
+export function getMyProviderRegistrationHandler(deps: Deps) {
+  return (request: Request) =>
+    guarded("provider_registration.get_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      return json(await getMyProviderRegistration(deps.db(), actor));
+    });
+}
+
+// Guardián de rol `provider` (ADR 0003): 401, 403 `consent_required` y 403 `forbidden`. El rol se lee de `role_grants`
+// en cada operación; nunca de la sesión del bot ni de `callback_data`. F002 no lo usa en ninguna ruta de prestador.
+export function withProviderGuard(deps: Deps, handler: (actor: Actor, request: Request) => Promise<Response>) {
+  return (request: Request) =>
+    guarded("provider.guard_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      assertConsented(await getConsentState(deps.db(), actor.telegramUserId));
+      if (!(await getActiveRoles(deps.db(), actor.telegramUserId)).includes("provider")) {
+        throw new AppError("forbidden", 403, "Sin rol de prestador");
+      }
       return handler(actor, request);
     });
 }

@@ -10,6 +10,7 @@ export class AppError extends Error {
     readonly status: number,
     message: string,
     readonly errors?: FieldError[],
+    readonly options: { detail?: string; retryAfterSeconds?: number } = {},
   ) {
     super(message);
     this.name = "AppError";
