@@ -36,7 +36,7 @@
       "Desde la primera cuenta, intentar registrarse de nuevo y verificar que se rechaza como duplicado",
       "Con una cuenta que no aceptó el aviso, intentar registrarse y verificar que no se pide el número de identidad"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F003",
