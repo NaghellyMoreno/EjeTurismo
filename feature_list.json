@@ -163,7 +163,7 @@
       "Enviar un mensaje de texto cuando el bot espera un botón y verificar que responde con una indicación clara",
       "Provocar un error del backend en el entorno de pruebas y verificar que el bot muestra un mensaje claro en español sin detalles técnicos ni datos personales"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F034",
