@@ -74,3 +74,6 @@ Solo se agregan filas al final, con `>>`. Ninguna fila se edita, se borra ni se 
 | D-068 | 5 | 1 | F001: B02 es un menú mínimo con bienvenida y lista de comandos disponibles, sin opciones de rol | 2026-11-15 |
 | D-069 | 5 | 1 | F001: "Revocar mi autorización" en B01 queda fuera (es de F034); riesgo anotado: el apartado 9 del aviso solo se publica en producción cuando F034 exista | 2026-11-15 |
 | D-070 | 5 | 1 | F001: incluye las rutas HTTP y la autenticación por initData (getMe), sin la pantalla M01 | 2026-11-15 |
+| D-071 | 5 | 2 | F001: texto de B02 aprobado: "Te damos la bienvenida a Eje Turismo. Comandos disponibles: /start: mostrar este menú" | 2026-11-15 |
+| D-072 | 5 | 2 | F001: aviso repartido en 3 mensajes: título y apartados 1 a 4; apartados 5 a 9; apartados 10 a 13 y declaración con los botones | 2026-11-15 |
+| D-073 | 5 | 2 | F001: la fecha en America/Bogota no se muestra en ninguna pantalla; se guarda en UTC y se prueba formatBogota y el ISO UTC de getMe | 2026-11-15 |
