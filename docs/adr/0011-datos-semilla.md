@@ -15,7 +15,7 @@ Hacen falta datos para desarrollar, probar y demostrar. El contenido lo decide l
 No se pueden inventar prestadores, atractivos ni números de identidad.
 
 ## Decisión
-Tres niveles, todos en SQL versionado en el repositorio y cargados por la CLI de Supabase o por scripts:
+Tres niveles, todos en SQL versionado en el repositorio y cargados con `psql` por los scripts `db:*` (ADR 0014; sin Docker, D-063):
 1. **Referencia (todos los entornos, incluida producción):** `supabase/seed/reference.sql`. Contiene:
    - la versión vigente del aviso de privacidad, `version = '2026-11-v3'` (D-050), con el texto aprobado (D-034) tal como quede en `docs/05-aviso-privacidad.md`, y `published_at` igual al momento de la carga en cada entorno (ADR 0005);
    - los municipios de D-027;
@@ -24,7 +24,7 @@ Tres niveles, todos en SQL versionado en el repositorio y cargados por la CLI de
    - las categorías y los demás tipos de experiencia que indique la usuaria. Si no los indica, la semilla no trae ninguno y el administrador los crea en la Mini App (M11, F011; D-041).
 
    Es idempotente: cada fila tiene un UUID fijo y se inserta con `INSERT ... ON CONFLICT DO NOTHING`, sin columna de conflicto, de modo que no duplica ni por UUID ni por nombre. La semilla se carga con el rol de migraciones, el único que puede escribir `is_gastronomic` (ADR 0004). En producción se carga con `pnpm db:seed:reference`, igual que en los demás entornos y sin reglas especiales para ninguna fila.
-2. **Desarrollo y demostración (nunca producción):** `supabase/seed/demo.sql`. Fichas, negocios y cuentas de ejemplo con datos que la usuaria apruebe. Los IDs de Telegram y los documentos de identidad son ficticios y van marcados como tales; cada registro de prestador lleva un tipo de D-046 (`CC`, `CE`, `PPT` o `PA`). `supabase db reset` lo carga en local mediante `supabase/config.toml` (`[db.seed] sql_paths`).
+2. **Desarrollo y demostración (nunca producción):** `supabase/seed/demo.sql`. Fichas, negocios y cuentas de ejemplo con datos que la usuaria apruebe. Los IDs de Telegram y los documentos de identidad son ficticios y van marcados como tales; cada registro de prestador lleva un tipo de D-046 (`CC`, `CE`, `PPT` o `PA`). En local lo cargan `pnpm db:seed` y `pnpm db:reset`, después de `reference.sql` (ADR 0014). La sección `[db.seed]` de `supabase/config.toml` ya no se usa, porque `supabase db reset` requiere Docker (D-063).
 3. **Pruebas automáticas:** fábricas en TypeScript (`tests/factories`) que crean sus propios datos en cada prueba y no dependen de la semilla de demostración. Las pruebas del directorio gastronómico ubican el tipo sembrado por su UUID fijo, nunca por su nombre.
 
 **Tipo de experiencia gastronómica (D-048, D-052).**
@@ -39,7 +39,7 @@ Los textos que la usuaria apruebe se pasan a SQL sin cambios de redacción.
 ## Alternativas consideradas
 | Alternativa | A favor | En contra |
 | --- | --- | --- |
-| Semilla en JSON con un script cargador | Fácil de editar | Otro formato y otro cargador; la CLI de Supabase ya carga SQL |
+| Semilla en JSON con un script cargador | Fácil de editar | Otro formato y otro cargador; `psql` ya carga SQL |
 | Cargar datos desde la interfaz | Sin archivos | No es reproducible ni sirve para pruebas |
 | Idempotencia por nombre (`ON CONFLICT (name_normalized)`) | Sin UUID fijos | Si el administrador cambia el nombre de "Sabores de Caldas" en M11, volver a sembrar crearía otra fila con ese nombre y con la marca gastronómica |
 | Crear "Sabores de Caldas" desde M11 en lugar de la semilla | Sin archivo aparte | La API no puede fijar `is_gastronomic` (ADR 0004); el tipo no entraría al directorio |

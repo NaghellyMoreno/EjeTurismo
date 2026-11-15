@@ -1,8 +1,11 @@
 # Arquitectura: Eje Turismo
 
-Fuentes: `docs/00-contexto-producto.md` (versión 1), `docs/01-brief.md`, `docs/02-requisitos.md`, `docs/05-aviso-privacidad.md`, `feature_list.json` (35 funcionalidades), `docs/guia-agentes.md` (sección architect) y el registro de decisiones congeladas D-001 a D-058. Stack y publicación fijos en `CLAUDE.md`. Contrato: `api/openapi.yaml` (versión 0.3.2, que agrega `GET /api/health` por D-061). Decisiones: `docs/adr/0001` a `docs/adr/0016`.
+Fuentes: `docs/00-contexto-producto.md` (versión 1), `docs/01-brief.md`, `docs/02-requisitos.md`, `docs/05-aviso-privacidad.md`, `feature_list.json` (35 funcionalidades), `docs/guia-agentes.md` (sección architect) y el registro de decisiones congeladas D-001 a D-064. Stack y publicación fijos en `CLAUDE.md`. Contrato: `api/openapi.yaml` (versión 0.3.2, que agrega `GET /api/health` por D-061). Decisiones: `docs/adr/0001` a `docs/adr/0016`.
 
-Fecha: 2026-11-14. Revisión: iteración 1 de preparación (`docs/04-readiness.md`), con D-034 a D-045 aplicadas, iteración 2, con D-046 a D-051 (hallazgos M-01 y M-16; D-047 no exige cambios de diseño), e iteración 3, con D-052 a D-058 y el hallazgo m-09 (D-056 y D-057 son textos del aviso y no exigen cambios de diseño). Marcas: **Confirmado** (contexto o decisión congelada), **Inferido** (requiere aprobación), **Pendiente** (falta información; lista al final). Las versiones y los límites de proveedores se verificaron en su documentación oficial y en el registro de npm el 2026-11-14. Las herramientas de la ADR 0014 están aprobadas (D-044).
+Fecha: 2026-11-14. Revisión: iteración 1 de preparación (`docs/04-readiness.md`), con D-034 a D-045 aplicadas, iteración 2, con D-046 a D-051 (hallazgos M-01 y M-16; D-047 no exige cambios de diseño), e iteración 3, con D-052 a D-058 y el hallazgo m-09 (D-056 y D-057 son textos del aviso y no exigen cambios de diseño). Marcas: **Confirmado** (contexto o decisión congelada), **Inferido** (requiere aprobación), **Pendiente** (falta información; lista al final). Las versiones y los límites de proveedores se verificaron en su documentación oficial y en el registro de npm el 2026-11-14. Las herramientas de la ADR 0014 están aprobadas (D-044). Revisión del 2026-11-15:
+- D-062: TypeScript 5.x.
+- D-063: base local con PostgreSQL de Homebrew, sin Docker.
+- D-064: `/api/health` es solo prueba de vida.
 
 ## Visión general
 Un solo proyecto Next.js en Vercel contiene la Mini App, la API HTTP y el webhook del bot. Los dos canales, bot y Mini App, son adaptadores delgados que llaman a una única capa de servicios, donde viven las reglas y la autorización (ADR 0001). La base de datos repite como restricciones los invariantes críticos (ADR 0002).
@@ -56,7 +59,7 @@ Reglas de la visión (Confirmado salvo indicación):
 | Webhook (`/api/v1/telegram/webhook`) | Verificar el secreto de Telegram, idempotencia por `update_id` para cuentas existentes, entregar la actualización a grammY | Next.js route handler, `webhookCallback(bot, 'std/http', { secretToken })` | 0003, 0008 |
 | Mini App (`src/app/(miniapp)`, `src/miniapp`) | Aviso, inicio por rol, revocación, formularios largos de fichas y fotos (D-002), y municipios y listas cerradas del administrador (D-041) | Next.js 16 App Router, `telegram-web-app.js`, `openapi-fetch` | 0013 |
 | API HTTP (`/api/v1/...`) | Validar la entrada (Zod), autenticar `initData`, construir el actor, llamar al servicio y mapear errores a `problem+json` | Next.js route handlers | 0003, 0006 |
-| Salud (`/api/health`, `src/server/health.ts`) | Prueba de vida pública fuera de `/api/v1` (D-061): responde `{ status: "ok", timestamp }` sin autenticación, sin consultar la base ni Blob y sin guardar datos. No sustituye la verificación de Supabase ni de Blob | Next.js route handler (`force-dynamic`) | 0012, 0013 |
+| Salud (`/api/health`, `src/server/health.ts`) | Solo prueba de vida (D-064), pública y fuera de `/api/v1` (D-061): responde `{ status: "ok", timestamp }` sin autenticación, sin consultar la base ni Blob y sin guardar datos. No sustituye la verificación de Supabase ni de Blob | Next.js route handler (`force-dynamic`) | 0012, 0013 |
 | Capa de servicios (`src/server/services`) | Casos de uso. Es la única puerta a los datos: verifica cuenta, aviso vigente, rol, negocio y permiso en cada operación, y abre las transacciones | TypeScript, Kysely | 0001, 0002 |
 | Dominio (`src/server/domain`) | Reglas puras: transiciones de estado, campos obligatorios (D-003), límites (D-042), normalización de nombres, validación de enlaces de Maps, de solicitudes y del documento de identidad (`validateIdentityNumber`: tipo CC, CE, PPT o PA y número como texto, D-046), armado de mensajes del bot | TypeScript | 0002, 0004, 0008, 0016 |
 | Autenticación (`src/server/auth`) | Validación HMAC de `initData`, construcción del actor, roles desde la base, administrador principal | `node:crypto` | 0003 |
@@ -196,7 +199,7 @@ Detalle en ADR 0012 y ADR 0010.
 - **Supabase Free (D-035):** dos proyectos, desarrollo y producción, en `sa-east-1` (São Paulo). Free admite dos proyectos activos, no incluye copias automáticas y pausa el proyecto tras 7 días con poca actividad (documentación de Supabase, consultada el 2026-11-14). La aplicación se conecta por el pooler compartido en modo transacción (puerto 6543) con el rol `eje_app`. Las migraciones se aplican con la CLI de Supabase desde la máquina de la responsable.
 - **Vercel Blob:** un almacén privado por entorno en `gru1`; la región no se puede cambiar después.
 - **Telegram (D-035):** dos bots creados por la usuaria en BotFather. El de desarrollo se usa en local y en vista previa, y el de producción solo en producción. El webhook se registra con `pnpm bot:set-webhook`.
-- **Entornos:** local (Supabase en Docker, bot de desarrollo por polling local o túnel), vista previa (Supabase y Blob de desarrollo, bot de desarrollo) y producción.
+- **Entornos:** local (PostgreSQL 17 de Homebrew sin Docker, D-063; bot de desarrollo por polling local o túnel), vista previa (Supabase y Blob de desarrollo, bot de desarrollo) y producción.
 - **Variables de entorno:** la lista completa está en la ADR 0012, y todas se validan al iniciar.
 
 ### Regiones y transferencia internacional (D-022, D-034, D-035)
@@ -266,7 +269,9 @@ supabase/
   config.toml
   migrations/                     SQL: tablas, restricciones, disparadores, roles, RLS, purge_personal_data
   seed/reference.sql, seed/demo.sql
+  local/bootstrap.sql             solo local: roles que Supabase ya trae (ADR 0014, D-063)
 scripts/                          set-webhook, bot-dev, notice-publish, purge-dry-run, purge-run
+  db/                             bootstrap, migrate, seed, reset, test-clean con psql (ADR 0014)
 tests/unit tests/integration tests/bot tests/e2e tests/factories
 vercel.json                       crons y región gru1
 .env.example                      nombres de variables sin valores
@@ -274,15 +279,24 @@ init.sh                           entorno y prueba de humo
 ```
 
 ## Herramientas y comandos
-Versiones y alternativas en la ADR 0014 (aprobada en D-044). Los nombres de los scripts de `package.json` son contrato para `init.sh` y para los agentes.
+Versiones y alternativas en la ADR 0014 (aprobada en D-044 y revisada por D-062, D-063 y D-064). Los nombres de los scripts de `package.json` son contrato para `init.sh` y para los agentes.
+
+- **Base local sin Docker (D-063):** PostgreSQL 17 de Homebrew (`postgresql@17`, la misma versión mayor que Supabase), con `btree_gist` y `unaccent`. Los roles que Supabase ya trae (`postgres` sin superusuario, `anon`, `authenticated` y `service_role`) los crea en local el script versionado `supabase/local/bootstrap.sql`. `eje_app` lo crea la migración, igual que en la nube (ADR 0006).
+- **Migraciones:** en local se aplican con `psql` desde `supabase/migrations/`, sin `supabase db reset`. La CLI de Supabase se usa solo para `migration new` y `db push`.
+- **Variables y bases:** las variables solo locales y el ciclo de vida de las bases de desarrollo y de prueba están en la ADR 0014.
+- **TypeScript 5.x (D-062):** openapi-typescript 7.13.0 exige `^5.x`.
 
 | Para qué | Herramienta | Comando |
 | --- | --- | --- |
 | Instalar dependencias | pnpm 10 (Corepack) | `pnpm install --frozen-lockfile` |
-| Levantar la base local | CLI de Supabase (Docker) | `pnpm db:start` (`supabase start`) |
-| Aplicar migraciones y semillas en local | CLI de Supabase | `pnpm db:reset` (`supabase db reset`) |
-| Crear una migración | CLI de Supabase | `pnpm supabase migration new <nombre>` |
-| Aplicar migraciones en un proyecto remoto | CLI de Supabase | `pnpm db:push` (`supabase db push`, con `DATABASE_MIGRATIONS_URL`) |
+| Levantar o reiniciar el servidor de base local (manual, una vez) | PostgreSQL 17 de Homebrew (D-063) | `brew services start postgresql@17` / `brew services restart postgresql@17` |
+| Comprobar el servidor y crear los roles locales | `psql` + `supabase/local/bootstrap.sql` | `pnpm db:bootstrap` |
+| Aplicar migraciones pendientes en local | `psql` (historial en `supabase_migrations.schema_migrations`) | `pnpm db:migrate` |
+| Cargar semillas en local | `psql` | `pnpm db:seed` |
+| Recrear la base local de desarrollo con migraciones y semillas | `psql` | `pnpm db:reset` |
+| Borrar bases temporales de prueba abandonadas | `psql` | `pnpm db:test:clean` |
+| Crear una migración | CLI de Supabase (sin Docker) | `pnpm supabase migration new <nombre>` |
+| Aplicar migraciones en un proyecto de Supabase en la nube | CLI de Supabase (sin Docker) | `pnpm db:push` (`supabase db push`, con `DATABASE_MIGRATIONS_URL`) |
 | Cargar datos de referencia en producción | psql vía script | `pnpm db:seed:reference` |
 | Generar tipos de la base | kysely-codegen | `pnpm db:types` |
 | Generar tipos del contrato | openapi-typescript | `pnpm api:types` |
@@ -299,7 +313,7 @@ Versiones y alternativas en la ADR 0014 (aprobada en D-044). Los nombres de los 
 | Pruebas del bot | Vitest + grammY con la API interceptada | `pnpm test:bot` |
 | Pruebas de extremo a extremo de la Mini App | Playwright | `pnpm test:e2e` |
 | Todas las pruebas | Vitest y Playwright | `pnpm test` |
-| Prueba de humo | Script | `./init.sh` (instala, `api:check`, `db:start`, `db:reset`, `typecheck`, `test:smoke`) |
+| Prueba de humo | Script | `./init.sh` (instala, `api:check`, `db:bootstrap`, `db:reset`, `typecheck`, `test:smoke`; si `pg_isready` falla, avisa y omite los pasos de base) |
 
 ## Pantallas
 Canal según D-002: el bot lleva privacidad, registro, exploración, solicitudes y aprobaciones; la Mini App lleva los formularios largos de fichas y los catálogos del administrador (D-041). El catálogo de la Mini App para el visitante queda fuera de esta entrega (D-030). En los dos canales, la primera pantalla de quien no tiene el aviso vigente es el aviso (D-039).
@@ -400,7 +414,9 @@ El bot no llama a la API por HTTP: usa el mismo servicio que el endpoint indicad
 | Precisión horaria de Vercel Cron en Hobby (±59 min) y una ejecución al día | Reintentos de mensajes lentos | Envío inmediato con `after()` y reintento diario |
 | Vercel anuncia la migración de Cron Jobs a "Schedules" | Cambio de configuración futuro | Las tareas son endpoints protegidos; solo cambia la programación |
 | Pérdida de `IDENTITY_ENCRYPTION_KEY` | Números de identidad ilegibles | La responsable guarda la clave también fuera de Vercel; rotación documentada |
-| Docker es requisito para la base local y las pruebas de integración | Sin Docker no hay pruebas de integración | Documentado en `init.sh`; las pruebas unitarias y del bot no lo requieren |
+| La base local (PostgreSQL 17 de Homebrew, D-063) no replica el pooler, el SSL ni los roles internos de Supabase | Un error que solo aparece en la nube no se detecta en local | Roles de Supabase simulados por `supabase/local/bootstrap.sql`; misma versión mayor; cada migración va primero al proyecto de desarrollo (`pnpm db:push`); pruebas contra el pooler de desarrollo (ADR 0014) |
+| Que `supabase db push --db-url` funcione sin Docker es Inferido (respuesta de un mantenedor de la CLI; la documentación solo dice que `db diff`, `db pull` y `db dump` necesitan Docker) | No se podría migrar la nube con la CLI | Comprobarlo con el primer `db push` al proyecto de desarrollo; si falla, `db:push` pasa a ser un script con `psql` sobre el mismo historial, sin cambiar el nombre del comando |
+| La versión real de los dos proyectos de Supabase no está comprobada | Si fueran de la versión 15, la local (17) no coincidiría | Pendiente 7: ejecutar `SHOW server_version;` en cada proyecto y, si no es 17, cambiar la fórmula de Homebrew y `major_version` de `supabase/config.toml` |
 | D-044 aprueba en bloque las reglas Inferidas del antiguo Pendiente 22, que incluía "un administrador también puede registrarse como prestador" | Contradecía D-038 | Resuelto por D-047: vale D-038. Sin cambios de diseño |
 
 ## Pendientes
@@ -436,3 +452,8 @@ Equivalencia de la numeración anterior: antiguo 2 → 1, 3 → 2, 5 → 3, 6 �
    - Sin acceso del administrador a borradores de prestadores.
    - Edición de atractivos publicados fuera de esta entrega, salvo las fotos.
    - Vigencia de 10 minutos del número de identidad sellado en la sesión del bot.
+7. **Base local sin Docker (D-063; ADR 0014).** Detalles que aplica el developer hasta que la usuaria decida:
+   - **Versión de PostgreSQL:** por defecto, la 17 (`postgresql@17`), la predeterminada en Supabase y la de `major_version` en `supabase/config.toml`. Falta confirmarla en los dos proyectos con `SHOW server_version;`.
+   - **Autenticación local:** por defecto, `trust` solo en `localhost`, como lo deja Homebrew. Así no hay contraseñas locales, y las URL locales de la ADR 0014 no llevan secretos (Inferido).
+   - **Contraseña de `eje_app` en la nube:** la fija la responsable una vez por proyecto, fuera del repositorio, y solo queda en `DATABASE_URL` en Vercel. No va en ninguna migración (Inferido).
+   - **Nombres de scripts y variables:** `db:bootstrap`, `db:migrate`, `db:seed`, `db:reset`, `db:test:clean`, `LOCAL_PG_SUPERUSER_URL`, `LOCAL_DB_NAME`, `LOCAL_DATABASE_MIGRATIONS_URL` y `PG_BIN`. Son propuesta del architect.

@@ -1,6 +1,6 @@
 # 0012. Publicación en Vercel: entornos, variables de entorno y desarrollo local
 
-- **Estado:** Propuesta (planes, regiones y bots fijados por D-035; revisada en la iteración 1 de preparación)
+- **Estado:** Propuesta (planes, regiones y bots fijados por D-035; revisada en la iteración 1 de preparación; desarrollo local revisado el 2026-11-15 por D-063)
 - **Fecha:** 2026-11-14
 - **Fuente:** sección 3.17; CLAUDE.md (Stack y publicación, Seguridad); RNF-015; D-007, D-026, D-035, D-036, D-042; documentación de Vercel y Supabase
 
@@ -28,7 +28,7 @@ Publicación fija en Vercel, sin proceso permanente ni disco. La base de datos e
 **Entornos.**
 | Entorno | Base | Blob | Bot |
 | --- | --- | --- | --- |
-| Local | Supabase local (Docker, `supabase start`) | Almacén de desarrollo o simulador en memoria para pruebas | Bot de desarrollo (polling local o túnel) |
+| Local | PostgreSQL 17 de Homebrew (D-063; ADR 0014) | Almacén de desarrollo o simulador en memoria para pruebas | Bot de desarrollo (polling local o túnel) |
 | Vista previa (Vercel Preview) | Proyecto Supabase de desarrollo (`sa-east-1`) | Almacén de desarrollo (`gru1`) | Bot de desarrollo (D-035) |
 | Producción | Proyecto Supabase de producción (`sa-east-1`) | Almacén de producción (`gru1`) | Bot de producción (D-035) |
 
@@ -42,8 +42,8 @@ Bots (D-035): la usuaria crea dos bots en BotFather. El de desarrollo se usa en 
 | `TELEGRAM_BOT_USERNAME` | Enlaces a la Mini App | No |
 | `PRINCIPAL_ADMIN_TELEGRAM_ID` | Administrador principal (D-007, D-032) | No, pero es dato personal: solo en variables |
 | `TELEGRAM_INIT_DATA_MAX_AGE_SECONDS` | Vigencia de `initData` (valor por defecto 86400, pendiente de aprobación) | No |
-| `DATABASE_URL` | Conexión de la aplicación con el rol `eje_app` por el pooler compartido en modo transacción (puerto 6543, SSL obligatorio) | Sí |
-| `DATABASE_MIGRATIONS_URL` | Solo en la máquina de la responsable, para migraciones | Sí |
+| `DATABASE_URL` | Conexión de la aplicación con el rol `eje_app` por el pooler compartido en modo transacción (puerto 6543, SSL obligatorio). En local apunta al PostgreSQL de Homebrew, sin SSL y solo en `localhost` (ADR 0014) | Sí |
+| `DATABASE_MIGRATIONS_URL` | Solo en la máquina de la responsable, para migraciones y semilla de referencia en la nube (`db:push`, `db:seed:reference`). En local se usa `LOCAL_DATABASE_MIGRATIONS_URL` (ADR 0014) | Sí |
 | `BLOB_READ_WRITE_TOKEN` o conexión OIDC (`BLOB_STORE_ID`, `VERCEL_OIDC_TOKEN`) | Acceso a Blob; Vercel las agrega al conectar el almacén | Sí |
 | `BLOB_STORAGE_QUOTA_BYTES` | Cuota global: 900000000 en producción (D-042); en vista previa se puede bajar para que QA verifique la cuota (ADR 0009) | No |
 | `PHOTO_MAX_BYTES` | Tamaño máximo por foto: 5000000 (D-042) | No |
@@ -59,9 +59,9 @@ Un módulo `src/server/config/env.ts` valida todas las variables con Zod al carg
 **Conexión a la base desde funciones.** Pooler compartido de Supabase en modo transacción (puerto 6543), un cliente por instancia creado en el módulo, tamaño de grupo 1, SSL obligatorio, sin sentencias preparadas con nombre y sin estado de sesión (`SET LOCAL` y `set_config(..., true)` dentro de transacciones), según la guía de Supabase para serverless.
 
 **Desarrollo local.**
-- `supabase start` levanta PostgreSQL local en Docker; `pnpm db:reset` aplica migraciones y semillas.
+- PostgreSQL 17 de Homebrew, levantado con `brew services start postgresql@17`, sin Docker (D-063). `pnpm db:bootstrap` crea los roles locales y `pnpm db:reset` recrea la base de desarrollo con migraciones y semillas. Los scripts y las variables solo locales están en la ADR 0014.
 - `pnpm dev` levanta Next.js en el puerto de `PORT` (por defecto 3000), para no fijar puertos en el modo paralelo.
-- Pruebas de integración: cada ejecución crea una base temporal con nombre aleatorio a partir de las migraciones y la borra al terminar, para no fijar bases en el modo paralelo.
+- Pruebas de integración: cada ejecución crea una base temporal con nombre aleatorio en el PostgreSQL local a partir de las migraciones y la borra al terminar, para no fijar bases en el modo paralelo (ADR 0014).
 
 ## Alternativas consideradas
 | Alternativa | A favor | En contra |
