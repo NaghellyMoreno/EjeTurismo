@@ -16,11 +16,11 @@ echo "== Contrato"
 pnpm api:check
 
 echo "== Base de datos"
-if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
-  pnpm db:start
+if bash scripts/db/status.sh; then
+  pnpm db:bootstrap
   pnpm db:reset
 else
-  echo "AVISO: Docker no está disponible; se omite la base local (db:start y db:reset). Instálalo y ábrelo para trabajar con la base." >&2
+  echo "AVISO: PostgreSQL local no está listo; se omiten db:bootstrap y db:reset (ver el mensaje de arriba)." >&2
 fi
 
 echo "== Tipos y prueba de humo"
