@@ -9,6 +9,7 @@ import { AppError } from "@/server/errors";
 import {
   acceptPrivacyNotice,
   approveProviderRegistration,
+  authorizeAdministrator,
   createProviderRegistration,
   getActiveRoles,
   getConsentState,
@@ -66,7 +67,7 @@ export function getMeHandler(deps: Deps) {
     guarded("me.get_failed", async () => {
       const actor = authenticate(request, deps);
       if (actor instanceof Response) return actor;
-      return json(await getMe(deps.db(), actor));
+      return json(await getMe(deps.db(), actor, deps.config()));
     });
 }
 
@@ -94,7 +95,7 @@ export function acceptPrivacyNoticeHandler(deps: Deps) {
             message: field === "accepted" ? "Debes aceptar el aviso." : "Revisa este campo.",
           })));
       }
-      const me = await acceptPrivacyNotice(deps.db(), actor, { noticeVersion: parsed.data.noticeVersion, channel: "mini_app" }, deps.now());
+      const me = await acceptPrivacyNotice(deps.db(), actor, { noticeVersion: parsed.data.noticeVersion, channel: "mini_app" }, deps.now(), deps.config());
       return json(me, 201);
     });
 }
@@ -189,3 +190,15 @@ export const approveProviderRegistrationHandler = (deps: Deps) =>
 
 export const rejectProviderRegistrationHandler = (deps: Deps) =>
   decisionHandler(deps, "provider_registration.reject_failed", rejectProviderRegistration);
+
+// POST /api/v1/role-grants (authorizeAdministrator). Orden (D-108): 401, 403 `consent_required`, 403 `forbidden`, 422,
+// 409 `duplicate` y 409 `role_conflict`; los aplica el servicio.
+export function authorizeAdministratorHandler(deps: Deps) {
+  return (request: Request) =>
+    guarded("role_grant.authorize_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const body: unknown = await request.json().catch(() => undefined);
+      return json(await authorizeAdministrator(deps.db(), deps.config(), actor, body, deps.now()), 201);
+    });
+}

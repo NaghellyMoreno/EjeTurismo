@@ -86,14 +86,14 @@ async function openList() {
 }
 
 describe("B06 y B02 mínimos (criterios 1, 15 y 22)", () => {
-  it("el administrador con permiso y el principal ven solo 'Registros pendientes'", async () => {
+  it("el administrador con permiso y el principal ven 'Registros pendientes' y 'Autorizar administrador'", async () => {
     await admin();
     await createAccount(owner, PERSON_PRINCIPAL);
     for (const id of [ADMIN_1, PERSON_PRINCIPAL]) {
       t.clear();
       await t.send(start(id));
       expect(t.texts()).toEqual([es.menu.welcome]);
-      expect(buttonsOf(t.messages()[0].payload)).toEqual(["Registros pendientes"]);
+      expect(buttonsOf(t.messages()[0].payload)).toEqual(["Registros pendientes", "Autorizar administrador"]);
       expect(callbacksOf(t.messages()[0])[0].callback_data).toBe("adm:list");
     }
   });

@@ -17,12 +17,14 @@ import { logError } from "@/server/observability/logger";
 import {
   clearBotSession,
   createProviderRegistration,
+  ensurePrincipalGrant,
   getAccountContext,
   loadBotSession,
   saveBotSession,
 } from "@/server/services";
 import type { AccountContext, Db } from "@/server/services";
 import { adminKeyboard, handleAdminCallback, isAdminCallback } from "../admin";
+import { handleAuthorizeUpdate, isAuthCallback } from "./authorize-admin";
 import { isCancelCommand, SessionConflictError } from "../common";
 import { send } from "../send";
 import { es } from "../texts/es";
@@ -90,7 +92,7 @@ const canRegister = (info: AccountContext) => info.roles.length === 0 && !info.i
 const isAdmin = (info: AccountContext) => info.isPrincipalAdmin || info.roles.includes("admin");
 
 async function showMenu(ctx: Context, info: AccountContext) {
-  // B06 mínimo (D-091): el administrador solo ve "Registros pendientes"; el menú completo es de F004 y F006.
+  // B06 mínimo (D-091, D-102): el administrador ve "Registros pendientes" y "Autorizar administrador"; el menú completo es de F005 y siguientes.
   if (isAdmin(info)) return send(ctx, es.menu.welcome, adminKeyboard());
   // Mínimo de B02 para el prestador (D-090, D-091); el menú completo es de F005.
   if (info.roles.includes("provider")) {
@@ -114,11 +116,16 @@ export async function handleAccountUpdate(ctx: Context, deps: FormDeps, actor: A
   const now = deps.now();
   const info = await getAccountContext(db, config, accountId, actor.telegramUserId);
   const callback = ctx.callbackQuery?.data;
+  // D-101: el principal queda reflejado en `role_grants` en su siguiente actualización si falta la fila.
+  if (info.isPrincipalAdmin) await ensurePrincipalGrant(db, config, actor.telegramUserId, now);
   // Botones de revisión (B07): el rol de administrador se lee de la base en cada pulsación (ADR 0003), no del botón.
   if (isAdminCallback(callback)) {
     if (!isAdmin(info)) return void (await send(ctx, es.admin.forbidden));
     return handleAdminCallback(ctx, deps, actor, callback);
   }
+  // B08: botones y mensajes de la autorización de administradores.
+  if (isAuthCallback(callback) && !isAdmin(info)) return void (await send(ctx, es.admin.forbidden));
+  if (isAdmin(info) && (await handleAuthorizeUpdate(ctx, deps, actor, accountId))) return;
   const cancelling = callback === CANCEL || (callback === undefined && isCancelCommand(ctx));
   if (!canRegister(info)) {
     // Sin formulario posible, cancelar no hace nada y se muestra el menú que le corresponde (D-087).

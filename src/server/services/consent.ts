@@ -1,6 +1,8 @@
 import type { components } from "@/shared/api/schema";
 import type { Actor } from "@/server/auth/actor";
+import type { Config } from "@/server/config";
 import { AppError } from "@/server/errors";
+import { ensurePrincipalGrant } from "./principal-grant";
 import type { Db } from "./types";
 
 export type Me = components["schemas"]["Me"];
@@ -67,7 +69,22 @@ export async function getConsentState(db: Db, telegramUserId: string): Promise<C
   return { notice, account, accepted: !!notice && !!account && account.acceptedVersion === notice.version };
 }
 
-export function toMe(telegramUserId: string, state: ConsentState): Me {
+// Roles activos según la base y la configuración; vacío sin el aviso vigente aceptado (D-039). El principal es administrador
+// por la configuración, con o sin fila en `role_grants` (D-101).
+async function resolveRoles(db: Db, config: Config | undefined, telegramUserId: string, state: ConsentState): Promise<Me["roles"]> {
+  if (!state.accepted) return [];
+  const active = await db
+    .selectFrom("role_grants")
+    .select("role")
+    .where("telegram_user_id", "=", telegramUserId)
+    .where("revoked_at", "is", null)
+    .execute();
+  const roles = new Set<Me["roles"][number]>(active.map((r) => r.role));
+  if (config?.principalAdminTelegramId === telegramUserId) roles.add("admin");
+  return [...roles].sort();
+}
+
+export function toMe(telegramUserId: string, state: ConsentState, roles: Me["roles"] = [], isPrincipalAdmin = false): Me {
   if (!state.notice) throw noticeNotFound();
   return {
     telegramUserId,
@@ -80,16 +97,18 @@ export function toMe(telegramUserId: string, state: ConsentState): Me {
       // F001 no tiene roles: solo con cuenta se puede revocar (los casos del administrador llegan con F004).
       canRevoke: !!state.account,
     },
-    roles: [],
-    isPrincipalAdmin: false,
+    roles,
+    isPrincipalAdmin,
     providerRegistrationStatus: "none",
     // F002 define cuándo se puede registrar como prestador.
     canRegisterAsProvider: false,
   };
 }
 
-export async function getMe(db: Db, actor: Actor): Promise<Me> {
-  return toMe(actor.telegramUserId, await getConsentState(db, actor.telegramUserId));
+export async function getMe(db: Db, actor: Actor, config?: Config): Promise<Me> {
+  const state = await getConsentState(db, actor.telegramUserId);
+  const roles = await resolveRoles(db, config, actor.telegramUserId, state);
+  return toMe(actor.telegramUserId, state, roles, state.accepted && config?.principalAdminTelegramId === actor.telegramUserId);
 }
 
 export interface AcceptInput {
@@ -99,7 +118,7 @@ export interface AcceptInput {
 
 // Crea la cuenta y la prueba de aceptación en una sola transacción. Idempotente: si la cuenta ya aceptó esa versión,
 // devuelve el mismo estado sin duplicar nada (HU-001; ADR 0005, 0008).
-export async function acceptPrivacyNotice(db: Db, actor: Actor, input: AcceptInput, now: Date = new Date()): Promise<Me> {
+export async function acceptPrivacyNotice(db: Db, actor: Actor, input: AcceptInput, now: Date = new Date(), config?: Config): Promise<Me> {
   await db.transaction().execute(async (trx) => {
     const notice = await getCurrentPrivacyNotice(trx);
     if (input.noticeVersion !== notice.version) {
@@ -135,7 +154,9 @@ export async function acceptPrivacyNotice(db: Db, actor: Actor, input: AcceptInp
         .execute();
     }
   });
-  return getMe(db, actor);
+  // D-101: el administrador principal queda reflejado en `role_grants` al aceptar el aviso.
+  if (config) await ensurePrincipalGrant(db, config, actor.telegramUserId, now);
+  return getMe(db, actor, config);
 }
 
 // Idempotencia del webhook, solo para cuentas existentes (ADR 0008). Verdadero si la actualización es nueva.

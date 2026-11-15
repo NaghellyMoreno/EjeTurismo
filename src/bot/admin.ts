@@ -13,6 +13,7 @@ import {
 } from "@/server/services";
 import type { AdminProviderRegistration, Db, Decision } from "@/server/services";
 import { formatBogotaShort } from "@/lib/time";
+import { AUTH_START } from "./forms/authorize-admin";
 import { send } from "./send";
 import { es } from "./texts/es";
 
@@ -144,4 +145,5 @@ export async function handleAdminCallback(ctx: Context, deps: AdminDeps, actor: 
   }
 }
 
-export const adminKeyboard = () => new InlineKeyboard().text(es.admin.pendingButton, LIST_PENDING);
+export const adminKeyboard = () =>
+  new InlineKeyboard().text(es.admin.pendingButton, LIST_PENDING).row().text(es.admin.authorizeButton, AUTH_START);

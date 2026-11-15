@@ -77,7 +77,7 @@ async function handle(ctx: Context, deps: BotDeps): Promise<void> {
 
   if (callbackData?.startsWith(ACCEPT)) {
     try {
-      await acceptPrivacyNotice(db, actor, { noticeVersion: callbackData.slice(ACCEPT.length), channel: "bot" }, deps.now());
+      await acceptPrivacyNotice(db, actor, { noticeVersion: callbackData.slice(ACCEPT.length), channel: "bot" }, deps.now(), deps.config());
       await acknowledge();
       // Recién aceptada: B02 con el botón de registro si no tiene rol ni registro (D-074).
       const accepted = await getConsentState(db, actor.telegramUserId);

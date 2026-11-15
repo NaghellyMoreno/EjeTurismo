@@ -76,8 +76,8 @@ describe("paso 1: elegir registrarse (criterios 1 y 3)", () => {
       t.clear();
       await t.send(start(id));
       expect(t.texts()).toEqual([es.menu.welcome]);
-      // D-091: un único botón en línea "Registros pendientes" y sin "Registrarme como prestador".
-      expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton]);
+      // D-091, D-102: dos botones en línea ("Registros pendientes" y "Autorizar administrador") y sin "Registrarme como prestador".
+      expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton]);
       // El callback antiguo tampoco abre el formulario.
       t.clear();
       await t.send(press(id, REGISTER));
@@ -89,8 +89,8 @@ describe("paso 1: elegir registrarse (criterios 1 y 3)", () => {
   it("el administrador principal que acepta el aviso por el bot recibe B02 sin botón", async () => {
     await t.send(press(PERSON_PRINCIPAL, "consent:accept:2026-11-v3"));
     expect(t.texts()).toEqual([es.menu.welcome]);
-    // D-091: un único botón en línea "Registros pendientes" y sin "Registrarme como prestador".
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton]);
+    // D-091, D-102: dos botones en línea ("Registros pendientes" y "Autorizar administrador") y sin "Registrarme como prestador".
+    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton]);
   });
 });
 

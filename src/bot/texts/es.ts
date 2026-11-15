@@ -47,6 +47,7 @@ export const es = {
   // B06, B07: revisión de registros de prestadores por el administrador (D-090, D-096).
   admin: {
     pendingButton: "Registros pendientes",
+    authorizeButton: "Autorizar administrador",
     noPending: "No hay registros de prestadores pendientes.",
     registrationDetail: (d: { telegramUserId: string; displayName: string; typeName: string; number: string; createdAt: string }) =>
       `Registro de prestador pendiente\nID de Telegram: ${d.telegramUserId}\nNombre de Telegram: ${d.displayName}\nDocumento: ${d.typeName}\nNúmero de identidad: ${d.number}\nFecha de registro: ${d.createdAt}`,
@@ -63,6 +64,21 @@ export const es = {
     forbidden: "No tienes permiso para hacer esta acción.",
     error: "No pude completar la acción. Inténtalo de nuevo más tarde.",
     morePending: 'Hay más registros pendientes. Decide estos y vuelve a pulsar "Registros pendientes".',
+  },
+  // B08: autorizar administradores (D-103). Solo `confirm` y `authorized` incluyen el ID que escribió el administrador.
+  adminAuth: {
+    askId: "Escribe el ID de Telegram de la persona que quieres autorizar como administrador. Es un número, por ejemplo 123456789.",
+    idInvalid: "Ese ID no es válido. Debe ser un número de Telegram, solo con dígitos y sin espacios. Escríbelo de nuevo.",
+    confirm: (id: string) =>
+      `¿Confirmas que autorizas como administrador al ID de Telegram ${id}? Esa persona podrá usar las funciones de administrador.`,
+    confirmButton: "Confirmar",
+    cancelButton: "Cancelar",
+    authorized: (id: string) => `Autorización completada. El ID de Telegram ${id} ya es administrador.`,
+    alreadyAdmin: "Ese ID ya está autorizado como administrador.",
+    conflict: "Ese ID ya tiene un rol de prestador o un registro de prestador pendiente, y no puede ser administrador.",
+    cancelled: "No se hizo ningún cambio. No se autorizó a nadie.",
+    noDraft: "No hay ninguna autorización por confirmar.",
+    error: "No pude completar la autorización. Inténtalo de nuevo más tarde.",
   },
   // B21: textos comunes a todos los formularios conversacionales (D-083). Ninguno incluye lo escrito por la persona.
   common: {

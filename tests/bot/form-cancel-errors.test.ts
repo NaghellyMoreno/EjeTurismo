@@ -222,10 +222,11 @@ describe("paso 1: cancelar (criterios 1 a 10, 32)", () => {
         expect(t.texts()[0]).toBe(es.common.nothingToCancel);
         expect(t.texts()[1]).toBe(menu);
         if (id !== PERSON_1) expect(t.texts()).toHaveLength(2);
-        if (id === PERSON_PRINCIPAL) expect(buttonsOf(t.messages()[1].payload)).toEqual([es.admin.pendingButton]);
+        if (id === PERSON_PRINCIPAL) expect(buttonsOf(t.messages()[1].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton]);
       }
     }
-    expect(await countsF002(owner)).toEqual(before);
+    // D-101: la cuenta del principal obtiene su fila `is_principal` en su primera actualización; no cambia nada más.
+    expect(await countsF002(owner)).toEqual({ ...before, role_grants: before.role_grants + 1 });
   });
 
   it("criterio 29: una cuenta no cancela la sesión de otra", async () => {
