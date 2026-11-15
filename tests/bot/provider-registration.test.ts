@@ -95,7 +95,7 @@ describe("paso 1: elegir registrarse (criterios 1 y 3)", () => {
 });
 
 describe("paso 2: tipo de documento (criterios 4, 5 y 6)", () => {
-  it("el mensaje del tipo lleva exactamente 4 botones con sigla y nombre; callback_data es solo el código", async () => {
+  it("el mensaje del tipo lleva los 4 botones de tipo y una fila final con solo Cancelar; callback_data es solo el código", async () => {
     await createAccount(owner, PERSON_1);
     await t.send(press(PERSON_1, REGISTER));
     const [message] = t.messages();
@@ -104,9 +104,11 @@ describe("paso 2: tipo de documento (criterios 4, 5 y 6)", () => {
       "CE: cédula de extranjería",
       "PPT: Permiso por Protección Temporal",
       "PA: pasaporte",
+      es.provider.cancelButton,
     ]);
-    const data = (message.payload.reply_markup as { inline_keyboard: { callback_data: string }[][] }).inline_keyboard.flat().map((b) => b.callback_data);
-    expect(data).toEqual(["CC", "CE", "PPT", "PA"]);
+    const rows = (message.payload.reply_markup as { inline_keyboard: { callback_data: string }[][] }).inline_keyboard;
+    expect(rows.flat().map((b) => b.callback_data)).toEqual(["CC", "CE", "PPT", "PA", CANCEL]);
+    expect(rows[rows.length - 1]).toHaveLength(1);
   });
 
   it.each([["cc", "CC"], ["Cc", "CC"], ["ppt", "PPT"], ["pa", "PA"]])("la sigla escrita %s se acepta como %s", async (text, code) => {
@@ -125,7 +127,7 @@ describe("paso 2: tipo de documento (criterios 4, 5 y 6)", () => {
     t.clear();
     await t.send(typed(PERSON_1, text));
     expect(t.texts()).toEqual([es.provider.typeInvalid, es.provider.askType]);
-    expect(buttonsOf(t.messages()[1].payload)).toHaveLength(4);
+    expect(buttonsOf(t.messages()[1].payload)).toHaveLength(5);
     expect((await session(id)).data).toEqual(before);
     expect(JSON.stringify(t.calls)).not.toContain(text || "@@");
   });

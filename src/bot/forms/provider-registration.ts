@@ -23,6 +23,7 @@ import {
 } from "@/server/services";
 import type { AccountContext, Db } from "@/server/services";
 import { adminKeyboard, handleAdminCallback, isAdminCallback } from "../admin";
+import { isCancelCommand, SessionConflictError } from "../common";
 import { send } from "../send";
 import { es } from "../texts/es";
 
@@ -60,8 +61,26 @@ const typeKeyboard = () => {
   const keyboard = new InlineKeyboard();
   // callback_data es solo el código de la lista; se interpreta únicamente en el paso del tipo.
   for (const code of IDENTITY_DOCUMENT_TYPES) keyboard.text(es.provider.typeButtons[code], code).row();
-  return keyboard;
+  return keyboard.text(es.provider.cancelButton, CANCEL);
 };
+
+const numberKeyboard = () => new InlineKeyboard().text(es.provider.cancelButton, CANCEL);
+
+const confirmText = (type: IdentityDocumentType) => es.provider.confirm(IDENTITY_DOCUMENT_NAMES[type]);
+
+// Vuelve a mostrar solo el paso en curso, sin cambiar la sesión. En la confirmación avisa que se usan los botones (D-088).
+async function repeatStep(ctx: Context, session: Session, invalid: boolean) {
+  if (session.step === "type") {
+    if (invalid) await send(ctx, es.provider.typeInvalid);
+    return send(ctx, es.provider.askType, typeKeyboard());
+  }
+  if (session.step === "number") {
+    if (invalid) await send(ctx, es.provider.numberInvalid);
+    return send(ctx, es.provider.askNumber, numberKeyboard());
+  }
+  await send(ctx, es.common.useButtons);
+  return send(ctx, confirmText(session.draft!.identityDocumentType!), confirmKeyboard());
+}
 
 const confirmKeyboard = () => new InlineKeyboard().text(es.provider.confirmButton, CONFIRM).text(es.provider.cancelButton, CANCEL);
 
@@ -100,14 +119,20 @@ export async function handleAccountUpdate(ctx: Context, deps: FormDeps, actor: A
     if (!isAdmin(info)) return void (await send(ctx, es.admin.forbidden));
     return handleAdminCallback(ctx, deps, actor, callback);
   }
-  if (!canRegister(info)) return void (await showMenu(ctx, info));
+  const cancelling = callback === CANCEL || (callback === undefined && isCancelCommand(ctx));
+  if (!canRegister(info)) {
+    // Sin formulario posible, cancelar no hace nada y se muestra el menú que le corresponde (D-087).
+    if (cancelling) await send(ctx, es.common.nothingToCancel);
+    return void (await showMenu(ctx, info));
+  }
 
   const stored = await loadBotSession(db, accountId);
   const session = parseSession(stored?.data);
   const save = async (next: Session) => {
-    if (!(await saveBotSession(db, accountId, next, stored?.updatedAt ?? null, now))) throw new Error("session_conflict");
+    if (!(await saveBotSession(db, accountId, next, stored?.updatedAt ?? null, now))) throw new SessionConflictError();
   };
-  const hasText = callback === undefined && ctx.message !== undefined;
+  const isMessage = callback === undefined && ctx.message !== undefined;
+  const hasText = isMessage && ctx.message?.text !== undefined;
   const text = ctx.message?.text ?? "";
 
   if (callback === REGISTER) {
@@ -115,35 +140,35 @@ export async function handleAccountUpdate(ctx: Context, deps: FormDeps, actor: A
     return void (await send(ctx, es.provider.askType, typeKeyboard()));
   }
 
-  if (callback === CANCEL) {
-    await clearBotSession(db, accountId, now);
-    await send(ctx, es.provider.cancelled);
+  if (cancelling) {
+    if (session.step) {
+      await clearBotSession(db, accountId, now);
+      await send(ctx, es.provider.cancelled);
+    } else {
+      await send(ctx, es.common.nothingToCancel);
+    }
     return void (await showMenu(ctx, info));
   }
 
   if (callback === CONFIRM) {
+    if (!session.step) return void (await send(ctx, es.provider.noDraft));
     const type = session.draft?.identityDocumentType;
     const sealed = session.draft?.sealedIdentity;
-    if (session.step !== "confirm" || !type || !sealed) return void (await send(ctx, es.provider.noDraft));
+    if (session.step !== "confirm") return void (await repeatStep(ctx, session, false));
+    if (!type || !sealed) return void (await send(ctx, es.provider.noDraft));
     return confirm(ctx, deps, actor, accountId, { session, type, sealed, save, info });
   }
 
   if (session.step === "type" && (isIdentityDocumentType(callback) || hasText)) {
     const type = isIdentityDocumentType(callback) ? callback : parseTypeInsensitive(text);
-    if (!type) {
-      await send(ctx, es.provider.typeInvalid);
-      return void (await send(ctx, es.provider.askType, typeKeyboard()));
-    }
+    if (!type) return void (await repeatStep(ctx, session, true));
     await save({ ...session, step: "number", draft: { identityDocumentType: type } });
-    return void (await send(ctx, es.provider.askNumber));
+    return void (await send(ctx, es.provider.askNumber, numberKeyboard()));
   }
 
   if (session.step === "number" && hasText) {
     const type = session.draft?.identityDocumentType;
-    if (!type || validateIdentityNumber(type, text).length > 0) {
-      await send(ctx, es.provider.numberInvalid);
-      return void (await send(ctx, es.provider.askNumber));
-    }
+    if (!type || validateIdentityNumber(type, text).length > 0) return void (await repeatStep(ctx, session, true));
     const expiresAt = new Date(now.getTime() + config.sensitiveDraftTtlSeconds * 1000);
     await save({
       ...session,
@@ -151,12 +176,15 @@ export async function handleAccountUpdate(ctx: Context, deps: FormDeps, actor: A
       draft: { identityDocumentType: type, sealedIdentity: sealIdentityNumber(config.identityEncryptionKey, accountId, trimIdentityNumber(text)) },
       expiresAt: expiresAt.toISOString(),
     });
-    return void (await send(ctx, es.provider.confirm(IDENTITY_DOCUMENT_NAMES[type]), confirmKeyboard()));
+    return void (await send(ctx, confirmText(type), confirmKeyboard()));
   }
 
-  if (session.step === "confirm" && hasText && session.draft?.identityDocumentType) {
-    // Entrada inesperada en la confirmación: se vuelve a preguntar (el manejo general es de F028).
-    return void (await send(ctx, es.provider.confirm(IDENTITY_DOCUMENT_NAMES[session.draft.identityDocumentType]), confirmKeyboard()));
+  // Entrada que el paso no espera (texto o archivo donde van botones, botón de otro paso, mensaje que no es texto):
+  // se repite solo el paso en curso y la sesión no cambia.
+  if (session.step && (callback !== undefined || isMessage)) {
+    if (session.step !== "confirm" || session.draft?.identityDocumentType) {
+      return void (await repeatStep(ctx, session, callback === undefined));
+    }
   }
 
   await showMenu(ctx, info);

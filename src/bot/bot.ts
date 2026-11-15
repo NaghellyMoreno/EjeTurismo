@@ -8,6 +8,7 @@ import { acceptPrivacyNotice, claimUpdate, getConsentState } from "@/server/serv
 import type { Db, PrivacyNotice } from "@/server/services";
 import type { Config } from "@/server/config";
 import { handleAccountUpdate, showAccountMenu } from "./forms/provider-registration";
+import { SessionConflictError } from "./common";
 import { send } from "./send";
 import { es } from "./texts/es";
 
@@ -29,6 +30,8 @@ export function createBot(token: string, deps: BotDeps, options: { botInfo?: Use
     try {
       await handle(ctx, deps);
     } catch (error) {
+      // El choque de sesión es esperable: se pide repetir el paso y no se registra como fallo (ADR 0015, D-085).
+      if (error instanceof SessionConflictError) return void (await send(ctx, es.common.sessionConflict).catch(() => undefined));
       logError("bot.handler_failed", error);
       await send(ctx, es.errors.generic).catch(() => undefined);
     }

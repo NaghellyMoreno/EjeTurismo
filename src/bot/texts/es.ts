@@ -64,6 +64,12 @@ export const es = {
     error: "No pude completar la acción. Inténtalo de nuevo más tarde.",
     morePending: 'Hay más registros pendientes. Decide estos y vuelve a pulsar "Registros pendientes".',
   },
+  // B21: textos comunes a todos los formularios conversacionales (D-083). Ninguno incluye lo escrito por la persona.
+  common: {
+    nothingToCancel: "No hay nada que cancelar.",
+    useButtons: "Para continuar, usa los botones del mensaje anterior. Si prefieres salir, envía /cancelar.",
+    sessionConflict: "Tu mensaje anterior todavía se estaba procesando. Repite el paso, por favor.",
+  },
   errors: {
     generic: "Ocurrió un error. Intenta de nuevo en unos minutos.",
   },
