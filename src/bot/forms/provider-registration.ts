@@ -86,8 +86,10 @@ async function repeatStep(ctx: Context, session: Session, invalid: boolean) {
 
 const confirmKeyboard = () => new InlineKeyboard().text(es.provider.confirmButton, CONFIRM).text(es.provider.cancelButton, CANCEL);
 
-// B02: el botón de registro solo para cuentas sin rol, sin registro previo y que no sean el administrador principal (D-074).
-const canRegister = (info: AccountContext) => info.roles.length === 0 && !info.isPrincipalAdmin && info.registrationStatus === null;
+// B02: el botón de registro solo para cuentas sin rol, sin registro previo o con el último rechazado (D-074, D-115), y que no sean
+// el administrador principal.
+const canRegister = (info: AccountContext) =>
+  info.roles.length === 0 && !info.isPrincipalAdmin && (info.registrationStatus === null || info.registrationStatus === "rejected");
 
 const isAdmin = (info: AccountContext) => info.isPrincipalAdmin || info.roles.includes("admin");
 

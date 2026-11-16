@@ -107,10 +107,17 @@ describe("B06 y B02 mínimos (criterios 1, 15 y 22)", () => {
     expect(t.texts()).not.toContain(es.provider.pending);
   });
 
-  it.each(["rejected", "approved"] as const)("una cuenta con registro %s no ve el botón de registrarse", async (status) => {
-    await pendingFor(owner, USER_REJECT, { status, number: NUMBER_2, type: "PA" });
+  // F005, D-115: tras un rechazo el botón de registro se habilita también en el bot; con el registro aprobado sigue sin verse.
+  it("una cuenta con registro rechazado y sin rol ve el botón de registrarse (D-115)", async () => {
+    await pendingFor(owner, USER_REJECT, { status: "rejected", number: NUMBER_2, type: "PA" });
     await t.send(start(USER_REJECT));
-    if (status === "rejected") expect(t.texts()).toEqual([es.menu.welcome]);
+    expect(t.texts()).toEqual([es.menu.welcome]);
+    expect(t.messages().flatMap((m) => buttonsOf(m.payload))).toEqual([es.menu.registerButton]);
+  });
+
+  it("una cuenta con registro aprobado no ve el botón de registrarse", async () => {
+    await pendingFor(owner, USER_REJECT, { status: "approved", number: NUMBER_2, type: "PA" });
+    await t.send(start(USER_REJECT));
     expect(t.messages().flatMap((m) => buttonsOf(m.payload))).toEqual([]);
   });
 });

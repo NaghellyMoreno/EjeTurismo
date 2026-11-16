@@ -1,0 +1,44 @@
+/* Identidad visual del proyecto: solo modo claro y solo estos colores (CLAUDE.md). */
+:root {
+  --color-primary: #659287;
+  --color-primary-dark: #3f6b5f;
+  --color-secondary: #88bda4;
+  --color-soft: #b1d3b9;
+  --color-background: #e6f2dd;
+  --color-accent: #c1ff72;
+  --color-text: #1f3a33;
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: system-ui, sans-serif;
+}
+
+.screen {
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.screen h1 {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-primary-dark);
+  color: #fff;
+  font-size: 1.25rem;
+  border-radius: 0.5rem;
+}
+
+.screen section {
+  padding: 1rem;
+  background: var(--color-soft);
+  border-radius: 0.5rem;
+}
+
+.screen p {
+  margin: 0;
+  line-height: 1.5;
+}

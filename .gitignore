@@ -13,3 +13,5 @@ qa/evidencias/
 supabase/.temp/
 supabase/.branches/
 AGENTS.md
+test-results/
+playwright-report/

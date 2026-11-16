@@ -84,8 +84,17 @@ async function resolveRoles(db: Db, config: Config | undefined, telegramUserId: 
   return [...roles].sort();
 }
 
-export function toMe(telegramUserId: string, state: ConsentState, roles: Me["roles"] = [], isPrincipalAdmin = false): Me {
+export interface MeExtras {
+  roles?: Me["roles"];
+  isPrincipalAdmin?: boolean;
+  providerRegistrationStatus?: Me["providerRegistrationStatus"];
+}
+
+export function toMe(telegramUserId: string, state: ConsentState, extras: MeExtras = {}): Me {
   if (!state.notice) throw noticeNotFound();
+  const roles = extras.roles ?? [];
+  const isPrincipalAdmin = extras.isPrincipalAdmin ?? false;
+  const providerRegistrationStatus = extras.providerRegistrationStatus ?? "none";
   return {
     telegramUserId,
     displayName: state.account?.displayName ?? null,
@@ -94,21 +103,39 @@ export function toMe(telegramUserId: string, state: ConsentState, roles: Me["rol
       currentVersion: state.notice.version,
       acceptedVersion: state.account?.acceptedVersion ?? null,
       acceptedAt: state.account?.acceptedAt.toISOString() ?? null,
-      // F001 no tiene roles: solo con cuenta se puede revocar (los casos del administrador llegan con F004).
+      // Solo con cuenta se puede revocar.
       canRevoke: !!state.account,
     },
     roles,
     isPrincipalAdmin,
-    providerRegistrationStatus: "none",
-    // F002 define cuándo se puede registrar como prestador.
-    canRegisterAsProvider: false,
+    providerRegistrationStatus,
+    // HU-006 criterio 3 y D-115: con el aviso vigente, sin rol y sin registro pendiente o aprobado (el rechazado puede registrarse de nuevo).
+    canRegisterAsProvider:
+      state.accepted && roles.length === 0 && !isPrincipalAdmin && (providerRegistrationStatus === "none" || providerRegistrationStatus === "rejected"),
   };
 }
 
+// Estado del registro más reciente de la cuenta; "none" si no tiene cuenta, no aceptó el aviso vigente o nunca se registró.
+async function readRegistrationStatus(db: Db, state: ConsentState): Promise<Me["providerRegistrationStatus"]> {
+  if (!state.accepted || !state.account) return "none";
+  const row = await db
+    .selectFrom("provider_registrations")
+    .select("status")
+    .where("account_id", "=", state.account.id)
+    .orderBy("created_at", "desc")
+    .executeTakeFirst();
+  return row?.status ?? "none";
+}
+
+// Fuente única del menú de los dos canales (HU-006 criterio 4): todo se lee de la base en cada llamada.
 export async function getMe(db: Db, actor: Actor, config?: Config): Promise<Me> {
   const state = await getConsentState(db, actor.telegramUserId);
   const roles = await resolveRoles(db, config, actor.telegramUserId, state);
-  return toMe(actor.telegramUserId, state, roles, state.accepted && config?.principalAdminTelegramId === actor.telegramUserId);
+  return toMe(actor.telegramUserId, state, {
+    roles,
+    isPrincipalAdmin: state.accepted && config?.principalAdminTelegramId === actor.telegramUserId,
+    providerRegistrationStatus: await readRegistrationStatus(db, state),
+  });
 }
 
 export interface AcceptInput {
