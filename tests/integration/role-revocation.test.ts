@@ -523,7 +523,8 @@ describe("migración y permisos de base de datos (criterios 46 a 49)", () => {
     const pool = new Pool({ connectionString: process.env.TEST_OWNER_URL!.replace(/\/[^/]+$/, `/${name}`), max: 2 });
     try {
       for (const file of before) await pool.query(readFileSync(`${dir}/${file}`, "utf8"));
-      await pool.query(readFileSync("supabase/seed/reference.sql", "utf8"));
+      // Solo la parte de la semilla anterior a F010: la tabla de municipios llega con una migración posterior a F006.
+      await pool.query(readFileSync("supabase/seed/reference.sql", "utf8").split("-- Municipios iniciales")[0]);
       await pool.query("update app.privacy_notice_versions set is_current = (version = $1)", [NOTICE_VERSION]).catch(() => undefined);
       // Datos como los dejan F003 y F004: administradores, prestador aprobado, registro pendiente y trazas.
       await admin(pool, ADMIN_A);

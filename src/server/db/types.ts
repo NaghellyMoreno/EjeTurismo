@@ -101,6 +101,19 @@ export interface NotificationOutboxTable {
   sent_at: Timestamp | null;
 }
 
+export interface MunicipalitiesTable {
+  id: Generated<string>;
+  name: string;
+  name_normalized: string;
+  department: string;
+  general_info: string | null;
+  zone: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: DefaultedTimestamp;
+  updated_at: DefaultedTimestamp;
+}
+
 export interface Database {
   privacy_notice_versions: PrivacyNoticeVersionsTable;
   accounts: AccountsTable;
@@ -112,4 +125,5 @@ export interface Database {
   role_grants: RoleGrantsTable;
   audit_events: AuditEventsTable;
   notification_outbox: NotificationOutboxTable;
+  municipalities: MunicipalitiesTable;
 }

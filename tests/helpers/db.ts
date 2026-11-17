@@ -13,8 +13,27 @@ export function appDb() {
   return createDb(process.env.TEST_APP_URL!);
 }
 
+// Los tres municipios de la semilla (D-027), con el mismo UUID fijo de `supabase/seed/reference.sql`.
+export const SEED_MUNICIPALITIES = [
+  { id: "5f0c1a10-0000-4000-8000-000000000001", name: "Manizales" },
+  { id: "5f0c1a10-0000-4000-8000-000000000002", name: "Supía" },
+  { id: "5f0c1a10-0000-4000-8000-000000000003", name: "Filadelfia" },
+] as const;
+
+// Deja la tabla de municipios como la semilla (F010): cada prueba parte de exactamente 3 filas.
+export async function restoreMunicipalitySeed(owner: Pool): Promise<void> {
+  await owner.query("truncate app.municipalities");
+  await owner.query(
+    `insert into app.municipalities (id, name, name_normalized, department)
+     values ('${SEED_MUNICIPALITIES[0].id}', 'Manizales', 'manizales', 'Caldas'),
+            ('${SEED_MUNICIPALITIES[1].id}', 'Supía', 'supia', 'Caldas'),
+            ('${SEED_MUNICIPALITIES[2].id}', 'Filadelfia', 'filadelfia', 'Caldas')`,
+  );
+}
+
 export async function resetDb(owner: Pool): Promise<void> {
-  await owner.query("truncate app.notification_outbox, app.audit_events, app.role_grants, app.provider_registrations, app.bot_sessions, app.rate_limit_counters, app.processed_updates, app.consent_events, app.accounts restart identity");
+  await owner.query("truncate app.notification_outbox, app.audit_events, app.role_grants, app.provider_registrations, app.bot_sessions, app.rate_limit_counters, app.processed_updates, app.consent_events, app.municipalities, app.accounts restart identity");
+  await restoreMunicipalitySeed(owner);
   await owner.query("delete from app.privacy_notice_versions where version <> $1", [NOTICE_VERSION]);
   await owner.query("update app.privacy_notice_versions set is_current = (version = $1)", [NOTICE_VERSION]);
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createApiClient } from "@/shared/api/client";
 import { type HomeView, homeTitle, homeView, homeViewText } from "./home";
@@ -42,6 +43,13 @@ export function HomeScreen() {
         {state.kind === "loading" && <p>{miniappTexts.loading}</p>}
         {state.kind === "error" && <p data-testid="session-error">{miniappTexts.sessionExpired}</p>}
         {state.kind === "view" && <p data-testid={state.view}>{homeViewText[state.view]}</p>}
+        {state.kind === "view" && state.view === "role-admin" && (
+          <p>
+            <Link href="/municipios" data-testid="municipalities-link">
+              {miniappTexts.adminMunicipalitiesLink}
+            </Link>
+          </p>
+        )}
       </section>
     </main>
   );

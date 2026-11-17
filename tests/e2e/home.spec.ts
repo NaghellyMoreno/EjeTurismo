@@ -59,6 +59,8 @@ test("24: el administrador autorizado y el principal ven solo role-admin", async
   for (const id of [ADMIN, PERSON_PRINCIPAL]) {
     await open(page, signInitData({ userId: id }));
     await expectOnly(page, "role-admin");
+    // F010 (D-120): el inicio del administrador agrega el enlace a M10 y conserva el texto de role-admin.
+    await expect(page.getByTestId("municipalities-link")).toHaveText("Administrar municipios");
   }
 });
 
