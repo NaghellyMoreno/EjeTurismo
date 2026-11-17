@@ -134,7 +134,7 @@
       "Con la identidad de un prestador, enviar una petición para aprobar su propia ficha pendiente y verificar que responde acceso denegado y la ficha sigue pendiente",
       "Verificar que el menú del prestador en el bot y en la Mini App no muestra opciones de administrador"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F009",
