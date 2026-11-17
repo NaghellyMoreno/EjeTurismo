@@ -43,6 +43,7 @@ Bots (D-035): la usuaria crea dos bots en BotFather. El de desarrollo se usa en 
 | `PRINCIPAL_ADMIN_TELEGRAM_ID` | Administrador principal (D-007, D-032) | No, pero es dato personal: solo en variables |
 | `TELEGRAM_INIT_DATA_MAX_AGE_SECONDS` | Vigencia de `initData` (valor por defecto 86400, pendiente de aprobación) | No |
 | `DATABASE_URL` | Conexión de la aplicación con el rol `eje_app` por el pooler compartido en modo transacción (puerto 6543, SSL obligatorio). En local apunta al PostgreSQL de Homebrew, sin SSL y solo en `localhost` (ADR 0014) | Sí |
+| `DATABASE_CA_CERT` | Certificado raíz de Supabase en formato PEM (se descarga en Database Settings, SSL Configuration). La conexión de la nube verifica el servidor con él; sin un certificado válido no se conecta. `DATABASE_URL` no lleva `sslmode`. En local no se usa | No, pero va solo en variables |
 | `DATABASE_MIGRATIONS_URL` | Solo en la máquina de la responsable, para migraciones y semilla de referencia en la nube (`db:push`, `db:seed:reference`). En local se usa `LOCAL_DATABASE_MIGRATIONS_URL` (ADR 0014) | Sí |
 | `BLOB_READ_WRITE_TOKEN` o conexión OIDC (`BLOB_STORE_ID`, `VERCEL_OIDC_TOKEN`) | Acceso a Blob; Vercel las agrega al conectar el almacén | Sí |
 | `BLOB_STORAGE_QUOTA_BYTES` | Cuota global: 900000000 en producción (D-042); en vista previa se puede bajar para que QA verifique la cuota (ADR 0009) | No |
@@ -56,7 +57,7 @@ Bots (D-035): la usuaria crea dos bots en BotFather. El de desarrollo se usa en 
 
 Un módulo `src/server/config/env.ts` valida todas las variables con Zod al cargar; si falta una obligatoria, la función falla al iniciar (fail closed).
 
-**Conexión a la base desde funciones.** Pooler compartido de Supabase en modo transacción (puerto 6543), un cliente por instancia creado en el módulo, tamaño de grupo 1, SSL obligatorio, sin sentencias preparadas con nombre y sin estado de sesión (`SET LOCAL` y `set_config(..., true)` dentro de transacciones), según la guía de Supabase para serverless.
+**Conexión a la base desde funciones.** Pooler compartido de Supabase en modo transacción (puerto 6543), un cliente por instancia creado en el módulo, tamaño de grupo 1, SSL obligatorio y verificado con `DATABASE_CA_CERT`, sin sentencias preparadas con nombre y sin estado de sesión (`SET LOCAL` y `set_config(..., true)` dentro de transacciones), según la guía de Supabase para serverless.
 
 **Desarrollo local.**
 - PostgreSQL 17 de Homebrew, levantado con `brew services start postgresql@17`, sin Docker (D-063). `pnpm db:bootstrap` crea los roles locales y `pnpm db:reset` recrea la base de desarrollo con migraciones y semillas. Los scripts y las variables solo locales están en la ADR 0014.
