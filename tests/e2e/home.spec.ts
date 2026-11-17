@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import type { Pool } from "pg";
+import { es } from "@/bot/texts/es";
 import { createAccount, createOldVersionAccount, PERSON_PRINCIPAL } from "../factories/accounts";
 import { grantAdminRole, makeProvider, pendingFor } from "../factories/review";
 import { ownerPool, resetDb } from "../helpers/db";
@@ -19,7 +20,6 @@ const TEXT = {
   "register-hint": "Para registrarte como prestador, escribe /start en el bot de Telegram y pulsa «Registrarme como prestador».",
   "role-revoked": "Tu rol de prestador fue revocado y ya no tienes acceso a las opciones de prestador. Si tienes dudas, comunícate con el administrador.",
   "registration-pending": "Tu registro como prestador queda a la espera de autorización del administrador.",
-  "consent-required": "Para continuar, acepta el aviso de privacidad desde el bot de Telegram escribiendo /start.",
   "session-error": "Tu sesión venció o no se pudo verificar. Cierra la Mini App y ábrela de nuevo desde el bot.",
 } as const;
 type Key = keyof typeof TEXT;
@@ -68,7 +68,8 @@ test("25: sin rol y sin registro ve solo register-hint, sin botón ni enlace", a
   await createAccount(owner, NO_ROLE);
   await open(page, signInitData({ userId: NO_ROLE }));
   await expectOnly(page, "register-hint");
-  await expect(page.getByTestId("miniapp-home").getByRole("button")).toHaveCount(0);
+  // F036 (criterio 40): M02 trae el botón de revocar; no hay otro botón ni enlace.
+  await expect(page.getByTestId("miniapp-home").getByRole("button")).toHaveText([es.selfRevoke.button]);
   await expect(page.getByTestId("miniapp-home").getByRole("link")).toHaveCount(0);
 });
 
@@ -93,12 +94,15 @@ test("27: decide solo por getMe en cada carga y no guarda datos de rol", async (
   expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
 });
 
-test("28: con el aviso pendiente solo se ve consent-required", async ({ page }) => {
-  await createOldVersionAccount(owner, OLD_NOTICE);
-  await open(page, signInitData({ userId: OLD_NOTICE }));
-  await expectOnly(page, "consent-required");
-  await open(page, signInitData({ userId: 900000068 }));
-  await expectOnly(page, "consent-required");
+// F036 (criterio 40): con el aviso pendiente se ve M01 (el aviso con "Acepto" y "No acepto"), sin ninguna vista de rol.
+test("28: con el aviso pendiente solo se ve el aviso (M01)", async ({ page }) => {
+  for (const id of [OLD_NOTICE, 900000068]) {
+    if (id === OLD_NOTICE) await createOldVersionAccount(owner, OLD_NOTICE);
+    await open(page, signInitData({ userId: id }));
+    await expect(page.getByTestId("notice-body")).toBeVisible();
+    await expect(page.getByRole("button", { name: es.notice.accept, exact: true })).toBeVisible();
+    for (const other of Object.keys(TEXT) as Key[]) await expect(page.getByTestId(other)).toHaveCount(0);
+  }
 });
 
 test.describe("29: sesión no verificable", () => {

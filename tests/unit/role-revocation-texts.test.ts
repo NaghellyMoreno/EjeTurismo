@@ -118,7 +118,6 @@ describe("F006: analizador de callback_data de B09 (criterio 42)", () => {
 
 describe("F006: homeView con la vista role-revoked (criterio 20b)", () => {
   it.each([
-    ["consentimiento requerido gana a todo", me({ roles: ["admin"], providerRegistrationStatus: "approved" }, true), "consent-required"],
     ["admin gana a provider", me({ roles: ["admin", "provider"], providerRegistrationStatus: "approved" }), "role-admin"],
     ["provider activo", me({ roles: ["provider"], providerRegistrationStatus: "approved" }), "role-provider"],
     ["sin roles y approved", me({ providerRegistrationStatus: "approved", canRegisterAsProvider: false }), "role-revoked"],

@@ -38,11 +38,12 @@ async function approvedWithoutRole(id: number) {
   await owner.query("update app.role_grants set revoked_at = now() where telegram_user_id = $1", [id]);
 }
 const NOTICE_BUTTONS = [es.notice.accept, es.notice.decline];
-const expectNotice = () => {
+// F036 (criterio 40): la cuenta con versión anterior ve además el botón de revocar en el último mensaje (D-133).
+const expectNotice = (oldAccount = false) => {
   expect(t.messages()).toHaveLength(3);
   expect(buttonsOf(t.messages()[0].payload)).toEqual([]);
   expect(buttonsOf(t.messages()[1].payload)).toEqual([]);
-  expect(buttonsOf(t.messages()[2].payload)).toEqual(NOTICE_BUTTONS);
+  expect(buttonsOf(t.messages()[2].payload)).toEqual(oldAccount ? [...NOTICE_BUTTONS, es.selfRevoke.button] : NOTICE_BUTTONS);
 };
 
 beforeAll(() => {
@@ -293,13 +294,15 @@ describe("control de acceso y errores (criterios 32 a 34)", () => {
     expect(await snapshot(owner, kept)).toEqual(Object.fromEntries(kept.map((table) => [table, before[table]])));
   });
 
-  it("32: con el aviso desactualizado o sin cuenta recibe el aviso", async () => {
+  // F036 (criterio 40): con el aviso desactualizado el flujo `srv:` ya se atiende (D-133); solo un botón mal formado recibe el aviso.
+  it("32: con el aviso desactualizado un botón mal formado recibe el aviso; sin cuenta, también srv:yes", async () => {
     await oldNoticePerson(owner, OLD_NOTICE);
-    for (const id of [OLD_NOTICE, NO_ACCOUNT]) {
-      t.clear();
-      await t.send(press(id, SELF_REVOKE_CONFIRM));
-      expectNotice();
-    }
+    t.clear();
+    await t.send(press(OLD_NOTICE, "srv:zzz"));
+    expectNotice(true);
+    t.clear();
+    await t.send(press(NO_ACCOUNT, SELF_REVOKE_CONFIRM));
+    expectNotice();
     expect(await accountId(OLD_NOTICE)).toBeDefined();
     expect(await revokedEvents()).toEqual([]);
   });

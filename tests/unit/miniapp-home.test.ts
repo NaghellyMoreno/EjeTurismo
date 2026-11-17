@@ -26,7 +26,6 @@ describe("M02: la vista sale solo de getMe (criterios 23 a 28)", () => {
     ["sin rol y sin registro", me(), "register-hint"],
     ["sin rol y registro rechazado (D-115)", me({ providerRegistrationStatus: "rejected" }), "register-hint"],
     ["sin rol y registro pendiente", me({ providerRegistrationStatus: "pending", canRegisterAsProvider: false }), "registration-pending"],
-    ["aviso pendiente de aceptar", me({ roles: ["admin"] }, true), "consent-required"],
   ] as const)("%s", (_name, input, expected) => {
     expect(homeView(input)).toBe(expected);
   });
@@ -42,7 +41,6 @@ describe("textos de la Mini App (criterios 23 a 29 y 31)", () => {
     );
     expect(homeViewText["registration-pending"]).toBe("Tu registro como prestador queda a la espera de autorización del administrador.");
     expect(homeViewText["registration-pending"]).toBe(es.provider.pending);
-    expect(homeViewText["consent-required"]).toBe("Para continuar, acepta el aviso de privacidad desde el bot de Telegram escribiendo /start.");
     expect(miniappTexts.sessionExpired).toBe("Tu sesión venció o no se pudo verificar. Cierra la Mini App y ábrela de nuevo desde el bot.");
   });
 

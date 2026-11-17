@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import type { Pool } from "pg";
+import { es } from "@/bot/texts/es";
 import { makeProvider } from "../factories/review";
 import { ownerPool, resetDb } from "../helpers/db";
 import { signInitData } from "../helpers/telegram";
@@ -44,7 +45,8 @@ test("18: en / el prestador ve solo role-provider, sin enlaces ni botones", asyn
   const home = page.getByTestId("miniapp-home");
   await expect(page.getByTestId("role-provider")).toHaveText("Ya tienes el rol de prestador. Las opciones de prestador estarán disponibles pronto.");
   await expect(home.getByRole("link")).toHaveCount(0);
-  await expect(home.getByRole("button")).toHaveCount(0);
+  // F036 (criterio 40): M02 trae el botón de revocar; no hay otro botón.
+  await expect(home.getByRole("button")).toHaveText([es.selfRevoke.button]);
   await absent(page, ["role-admin", "municipalities-link", "catalog-link", "register-hint", "registration-pending", "role-revoked", "consent-required", "session-error"]);
   const text = await page.locator("body").innerText();
   for (const word of ["Administrar municipios", "Categorías y tipos", "Registros pendientes"]) expect(text).not.toContain(word);

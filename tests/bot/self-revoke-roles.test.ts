@@ -46,9 +46,10 @@ const noTrace = async (id: number) => {
   }
   expect(await accountId(id)).toBeUndefined();
 };
-const expectNotice = () => {
+// F036 (criterio 40): la cuenta con versión anterior ve además el botón de revocar (D-133).
+const expectNotice = (oldAccount = false) => {
   expect(t.texts()).toHaveLength(3);
-  expect(buttonsOf(t.messages()[2].payload)).toEqual([es.notice.accept, es.notice.decline]);
+  expect(buttonsOf(t.messages()[2].payload)).toEqual(oldAccount ? [es.notice.accept, es.notice.decline, es.selfRevoke.button] : [es.notice.accept, es.notice.decline]);
   expect(buttonsOf(t.messages()[0].payload)).toEqual([]);
 };
 
@@ -187,15 +188,16 @@ describe("administrador que no es principal ni único (criterios 15 a 18)", () =
     expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.registerButton, es.selfRevoke.button]);
   });
 
-  it("32: con el aviso anterior recibe el aviso antes de cualquier botón, también con srv:yes", async () => {
+  // F036 (criterio 40): con el aviso anterior el flujo `srv:` se atiende (D-133); cualquier otro botón recibe el aviso (D-039).
+  it("32: con el aviso anterior recibe el aviso antes de cualquier otro botón", async () => {
     await addAdmin(ADM_Y);
     await createOldVersionAccount(owner, OLD);
     await owner.query("insert into app.role_grants (telegram_user_id, role) values ($1, 'admin')", [OLD]);
     const before = await state();
-    for (const data of [SELF_REVOKE_CONFIRM, SELF_REVOKE_ASK]) {
+    for (const data of ["srv:zzz", "adm:vp:1", "auth:start"]) {
       t.clear();
       await t.send(press(OLD, data));
-      expectNotice();
+      expectNotice(true);
     }
     expect(await state()).toEqual(before);
   });

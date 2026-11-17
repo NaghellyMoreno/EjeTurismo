@@ -118,3 +118,41 @@ body {
   margin-top: 0.5rem;
   font-weight: 600;
 }
+
+/* M01, M02 y M03 (F036): aviso de privacidad y revocar la autorización. Texto plano con saltos de línea. */
+.screen .notice-text {
+  white-space: pre-wrap;
+  margin-bottom: 1rem;
+}
+
+.screen .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.screen .actions button.primary {
+  padding: 0.5rem 1rem;
+  background: var(--color-primary-dark);
+  color: #fff;
+  border: 0;
+  border-radius: 0.5rem;
+}
+
+.screen .actions button.secondary {
+  padding: 0.5rem 1rem;
+  background: var(--color-background);
+  color: var(--color-text);
+  border: 1px solid var(--color-primary);
+  border-radius: 0.5rem;
+}
+
+.screen .actions button:disabled {
+  opacity: 0.7;
+}
+
+.screen .actions button:focus-visible {
+  outline: 3px solid var(--color-text);
+  outline-offset: 2px;
+}

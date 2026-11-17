@@ -38,12 +38,13 @@ afterEach(() => vi.restoreAllMocks());
 
 const callbacks = (): string[] => adminCallbacks(fx);
 
-function expectNotice(calls = t.messages()) {
+// F036 (criterio 40): una cuenta con versión anterior (A3) ve además el botón de revocar en el último mensaje.
+function expectNotice(calls = t.messages(), oldVersionAccount = false) {
   expect(calls).toHaveLength(3);
   const texts = calls.map((c) => String(c.payload.text));
   expect(texts[0]).toMatch(/^\*\*Eje Turismo\. Aviso de privacidad, versión /);
   expect(texts[2]).toContain("Leí el aviso de privacidad de Eje Turismo");
-  expect(buttonsOf(calls[2].payload)).toEqual(["Acepto", "No acepto"]);
+  expect(buttonsOf(calls[2].payload)).toEqual(oldVersionAccount ? ["Acepto", "No acepto", es.selfRevoke.button] : ["Acepto", "No acepto"]);
   for (const text of texts) expect(text).not.toBe(es.admin.forbidden);
 }
 
@@ -65,7 +66,7 @@ describe("criterio 18: 14 callbacks de administrador x A1 a A4 (56 casos)", () =
         const label = `${person} / ${callback.replace(/[0-9a-f-]{36}/, "<uuid>")}`;
         expect(after.bot_sessions.count, label).toBe(0);
         if (person === "A1" || person === "A3") {
-          expectNotice();
+          expectNotice(t.messages(), person === "A3");
           expect(changedTables(before, after), `${label}: tablas que cambiaron`).toEqual([]);
         } else {
           expect(t.texts(), label).toEqual([es.admin.forbidden]);

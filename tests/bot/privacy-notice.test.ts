@@ -28,7 +28,8 @@ const start = (fromId = NEW_USER, extra = {}) => textUpdate("/start", { fromId, 
 const accept = (fromId = NEW_USER, version = NOTICE_VERSION) => callbackUpdate(`consent:accept:${version}`, { fromId });
 
 // El aviso completo: 3 mensajes, con "Acepto" y "No acepto" solo en el último.
-function expectNoticeShown(calls = t.messages()) {
+// F036 (criterio 40): con `oldAccount` el último mensaje trae además la frase y el botón de revocar (D-133).
+function expectNoticeShown(calls = t.messages(), oldAccount = false) {
   expect(calls).toHaveLength(3);
   const texts = calls.map((c) => String(c.payload.text));
   expect(texts[0]).toMatch(/^\*\*Eje Turismo\. Aviso de privacidad, versión 2026-11-v3\./);
@@ -44,7 +45,7 @@ function expectNoticeShown(calls = t.messages()) {
   expect(buttonsOf(calls[0].payload)).toEqual([]);
   expect(calls[0].payload.reply_markup).toBeUndefined();
   expect(calls[1].payload.reply_markup).toBeUndefined();
-  expect(buttonsOf(calls[2].payload)).toEqual(["Acepto", "No acepto"]);
+  expect(buttonsOf(calls[2].payload)).toEqual(oldAccount ? ["Acepto", "No acepto", es.selfRevoke.button] : ["Acepto", "No acepto"]);
 }
 
 describe("paso 1 y 2: primer contacto (criterios 1, 2, 4)", () => {
@@ -236,14 +237,14 @@ describe("paso 7: versión nueva (criterios 25, 26, 27)", () => {
     );
   }
 
-  it("la cuenta anterior recibe los 3 mensajes del aviso nuevo, sin menú ni botón de revocar", async () => {
+  it("la cuenta anterior recibe los 3 mensajes del aviso nuevo, sin menú y con el botón de revocar (F036)", async () => {
     await t.send(accept(ACCEPTING_USER));
     await publishNewVersion();
     t.clear();
     await t.send(start(ACCEPTING_USER));
-    expectNoticeShown();
+    expectNoticeShown(t.messages(), true);
     expect(t.texts().join("")).not.toContain(es.menu.welcome);
-    expect(buttonsOf(t.messages()[2].payload).join(" ")).not.toMatch(/Revocar/i);
+    expect(buttonsOf(t.messages()[2].payload)).toContain(es.selfRevoke.button);
     expect((t.messages()[2].payload.reply_markup as { inline_keyboard: { callback_data: string }[][] }).inline_keyboard[0][0].callback_data).toBe("consent:accept:2026-12-v1");
   });
 
@@ -256,7 +257,7 @@ describe("paso 7: versión nueva (criterios 25, 26, 27)", () => {
       t.clear();
       await t.send(update);
       if (JSON.stringify(update).includes("consent:decline")) expect(t.texts()).toEqual([es.decline.text]);
-      else expectNoticeShown();
+      else expectNoticeShown(t.messages(), true);
     }
     expect(await state()).toEqual(before);
   });

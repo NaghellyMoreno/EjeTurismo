@@ -8,6 +8,7 @@ import { acceptPrivacyNotice, claimUpdate, getConsentState } from "@/server/serv
 import type { Db, PrivacyNotice } from "@/server/services";
 import type { Config } from "@/server/config";
 import { handleAccountUpdate, showAccountMenu } from "./forms/provider-registration";
+import { handleSelfRevokeCallback, parseSelfRevokeCallback, SELF_REVOKE_ASK, withSelfRevoke } from "./self-revoke";
 import { AccountGoneError, SessionConflictError } from "./common";
 import { send } from "./send";
 import { es } from "./texts/es";
@@ -39,16 +40,15 @@ export function createBot(token: string, deps: BotDeps, options: { botInfo?: Use
   return bot;
 }
 
-// B01: el aviso en 3 mensajes (D-066); "Acepto" y "No acepto" solo en el último.
-async function showNotice(ctx: Context, notice: PrivacyNotice) {
+// B01: el aviso en 3 mensajes (D-066); "Acepto" y "No acepto" solo en el último. Una cuenta con una versión anterior ve además,
+// al final del último mensaje, la frase de D-023 y el botón "Revocar mi autorización" en otra fila (F036, D-133, D-141).
+async function showNotice(ctx: Context, notice: PrivacyNotice, hasAccount = false) {
   const [first, second, third] = buildNoticeMessages(notice);
   await send(ctx, first);
   await send(ctx, second);
-  await send(
-    ctx,
-    third,
-    new InlineKeyboard().text(es.notice.accept, `${ACCEPT}${notice.version}`).text(es.notice.decline, DECLINE),
-  );
+  const keyboard = new InlineKeyboard().text(es.notice.accept, `${ACCEPT}${notice.version}`).text(es.notice.decline, DECLINE);
+  if (hasAccount) keyboard.row().text(es.selfRevoke.button, SELF_REVOKE_ASK);
+  await send(ctx, hasAccount ? withSelfRevoke(third) : third, keyboard);
 }
 
 async function handle(ctx: Context, deps: BotDeps): Promise<void> {
@@ -82,6 +82,24 @@ async function handle(ctx: Context, deps: BotDeps): Promise<void> {
   // Sin cuenta o con una versión anterior (D-039): todo mensaje o botón recibe el aviso y no se escribe nada más.
   if (!state.notice) throw new Error("No hay un aviso de privacidad vigente");
 
+  const hasAccount = !!state.account;
+  // B03 con una versión anterior del aviso (ADR 0005): se puede revocar sin aceptar la nueva. Es el único botón que se atiende;
+  // sin cuenta no hay nada que revocar. No escribe en processed_updates y "Cancelar" vuelve a mostrar el aviso (F036, P9).
+  if (hasAccount && callbackData !== undefined && parseSelfRevokeCallback(callbackData)) {
+    await acknowledge();
+    try {
+      // Con una versión anterior `getMe` no informa roles: el texto de confirmación es el común (P4).
+      const info = { roles: [], isPrincipalAdmin: false, registrationStatus: null };
+      await handleSelfRevokeCallback(ctx, deps, actor, info, callbackData, () => showNotice(ctx, state.notice!, true));
+      return;
+    } catch (error) {
+      // Revocación repetida o simultánea: la cuenta ya no existe y se muestra el aviso sin el botón (D-039).
+      if (!(error instanceof AccountGoneError)) throw error;
+      await showNotice(ctx, state.notice);
+      return;
+    }
+  }
+
   if (callbackData?.startsWith(ACCEPT)) {
     try {
       await acceptPrivacyNotice(db, actor, { noticeVersion: callbackData.slice(ACCEPT.length), channel: "bot" }, deps.now(), deps.config());
@@ -101,5 +119,5 @@ async function handle(ctx: Context, deps: BotDeps): Promise<void> {
   }
 
   await acknowledge();
-  await showNotice(ctx, state.notice);
+  await showNotice(ctx, state.notice, hasAccount);
 }

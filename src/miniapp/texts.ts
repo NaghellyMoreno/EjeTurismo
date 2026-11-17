@@ -9,7 +9,10 @@ export const miniappTexts = {
   registerHint: "Para registrarte como prestador, escribe /start en el bot de Telegram y pulsa «Registrarme como prestador».",
   registrationPending: es.provider.pending,
   providerRevoked: "Tu rol de prestador fue revocado y ya no tienes acceso a las opciones de prestador. Si tienes dudas, comunícate con el administrador.",
-  consentRequired: "Para continuar, acepta el aviso de privacidad desde el bot de Telegram escribiendo /start.",
+  // F036 (D-141, D-142): M01 en la Mini App. Los botones y la frase de revocar se citan de `es` y no se copian.
+  declined: "Sin tu autorización no podemos guardar ningún dato. Si cambias de opinión, pulsa «Volver a ver el aviso»",
+  noticeError: "No pudimos mostrar el aviso de privacidad. Cierra la Mini App y ábrela de nuevo en unos minutos",
+  acceptError: "No pudimos registrar tu aceptación. Inténtalo de nuevo en unos minutos",
   sessionExpired: "Tu sesión venció o no se pudo verificar. Cierra la Mini App y ábrela de nuevo desde el bot.",
   loading: "Cargando…",
   // F010 (D-129): enlace del inicio del administrador a M10 y textos de la pantalla de municipios.
