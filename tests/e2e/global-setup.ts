@@ -22,7 +22,22 @@ export default async function globalSetup() {
     const admin = new Client({ connectionString: url.toString() });
     await admin.connect();
     try {
-      await admin.query(`drop database if exists "${dbName}" with (force)`);
+      // `with (force)` exige permiso sobre todas las sesiones; `postgres` no es superusuario, pero sí miembro de eje_app,
+      // así que cierra las conexiones del servidor de pruebas con pg_terminate_backend y luego borra la base.
+      // El servidor puede reconectar entre un paso y otro, por eso se reintenta unas veces.
+      for (let attempt = 1; ; attempt++) {
+        await admin.query(
+          "select pg_terminate_backend(pid) from pg_stat_activity where datname = $1 and backend_type = 'client backend' and pid <> pg_backend_pid()",
+          [dbName],
+        );
+        try {
+          await admin.query(`drop database if exists "${dbName}"`);
+          break;
+        } catch (error) {
+          if (attempt >= 5) throw error;
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        }
+      }
     } finally {
       await admin.end();
     }
