@@ -115,3 +115,9 @@ Solo se agregan filas al final, con `>>`. Ninguna fila se edita, se borra ni se 
 | D-109 | 5 | 1 | F004 P9: si cambia PRINCIPAL_ADMIN_TELEGRAM_ID el nuevo entra por configuración y la fila del anterior no se toca; riesgo anotado | 2026-11-15 |
 | D-110 | 5 | 1 | F004 P10: sin postgresql@17 local las pruebas de integración se reportan como bloqueo (FALLA), no como éxito | 2026-11-15 |
 | D-111 | 5 | 1 | F004 P11: la sesión de B08 vence a los 600 s (ADR 0015) y pulsar Autorizar administrador con otro formulario abierto la reemplaza sin copiar el borrador | 2026-11-15 |
+| D-112 | 5 | 1 | F005 P1: la Mini App en F005 solo tiene M02 y M12 mínimas, con aviso corto si falta aceptar el aviso de privacidad; el texto lo propone el contrato y queda pendiente de aprobación de la usuaria | 2026-11-16 |
+| D-113 | 5 | 1 | F005 P2: el administrador conserva sus 2 botones y el prestador sigue con menu.providerAvailable hasta que existan las demás opciones | 2026-11-16 |
+| D-114 | 5 | 1 | F005 P3: quien no tiene rol ve solo el botón de registro como prestador hasta F022 | 2026-11-16 |
+| D-115 | 5 | 1 | F005 P4: el botón de registro tras un rechazo (D-094) se habilita también en el bot | 2026-11-16 |
+| D-116 | 5 | 1 | F005 P5: si una cuenta tiene permisos de administrador y de prestador a la vez, prevalece el administrador | 2026-11-16 |
+| D-117 | 5 | 1 | F005: aprobados los textos nuevos de la Mini App (sección Textos nuevos de la Mini App de contracts/F005.md) | 2026-11-16 |
