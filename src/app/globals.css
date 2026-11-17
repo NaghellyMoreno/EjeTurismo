@@ -17,6 +17,17 @@ body {
   font-family: system-ui, sans-serif;
 }
 
+/* Logo en la parte superior de todas las pantallas de la Mini App. */
+.brand {
+  display: flex;
+  justify-content: center;
+  padding: 1rem 1rem 0;
+}
+
+.brand img {
+  border-radius: 0.75rem;
+}
+
 .screen {
   max-width: 32rem;
   margin: 0 auto;
