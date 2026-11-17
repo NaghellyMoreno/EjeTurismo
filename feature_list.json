@@ -250,7 +250,7 @@
       "Intentar crear una categoría con un nombre ya existente y verificar que se rechaza",
       "Editar el nombre de la categoría, confirmar y verificar que el nuevo nombre aparece en las fichas que la usan (Inferido)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F012",
