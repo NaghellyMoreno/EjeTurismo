@@ -119,7 +119,7 @@
       "Con la identidad de una cuenta con registro pendiente, enviar una petición para crear una ficha y verificar que responde acceso denegado",
       "Verificar que en la base de datos no se creó ni modificó ningún registro por esas peticiones"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F008",
