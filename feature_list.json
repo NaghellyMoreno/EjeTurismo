@@ -200,7 +200,7 @@
       "Con el administrador principal, elegir \"Revocar mi autorización\" y verificar que el bot lo impide, explica el motivo nombrándolo \"administrador principal\" (D-032) y no borra ni cambia nada",
       "Dejar una sola cuenta de administrador, elegir con ella \"Revocar mi autorización\" y verificar que el bot lo impide y explica el motivo"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F036",
