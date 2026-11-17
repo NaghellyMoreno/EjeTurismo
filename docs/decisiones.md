@@ -135,3 +135,4 @@ Solo se agregan filas al final, con `>>`. Ninguna fila se edita, se borra ni se 
 | D-129 | 5 | 2 | F010: aprobados los textos nuevos de la Mini App, incluido el enlace Administrar municipios (tabla Textos nuevos de contracts/F010.md) | 2026-11-16 |
 | D-130 | 5 | 2 | F011: aprobados los textos nuevos de la Mini App, incluido el enlace Categorías y tipos (tabla Textos nuevos de contracts/F011.md) | 2026-11-16 |
 | D-131 | 5 | 1 | Para reducir gasto: agrupar funcionalidades parecidas en un mismo lote (tras confirmar independencia en la trazabilidad) y pedir que el contrato traiga los textos nuevos de una vez, sin versión extra por ese motivo | 2026-11-16 |
+| D-132 | 5 | 1 | Aprobado el orden de trabajo: F034, F009, F007 y F008 de una en una con el ciclo normal (no en paralelo); después revisar F012 y F013 para un posible lote; el botón de editar en M11 queda como está | 2026-11-16 |
