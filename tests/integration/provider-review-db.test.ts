@@ -195,7 +195,8 @@ describe("permisos de columna con el rol eje_app (criterios 24 y 32)", () => {
       app.query("insert into app.role_grants (telegram_user_id, role, provider_registration_id) values ($1, 'provider', $2)", [USER_APPROVE, first]),
     ).rejects.toThrow(/provider_grant_requires_approved_registration/);
     await expect(app.query("delete from app.provider_registrations where id = $1", [first])).rejects.toThrow(/permission denied/);
-    await expect(app.query("delete from app.role_grants")).rejects.toThrow(/permission denied/);
+    // F034 (migración f034_self_revocation, D-133): eje_app ya puede borrar permisos al revocar la autorización; la prueba de DELETE está en self-revocation-db.
+    await expect(app.query("delete from app.role_grants where telegram_user_id = -1")).resolves.toBeTruthy();
   });
 
   it("audit_events no se puede actualizar ni borrar", async () => {

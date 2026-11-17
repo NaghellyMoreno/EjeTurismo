@@ -2,7 +2,7 @@ import type { Pool } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { es } from "@/bot/texts/es";
 import { createAccount, createOldVersionAccount, grantProvider, PERSON_1, PERSON_2, PERSON_NO_ACCOUNT, PERSON_OLD_VERSION, PERSON_PRINCIPAL } from "../factories/accounts";
-import { buttonsOf, createTestBot } from "../helpers/bot";
+import { buttonsOf, createTestBot, noRoleMenu, pendingMenu } from "../helpers/bot";
 import { countsF002, ownerPool, resetDb, rowsMentioningF002 } from "../helpers/db";
 import { failingDb } from "../helpers/failing-db";
 import { callbackUpdate, textUpdate } from "../helpers/telegram";
@@ -81,8 +81,8 @@ describe("paso 1: cancelar (criterios 1 a 10, 32)", () => {
     await toStep(PERSON_1, "confirm");
     const before = await count("rate_limit_counters");
     await t.send(press(PERSON_1, CANCEL));
-    expect(t.texts()).toEqual([es.provider.cancelled, es.menu.welcome]);
-    expect(buttonsOf(t.messages()[1].payload)).toEqual([es.menu.registerButton]);
+    expect(t.texts()).toEqual([es.provider.cancelled, noRoleMenu]);
+    expect(buttonsOf(t.messages()[1].payload)).toEqual([es.menu.registerButton, es.selfRevoke.button]);
     expect(await business()).toEqual({ pr: 0, audit: 0 });
     expect((await session(id)).data).toEqual({});
     expect(await count("rate_limit_counters")).toBe(before);
@@ -92,7 +92,7 @@ describe("paso 1: cancelar (criterios 1 a 10, 32)", () => {
     const id = await createAccount(owner, PERSON_1);
     await toStep(PERSON_1, step);
     await t.send(press(PERSON_1, CANCEL));
-    expect(t.texts()).toEqual([es.provider.cancelled, es.menu.welcome]);
+    expect(t.texts()).toEqual([es.provider.cancelled, noRoleMenu]);
     expect((await session(id)).data).toEqual({});
     expect(await business()).toEqual({ pr: 0, audit: 0 });
   });
@@ -114,7 +114,7 @@ describe("paso 1: cancelar (criterios 1 a 10, 32)", () => {
       const id = await createAccount(owner, PERSON_1);
       await toStep(PERSON_1, step);
       await t.send(typed(PERSON_1, command));
-      expect(t.texts()).toEqual([es.provider.cancelled, es.menu.welcome]);
+      expect(t.texts()).toEqual([es.provider.cancelled, noRoleMenu]);
       expect((await session(id)).data).toEqual({});
       expect(await business()).toEqual({ pr: 0, audit: 0 });
     }
@@ -178,14 +178,14 @@ describe("paso 1: cancelar (criterios 1 a 10, 32)", () => {
     for (const update of [() => typed(PERSON_1, "/cancelar"), () => press(PERSON_1, CANCEL)]) {
       t.clear();
       await t.send(update());
-      expect(t.texts()).toEqual([es.common.nothingToCancel, es.menu.welcome]);
+      expect(t.texts()).toEqual([es.common.nothingToCancel, noRoleMenu]);
       expect(await session(id)).toBeUndefined();
     }
     await toStep(PERSON_1, "number");
     await t.send(press(PERSON_1, CANCEL));
     t.clear();
     await t.send(press(PERSON_1, CANCEL));
-    expect(t.texts()).toEqual([es.common.nothingToCancel, es.menu.welcome]);
+    expect(t.texts()).toEqual([es.common.nothingToCancel, noRoleMenu]);
     expect(await business()).toEqual({ pr: 0, audit: 0 });
   });
 
@@ -214,7 +214,7 @@ describe("paso 1: cancelar (criterios 1 a 10, 32)", () => {
       [pendingId],
     );
     const before = await countsF002(owner);
-    const cases: [number, string][] = [[PERSON_1, es.menu.welcome], [PERSON_PRINCIPAL, es.menu.welcome], [PERSON_2, es.provider.pending]];
+    const cases: [number, string][] = [[PERSON_1, es.menu.welcome], [PERSON_PRINCIPAL, es.menu.welcome], [PERSON_2, pendingMenu]];
     for (const [id, menu] of cases) {
       for (const update of [typed(id, "/cancelar"), press(id, CANCEL)]) {
         t.clear();
@@ -235,7 +235,7 @@ describe("paso 1: cancelar (criterios 1 a 10, 32)", () => {
     await toStep(PERSON_1, "number");
     const before = (await session(a)).data;
     await t.send(typed(PERSON_2, "/cancelar"));
-    expect(t.texts()).toEqual([es.common.nothingToCancel, es.menu.welcome]);
+    expect(t.texts()).toEqual([es.common.nothingToCancel, noRoleMenu]);
     expect((await session(a)).data).toEqual(before);
   });
 });

@@ -1,6 +1,7 @@
 import type { Transformer } from "grammy";
 import type { Update, UserFromGetMe } from "grammy/types";
 import { createBot, type BotDeps } from "@/bot/bot";
+import { es } from "@/bot/texts/es";
 import { testConfig } from "./config";
 import { appDb } from "./db";
 
@@ -51,3 +52,7 @@ export function buttonsOf(payload: Record<string, unknown>): string[] {
   const markup = payload.reply_markup as { inline_keyboard?: Button[][] } | undefined;
   return (markup?.inline_keyboard ?? []).flat().map((b) => b.text);
 }
+
+// F034: el menú de una cuenta sin rol lleva la frase de D-023 al final (y el botón de revocar); el estado pendiente, igual.
+export const noRoleMenu = `${es.menu.welcome}\n\n${es.selfRevoke.note}`;
+export const pendingMenu = `${es.provider.pending}\n\n${es.selfRevoke.note}`;

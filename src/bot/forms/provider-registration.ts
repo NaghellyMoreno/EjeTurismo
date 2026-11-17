@@ -26,6 +26,7 @@ import type { AccountContext, Db } from "@/server/services";
 import { adminKeyboard, handleAdminCallback, isAdminCallback } from "../admin";
 import { handleAuthorizeUpdate, isAuthCallback, isAuthorizeAdminSession } from "./authorize-admin";
 import { isCancelCommand, SessionConflictError } from "../common";
+import { addSelfRevokeButton, handleSelfRevokeCallback, isSelfRevokeCallback, withSelfRevoke } from "../self-revoke";
 import { send } from "../send";
 import { es } from "../texts/es";
 
@@ -101,9 +102,11 @@ async function showMenu(ctx: Context, info: AccountContext) {
     await send(ctx, es.menu.welcome);
     return send(ctx, es.menu.providerAvailable);
   }
-  // B05: con el registro pendiente, el estado ocupa el lugar del menú.
-  if (info.registrationStatus === "pending") return send(ctx, es.provider.pending);
-  return send(ctx, es.menu.welcome, canRegister(info) ? new InlineKeyboard().text(es.menu.registerButton, REGISTER) : undefined);
+  // B05: con el registro pendiente, el estado ocupa el lugar del menú. Sin rol activo se ofrece revocar la autorización (F034).
+  if (info.registrationStatus === "pending") return send(ctx, withSelfRevoke(es.provider.pending), addSelfRevokeButton());
+  const keyboard = new InlineKeyboard();
+  if (canRegister(info)) keyboard.text(es.menu.registerButton, REGISTER).row();
+  return send(ctx, withSelfRevoke(es.menu.welcome), addSelfRevokeButton(keyboard));
 }
 
 // B02 (o B05) para una cuenta con el aviso vigente aceptado, según su rol y su registro.
@@ -125,6 +128,8 @@ export async function handleAccountUpdate(ctx: Context, deps: FormDeps, actor: A
     if (!isAdmin(info)) return void (await send(ctx, es.admin.forbidden));
     return handleAdminCallback(ctx, deps, actor, callback);
   }
+  // B03: revocar mi autorización. El rol se lee de la base en cada pulsación; con rol activo no se ejecuta nada (D-133).
+  if (isSelfRevokeCallback(callback)) return handleSelfRevokeCallback(ctx, deps, actor, info, callback, () => showMenu(ctx, info));
   // B08: botones y mensajes de la autorización de administradores.
   if (isAuthCallback(callback) && !isAdmin(info)) return void (await send(ctx, es.admin.forbidden));
   if (isAdmin(info) && (await handleAuthorizeUpdate(ctx, deps, actor, accountId))) return;

@@ -99,6 +99,24 @@ export const es = {
     lastAdminProtected: "No se puede quitar el rol porque el sistema se quedaría sin administradores.",
     alreadyRevoked: "Ese rol ya fue revocado o no está disponible.",
   },
+  // B02 y B03: revocar mi autorización (D-018, D-019, D-023, D-134). Ningún texto lleva datos personales.
+  selfRevoke: {
+    button: "Revocar mi autorización",
+    // Frase de D-023, idéntica a `revocationNote` del aviso vigente.
+    note: "El número de identidad se usa solo para verificar tu identidad y atender tu solicitud de registro como prestador",
+    confirm:
+      "¿Confirmas que revocas tu autorización? Se borrarán la vinculación de este chat, los datos de tu cuenta y, si tienes, tu registro como prestador con su número de identidad. Solo se conservará la prueba de que autorizaste y revocaste, sin tu número de identidad. Para volver a usar el bot tendrás que aceptar de nuevo el aviso de privacidad",
+    confirmButton: "Sí, revocar",
+    cancelButton: "Cancelar",
+    cancelled: "No se hizo ningún cambio. Tu autorización sigue vigente",
+    revoked:
+      "Revocaste tu autorización. Tus datos fueron eliminados. Si quieres volver a usar el bot, envía /start y acepta de nuevo el aviso de privacidad",
+    blocked:
+      "Tu cuenta tiene un rol activo y por ahora no puedes revocar tu autorización desde aquí. Comunícate con el administrador",
+    // `detail` del 409 `has_active_role` por HTTP.
+    activeRole: "Tu cuenta tiene un rol activo. Debes resolverlo antes con el administrador para poder revocar tu autorización",
+    error: "No pude completar la revocación. Inténtalo de nuevo más tarde",
+  },
   // B21: textos comunes a todos los formularios conversacionales (D-083). Ninguno incluye lo escrito por la persona.
   common: {
     nothingToCancel: "No hay nada que cancelar.",

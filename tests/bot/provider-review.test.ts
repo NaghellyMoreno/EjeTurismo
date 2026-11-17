@@ -20,7 +20,7 @@ import {
   USER_PENDING,
   USER_REJECT,
 } from "../factories/review";
-import { buttonsOf, createTestBot, type ApiCall } from "../helpers/bot";
+import { buttonsOf, createTestBot, noRoleMenu, type ApiCall } from "../helpers/bot";
 import { ownerPool, resetDb } from "../helpers/db";
 import { callbackUpdate, textUpdate } from "../helpers/telegram";
 
@@ -111,14 +111,14 @@ describe("B06 y B02 mínimos (criterios 1, 15 y 22)", () => {
   it("una cuenta con registro rechazado y sin rol ve el botón de registrarse (D-115)", async () => {
     await pendingFor(owner, USER_REJECT, { status: "rejected", number: NUMBER_2, type: "PA" });
     await t.send(start(USER_REJECT));
-    expect(t.texts()).toEqual([es.menu.welcome]);
-    expect(t.messages().flatMap((m) => buttonsOf(m.payload))).toEqual([es.menu.registerButton]);
+    expect(t.texts()).toEqual([noRoleMenu]);
+    expect(t.messages().flatMap((m) => buttonsOf(m.payload))).toEqual([es.menu.registerButton, es.selfRevoke.button]);
   });
 
   it("una cuenta con registro aprobado no ve el botón de registrarse", async () => {
     await pendingFor(owner, USER_REJECT, { status: "approved", number: NUMBER_2, type: "PA" });
     await t.send(start(USER_REJECT));
-    expect(t.messages().flatMap((m) => buttonsOf(m.payload))).toEqual([]);
+    expect(t.messages().flatMap((m) => buttonsOf(m.payload))).toEqual([es.selfRevoke.button]);
   });
 });
 

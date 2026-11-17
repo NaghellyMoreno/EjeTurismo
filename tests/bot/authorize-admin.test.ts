@@ -7,7 +7,7 @@ import {
   seedAll, WITH_PENDING, WITH_PROVIDER, WITH_REJECTED,
 } from "../factories/admin-auth";
 import { TEST_PRINCIPAL_ADMIN_ID } from "../helpers/config";
-import { buttonsOf, createTestBot, type ApiCall } from "../helpers/bot";
+import { buttonsOf, createTestBot, noRoleMenu, pendingMenu, type ApiCall } from "../helpers/bot";
 import { NOTICE_VERSION, ownerPool, resetDb } from "../helpers/db";
 import { callbackUpdate, textUpdate } from "../helpers/telegram";
 
@@ -101,7 +101,7 @@ describe("paso 1: el principal entra sin registro (criterios 1, 2, 4 y 5)", () =
 
   it("otro ID no obtiene fila ni botón de administrador", async () => {
     await t.send(press(NO_ROLE, `consent:accept:${NOTICE_VERSION}`));
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.registerButton]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.registerButton, es.selfRevoke.button]);
     expect(await count("role_grants")).toBe(0);
   });
 
@@ -315,8 +315,8 @@ describe("paso 6: entradas inválidas (criterios 24 y 25)", () => {
 
 describe("reglas transversales (criterios 28 a 31 y 33)", () => {
   const TEXT_REPLY: [string, number, string[]][] = [
-    ["sin rol", NO_ROLE, [es.menu.welcome]],
-    ["registro pending", WITH_PENDING, [es.provider.pending]],
+    ["sin rol", NO_ROLE, [noRoleMenu]],
+    ["registro pending", WITH_PENDING, [pendingMenu]],
     ["permiso provider", WITH_PROVIDER, [es.menu.welcome, es.menu.providerAvailable]],
   ];
 

@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { es } from "@/bot/texts/es";
 import { createAccount, createOldVersionAccount, PERSON_PRINCIPAL } from "../factories/accounts";
 import { createRegistration, grantAdminRole, makeProvider, namedAccount, NUMBER_1, pendingFor } from "../factories/review";
-import { buttonsOf, createTestBot } from "../helpers/bot";
+import { buttonsOf, createTestBot, noRoleMenu, pendingMenu } from "../helpers/bot";
 import { ownerPool, resetDb } from "../helpers/db";
 import { failingDb } from "../helpers/failing-db";
 import { callbackUpdate, textUpdate } from "../helpers/telegram";
@@ -84,7 +84,7 @@ describe("paso 1: el prestador no repite el registro (criterios 1 a 5)", () => {
     await owner.query("update app.role_grants set revoked_at = now() where telegram_user_id = $1", [PROVIDER]);
     await t.send(start(PROVIDER));
     expect(t.texts()).not.toContain(es.menu.providerAvailable);
-    expect(t.texts()).toEqual([es.menu.welcome]);
+    expect(t.texts()).toEqual([noRoleMenu]);
   });
 });
 
@@ -156,22 +156,22 @@ describe("paso 4: sin rol solo se ve el registro (criterios 16 a 19)", () => {
   it("16: sin rol y sin registro, exactamente un botón", async () => {
     await createAccount(owner, NO_ROLE);
     await t.send(start(NO_ROLE));
-    expect(t.texts()).toEqual([es.menu.welcome]);
-    expect(allButtons()).toEqual([es.menu.registerButton]);
+    expect(t.texts()).toEqual([noRoleMenu]);
+    expect(allButtons()).toEqual([es.menu.registerButton, es.selfRevoke.button]);
   });
 
   it("17: con registro pendiente, solo provider.pending y ningún botón", async () => {
     await pendingFor(owner, PENDING);
     await t.send(start(PENDING));
-    expect(t.texts()).toEqual([es.provider.pending]);
-    expect(allButtons()).toEqual([]);
+    expect(t.texts()).toEqual([pendingMenu]);
+    expect(allButtons()).toEqual([es.selfRevoke.button]);
   });
 
   it("18: con registro rechazado ve el botón y al pulsarlo se abre el formulario (D-115)", async () => {
     await pendingFor(owner, REJECTED, { status: "rejected" });
     await t.send(start(REJECTED));
-    expect(t.texts()).toEqual([es.menu.welcome]);
-    expect(allButtons()).toEqual([es.menu.registerButton]);
+    expect(t.texts()).toEqual([noRoleMenu]);
+    expect(allButtons()).toEqual([es.menu.registerButton, es.selfRevoke.button]);
     t.clear();
     await t.send(press(REJECTED, REGISTER));
     expect(t.texts()).toEqual([es.provider.askType]);
@@ -196,7 +196,7 @@ describe("paso 4: sin rol solo se ve el registro (criterios 16 a 19)", () => {
     }
     t.clear();
     await t.send(textUpdate("Registros pendientes", { fromId: NO_ROLE }));
-    expect(allButtons()).toEqual([es.menu.registerButton]);
+    expect(allButtons()).toEqual([es.menu.registerButton, es.selfRevoke.button]);
     expect(await count("provider_registrations")).toBe(0);
     expect(await count("role_grants")).toBe(0);
   });

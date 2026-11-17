@@ -4,7 +4,7 @@ import { BOT_COMMANDS } from "@/bot/commands";
 import { es } from "@/bot/texts/es";
 import { DATE_PLACEHOLDER, TELEGRAM_MESSAGE_LIMIT } from "@/server/domain/notice";
 import { formatBogotaDate } from "@/lib/time";
-import { buttonsOf, createTestBot } from "../helpers/bot";
+import { buttonsOf, createTestBot, noRoleMenu } from "../helpers/bot";
 import { counts, EMPTY_COUNTS, NOTICE_VERSION, ownerPool, resetDb, rowsMentioning } from "../helpers/db";
 import { failingDb } from "../helpers/failing-db";
 import { readNoticeSource } from "../helpers/notice-source";
@@ -126,10 +126,10 @@ describe("paso 4: aceptar y menú (criterios 10, 11, 12, 13, 14)", () => {
     await t.send(accept());
     expect(t.messages()).toHaveLength(1);
     const [menu] = t.messages();
-    expect(menu.payload.text).toBe("Te damos la bienvenida a Eje Turismo.\n\nComandos disponibles:\n/start: mostrar este menú");
-    expect(menu.payload.text).toBe(es.menu.welcome);
+    expect(menu.payload.text).toBe("Te damos la bienvenida a Eje Turismo.\n\nComandos disponibles:\n/start: mostrar este menú\n\nEl número de identidad se usa solo para verificar tu identidad y atender tu solicitud de registro como prestador");
+    expect(menu.payload.text).toBe(noRoleMenu);
     // D-074: un único botón en línea para la cuenta recién aceptada (sin rol y sin registro).
-    expect(buttonsOf(menu.payload)).toEqual(["Registrarme como prestador"]);
+    expect(buttonsOf(menu.payload)).toEqual(["Registrarme como prestador", "Revocar mi autorización"]);
     expect(t.texts().join("")).not.toContain("Aviso de privacidad");
     // La única otra llamada es el acuse del botón (answerCallbackQuery), que no es un mensaje.
     expect(t.calls.map((c) => c.method).sort()).toEqual(["answerCallbackQuery", "sendMessage"]);
@@ -147,14 +147,14 @@ describe("paso 4: aceptar y menú (criterios 10, 11, 12, 13, 14)", () => {
     await t.send(accept());
     t.clear();
     await t.send(start());
-    expect(t.texts()).toEqual([es.menu.welcome]);
+    expect(t.texts()).toEqual([noRoleMenu]);
   });
 
   it('pulsar "Acepto" dos veces deja una cuenta y una constancia', async () => {
     await t.send(accept());
     await t.send(accept());
     expect(await counts(owner)).toMatchObject({ accounts: 1, consent_events: 1 });
-    expect(t.texts().filter((x) => x === es.menu.welcome)).toHaveLength(2);
+    expect(t.texts().filter((x) => x === noRoleMenu)).toHaveLength(2);
   });
 
   it('el "Acepto" de un aviso viejo no crea nada y muestra el aviso vigente', async () => {
@@ -178,7 +178,7 @@ describe("el bot no ofrece consultar ni corregir datos (criterio 14; HU-001, cri
     t.clear();
     await t.send(accept());
     // D-074 y D-071: B02 solo trae el botón de registro (cuenta sin rol y sin registro); los comandos siguen siendo solo /start.
-    expect(buttonsOf(t.messages()[0].payload)).toEqual(["Registrarme como prestador"]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual(["Registrarme como prestador", "Revocar mi autorización"]);
     expect(es.menu.welcome.match(/\/\w+/g)).toEqual(["/start"]);
   });
 
@@ -187,7 +187,7 @@ describe("el bot no ofrece consultar ni corregir datos (criterio 14; HU-001, cri
     for (const command of ["/datos", "/corregir"]) {
       t.clear();
       await t.send(textUpdate(command, { fromId: ACCEPTING_USER }));
-      expect(t.texts()).toEqual([es.menu.welcome]);
+      expect(t.texts()).toEqual([noRoleMenu]);
     }
   });
 
@@ -218,7 +218,7 @@ describe("pasos 5 y 6: constancia y no se repite el aviso (criterios 15, 16, 21)
     for (const update of updates) {
       t.clear();
       await t.send(update);
-      expect(t.texts()).toEqual([es.menu.welcome]);
+      expect(t.texts()).toEqual([noRoleMenu]);
     }
     expect(await counts(owner)).toMatchObject({ accounts: 1, consent_events: 1, processed_updates: 3, bot_sessions: 0, rate_limit_counters: 0 });
     expect((await owner.query("select consent_accepted_at from app.accounts")).rows[0].consent_accepted_at).toEqual(before);
@@ -272,7 +272,7 @@ describe("paso 7: versión nueva (criterios 25, 26, 27)", () => {
     ]);
     t.clear();
     await t.send(start(ACCEPTING_USER));
-    expect(t.texts()).toEqual([es.menu.welcome]);
+    expect(t.texts()).toEqual([noRoleMenu]);
   });
 });
 

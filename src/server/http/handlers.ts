@@ -23,6 +23,7 @@ import {
   listProviderRegistrations,
   listRoleGrants,
   rejectProviderRegistration,
+  revokeMyAuthorization,
   revokeRole,
   updateMunicipality,
   renameCatalogItem,
@@ -253,6 +254,18 @@ export function listRoleGrantsHandler(deps: Deps) {
       const params = new URL(request.url).searchParams;
       const query = { role: params.get("role"), page: params.get("page"), pageSize: params.get("pageSize") };
       return json(await listRoleGrants(deps.db(), deps.config(), actor, query));
+    });
+}
+
+// POST /api/v1/consents/revocations (revokeMyAuthorization). Orden: 401, 403 sin cuenta, 422, 409 `has_active_role`.
+// Por HTTP el canal siempre es `mini_app`; no exige la versión vigente del aviso (ADR 0005).
+export function revokeMyAuthorizationHandler(deps: Deps) {
+  return (request: Request) =>
+    guarded("consent.revoke_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const body: unknown = await request.json().catch(() => undefined);
+      return json(await revokeMyAuthorization(deps.db(), deps.config(), actor, body, "mini_app", deps.now()));
     });
 }
 

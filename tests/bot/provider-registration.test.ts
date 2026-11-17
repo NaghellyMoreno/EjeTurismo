@@ -14,7 +14,7 @@ import {
   PERSON_OLD_VERSION,
   PERSON_PRINCIPAL,
 } from "../factories/accounts";
-import { buttonsOf, createTestBot } from "../helpers/bot";
+import { buttonsOf, createTestBot, noRoleMenu, pendingMenu } from "../helpers/bot";
 import { rateLimitsEnv, testConfig } from "../helpers/config";
 import { countsF002, ownerPool, resetDb, rowsMentioningF002 } from "../helpers/db";
 import { callbackUpdate, textUpdate } from "../helpers/telegram";
@@ -59,8 +59,8 @@ describe("paso 1: elegir registrarse (criterios 1 y 3)", () => {
   it("/start de una cuenta sin rol ni registro muestra B02 con el botón y al pulsarlo pide el tipo", async () => {
     await createAccount(owner, PERSON_1);
     await t.send(start(PERSON_1));
-    expect(t.texts()).toEqual([es.menu.welcome]);
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.registerButton]);
+    expect(t.texts()).toEqual([noRoleMenu]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.registerButton, es.selfRevoke.button]);
     expect(es.menu.registerButton).toBe("Registrarme como prestador");
     t.clear();
     await t.send(press(PERSON_1, REGISTER));
@@ -144,7 +144,7 @@ describe("paso 2: tipo de documento (criterios 4, 5 y 6)", () => {
   it("un botón de tipo sin formulario abierto solo muestra el menú", async () => {
     await createAccount(owner, PERSON_1);
     await t.send(press(PERSON_1, "CC"));
-    expect(t.texts()).toEqual([es.menu.welcome]);
+    expect(t.texts()).toEqual([noRoleMenu]);
     expect(await count("bot_sessions")).toBe(0);
   });
 });
@@ -223,8 +223,8 @@ describe("paso 3: confirmación (criterios 11, 12, 13, 15)", () => {
     await fillForm(PERSON_1, "CC", "1020304050");
     t.clear();
     await t.send(press(PERSON_1, CANCEL));
-    expect(t.texts()).toEqual([es.provider.cancelled, es.menu.welcome]);
-    expect(buttonsOf(t.messages()[1].payload)).toEqual([es.menu.registerButton]);
+    expect(t.texts()).toEqual([es.provider.cancelled, noRoleMenu]);
+    expect(buttonsOf(t.messages()[1].payload)).toEqual([es.menu.registerButton, es.selfRevoke.button]);
     expect((await session(id)).data).toEqual({});
     expect(await sessionText()).not.toContain("sealed");
     expect(await count("provider_registrations")).toBe(0);
@@ -308,8 +308,8 @@ describe("paso 5: registro pendiente (criterio 23)", () => {
     for (const update of [start(PERSON_1), press(PERSON_1, REGISTER)]) {
       t.clear();
       await t.send(update);
-      expect(t.texts()).toEqual([es.provider.pending]);
-      expect(t.messages()[0].payload.reply_markup).toBeUndefined();
+      expect(t.texts()).toEqual([pendingMenu]);
+      expect(buttonsOf(t.messages()[0].payload)).toEqual([es.selfRevoke.button]);
     }
     expect(await count("provider_registrations")).toBe(1);
     expect((await session(id)).data).toEqual({});

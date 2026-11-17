@@ -1,7 +1,8 @@
 import type { components } from "@/shared/api/schema";
 import { AppError, type ErrorCode, type FieldError } from "@/server/errors";
 
-type Problem = components["schemas"]["Problem"];
+// `code` admite `has_active_role` (F034), que viaja en el 409 genérico del contrato.
+type Problem = Omit<components["schemas"]["Problem"], "code"> & { code: ErrorCode };
 
 const TITLES: Partial<Record<ErrorCode, string>> = {
   unauthenticated: "No autenticado",
@@ -15,6 +16,7 @@ const TITLES: Partial<Record<ErrorCode, string>> = {
   role_conflict: "Conflicto de roles",
   principal_admin_protected: "Administrador principal protegido",
   last_admin_protected: "Último administrador protegido",
+  has_active_role: "Tu cuenta tiene un rol activo",
   validation_failed: "Datos inválidos",
   notice_version_outdated: "El aviso cambió",
   internal_error: "Error del sistema",

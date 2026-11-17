@@ -497,7 +497,8 @@ describe("migración y permisos de base de datos (criterios 46 a 49)", () => {
     }
     await expect(app.query("update app.role_grants set revoked_at = now(), revoked_by_account_id = $2 where id = $1", [id, adminAccount])).resolves.toBeTruthy();
     expect((await rows("select revoked_at from app.role_grants where id = $1", [id]))[0].revoked_at).not.toBeNull();
-    await expect(app.query("delete from app.role_grants")).rejects.toThrow(/permission denied/);
+    // F034 (migración f034_self_revocation, D-133): eje_app ya puede borrar permisos al revocar la autorización; la prueba de DELETE está en self-revocation-db.
+    await expect(app.query("delete from app.role_grants where telegram_user_id = -1")).resolves.toBeTruthy();
   });
 
   it("47: audit_events no se actualiza ni se borra; sí se inserta y se lee", async () => {

@@ -8,7 +8,7 @@ import { acceptPrivacyNotice, claimUpdate, getConsentState } from "@/server/serv
 import type { Db, PrivacyNotice } from "@/server/services";
 import type { Config } from "@/server/config";
 import { handleAccountUpdate, showAccountMenu } from "./forms/provider-registration";
-import { SessionConflictError } from "./common";
+import { AccountGoneError, SessionConflictError } from "./common";
 import { send } from "./send";
 import { es } from "./texts/es";
 
@@ -68,8 +68,15 @@ async function handle(ctx: Context, deps: BotDeps): Promise<void> {
     // Solo las cuentas con el aviso vigente escriben en processed_updates (ADR 0008).
     if (!(await claimUpdate(db, ctx.update.update_id))) return;
     await acknowledge();
-    await handleAccountUpdate(ctx, deps, actor, state.account!.id);
-    return;
+    try {
+      await handleAccountUpdate(ctx, deps, actor, state.account!.id);
+      return;
+    } catch (error) {
+      // Revocación repetida o simultánea: la cuenta ya no existe, así que se muestra el aviso y no se ejecuta nada más.
+      if (!(error instanceof AccountGoneError)) throw error;
+      await showNotice(ctx, state.notice!);
+      return;
+    }
   }
 
   // Sin cuenta o con una versión anterior (D-039): todo mensaje o botón recibe el aviso y no se escribe nada más.

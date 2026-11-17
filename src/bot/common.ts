@@ -10,6 +10,14 @@ export class SessionConflictError extends Error {
   }
 }
 
+// La cuenta dejó de existir mientras se atendía la pulsación (revocación repetida o simultánea): el bot muestra el aviso (D-039).
+export class AccountGoneError extends Error {
+  constructor() {
+    super("account_gone");
+    this.name = "AccountGoneError";
+  }
+}
+
 // `/cancelar` en minúsculas, solo o con el nombre del propio bot (`/cancelar@MiBot`). Cualquier otra forma es texto normal.
 export function isCancelCommand(ctx: Context): boolean {
   const text = ctx.message?.text;
