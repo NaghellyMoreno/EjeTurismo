@@ -228,7 +228,7 @@ Mecanismo de subida (ADR 0009): la Mini App pide una URL firmada `PUT` al backen
   - 401: sin identidad válida.
   - 403: sin permiso, recurso de otro negocio, `consent_required` o `admin_cannot_register_as_provider`.
   - 404: recurso inexistente.
-  - 409: duplicado, transición inválida, `role_conflict`, regla protegida (`principal_admin_protected`, `last_admin_protected`, `listing_not_accepting_requests`), `has_active_role` (revocación con rol activo hasta F035; D-133) o límites de fotos.
+  - 409: duplicado, transición inválida, `role_conflict`, regla protegida (`principal_admin_protected`, `last_admin_protected`, `listing_not_accepting_requests`) o límites de fotos. En "Revocar mi autorización", el administrador principal recibe `principal_admin_protected` y el único administrador `last_admin_protected`, sin cambios; si es principal y además único, prevalece `principal_admin_protected` (F035; D-020, D-139). `has_active_role` ya no se emite desde F035 y solo queda en la lista `ErrorCode` del contrato (D-139).
   - 422: validación, `photo_too_large` o falta de `confirmed`.
   - 429: límite de intentos, solo para cuentas.
   - 500: error del sistema.
@@ -320,7 +320,7 @@ Canal según D-002: el bot lleva privacidad, registro, exploración, solicitudes
 
 | Id | Canal | Pantalla |
 | --- | --- | --- |
-| B01 | Bot | Aviso de privacidad con "Acepto" y "No acepto". Es la respuesta a cualquier mensaje o botón sin el aviso vigente (D-039). A cuentas con una versión anterior se les agrega "Revocar mi autorización" con la frase de D-023 (Inferido) |
+| B01 | Bot | Aviso de privacidad con "Acepto" y "No acepto". Es la respuesta a cualquier mensaje o botón sin el aviso vigente (D-039). A cuentas con una versión anterior, el tercer mensaje agrega la frase de D-023 y "Revocar mi autorización" en una fila aparte; "Cancelar" reenvía el aviso (D-133, D-141) |
 | B02 | Bot | Menú inicial según el rol, con "Revocar mi autorización" y la frase de D-023. "Registrarme como prestador" solo para cuentas sin rol (HU-006, criterio 3; D-038) |
 | B03 | Bot | Confirmación de revocación ("Sí, revocar" y "Cancelar") y resultado |
 | B04 | Bot | Registro de prestador: tipo de documento con cuatro botones (CC, CE, PPT, PA; D-046), número de identidad (sellado en la sesión) y confirmación |
@@ -341,7 +341,7 @@ Canal según D-002: el bot lleva privacidad, registro, exploración, solicitudes
 | B19 | Bot | Formulario de solicitud: nombre propuesto y editable, fecha, personas, mensaje y confirmación |
 | B20 | Bot | Mensajes del sistema: resultado del registro y de la revisión, respuesta del prestador y avisos por revocación |
 | B21 | Bot | Cancelación (`/cancelar`), entradas inválidas y errores |
-| M01 | Mini App | Aviso de privacidad y declaración ("Acepto", "No acepto"; y "Revocar mi autorización" a cuentas con una versión anterior, Inferido) |
+| M01 | Mini App | Aviso de privacidad y declaración ("Acepto", "No acepto"; y "Revocar mi autorización" con la frase de D-023 a cuentas con una versión anterior, D-141) |
 | M02 | Mini App | Inicio según el rol, con "Revocar mi autorización" y la frase de D-023 |
 | M03 | Mini App | Confirmación de revocación y resultado |
 | M04 | Mini App | Mis fichas (prestador) o fichas gestionadas (administrador) |
@@ -438,7 +438,7 @@ Equivalencia de la numeración anterior: antiguo 2 → 1, 3 → 2, 5 → 3, 6 �
 **Abiertos, no bloquean la construcción; cada uno lleva un valor por defecto que aplica el código hasta que la usuaria decida:**
 
 1. **Autorizar como administrador a un prestador activo o a alguien con registro pendiente.** D-038 solo prohíbe el caso contrario. Por defecto, 409 `role_conflict` (Inferido; ningún paso de F004 lo prueba).
-2. **"Revocar mi autorización" para cuentas con una versión anterior del aviso.** La API lo permite (HU-030, criterio 1). Por defecto, el botón aparece en B01 y M01 junto al aviso nuevo, y "No acepto" no cambia nada de lo guardado (Inferido).
+2. **"Revocar mi autorización" para cuentas con una versión anterior del aviso.** Resuelto: la API lo permite (HU-030, criterio 1), el botón aparece en B01 y M01 junto al aviso nuevo y "No acepto" no cambia nada de lo guardado (D-133, D-141).
 3. **Plazo de conservación de los datos recogidos después del 31 de enero de 2027 (D-051).** La eliminación se ejecuta una sola vez, y el aviso solo habla de esa fecha. El plazo se decide antes de esa fecha; si el sistema sigue en uso, se publica una versión nueva del aviso con el plazo nuevo y se ajusta la tarea (ADR 0007). Mientras tanto, después de ejecutarse no vuelve a borrar. No bloquea la entrega.
 4. **Límites de caracteres de los campos que no cubre D-042** (datos de guías, nombres de municipios y de listas, información general del municipio, nombre y mensaje de la solicitud, motivos de rechazo). Por defecto, un máximo técnico de 4096 caracteres; el bot divide los mensajes si hace falta. No incluye el número de documento, cuyo máximo técnico aprobó D-055.
 5. **Contenido de las semillas.** Categorías y tipos de experiencia iniciales, distintos de "Sabores de Caldas" (D-052), y datos de demostración. Por defecto no hay ninguno, y el administrador los crea en M11.
