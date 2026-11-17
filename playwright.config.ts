@@ -1,7 +1,8 @@
 import { randomBytes } from "node:crypto";
 import { defineConfig } from "@playwright/test";
 
-// Extremo a extremo de la Mini App (ADR 0014): `next dev` contra una base temporal propia de esta ejecución, con un
+// Extremo a extremo de la Mini App (ADR 0014): `next build` y `next start` (no `next dev`: su recarga en caliente y la
+// compilación en frío de cada ruta recargaban la página en bucle y hacían la suite intermitente) contra una base temporal propia de esta ejecución, con un
 // `Telegram.WebApp` simulado e `initData` firmado con el token de prueba. Todo es ficticio; nunca se lee .env.
 // La base se nombra aquí, una sola vez, porque el servidor arranca antes del globalSetup; los procesos hijos heredan el nombre.
 const stamp = new Date().toISOString().replace(/\D/g, "").slice(0, 14);
@@ -25,10 +26,10 @@ export default defineConfig({
   reporter: [["list"]],
   use: { baseURL: `http://localhost:${PORT}`, locale: "es-CO", timezoneId: "America/Bogota" },
   webServer: {
-    command: `pnpm exec next dev -p ${PORT}`,
+    command: `pnpm exec next build && pnpm exec next start -p ${PORT}`,
     url: `http://localhost:${PORT}/api/health`,
     reuseExistingServer: false,
-    timeout: 120_000,
+    timeout: 300_000,
     env: {
       DATABASE_URL: urlFor("eje_app"),
       TELEGRAM_BOT_TOKEN: "123456:TEST-bot-token",
