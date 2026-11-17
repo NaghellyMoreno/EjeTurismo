@@ -116,3 +116,23 @@ test.describe("29: sesión no verificable", () => {
     });
   }
 });
+
+// F009, criterio 17: apertura normal y alteración del ID de usuario después de firmar.
+test.describe("F009-17: initData válido y alterado", () => {
+  test("válido: muestra el inicio del rol y ningún error de sesión", async ({ page }) => {
+    await makeProvider(owner, PROVIDER);
+    await open(page, signInitData({ userId: PROVIDER }));
+    await expectOnly(page, "role-provider");
+    await expect(page.getByTestId("session-error")).toHaveCount(0);
+  });
+
+  test("ID de usuario cambiado después de firmar: solo session-error y ninguna opción de rol", async ({ page }) => {
+    await makeProvider(owner, PROVIDER);
+    await createAccount(owner, ADMIN);
+    await grantAdminRole(owner, ADMIN);
+    await open(page, signInitData({ userId: PROVIDER, tamperUserId: ADMIN }));
+    await expectOnly(page, "session-error");
+    await expect(page.getByTestId("municipalities-link")).toHaveCount(0);
+    await expect(page.getByTestId("catalog-link")).toHaveCount(0);
+  });
+});

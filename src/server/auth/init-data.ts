@@ -15,6 +15,8 @@ export function verifyInitData(
 ): TelegramIdentity | null {
   if (!raw) return null;
   const params = new URLSearchParams(raw);
+  // Un `hash` repetido es ambiguo (el segundo se descartaría sin verificar): se rechaza.
+  if (params.getAll("hash").length !== 1) return null;
   const hash = params.get("hash");
   if (!hash || !/^[0-9a-f]{64}$/i.test(hash)) return null;
   params.delete("hash");

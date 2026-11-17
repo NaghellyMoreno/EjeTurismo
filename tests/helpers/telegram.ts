@@ -11,18 +11,29 @@ export function signInitData(options: {
   token?: string;
   authDate?: number;
   tamperUserId?: number;
+  // F009: parámetros firmados adicionales, `user` o `auth_date` en crudo (null = ausente) y alteración posterior a la firma.
+  extra?: Record<string, string>;
+  rawUser?: string | null;
+  rawAuthDate?: string | null;
+  afterSign?: (params: URLSearchParams) => void;
 }): string {
   const params = new URLSearchParams({
     auth_date: String(options.authDate ?? Math.floor(Date.now() / 1000)),
     query_id: "AAH-test",
     user: JSON.stringify({ id: options.userId, first_name: options.firstName ?? "Persona Prueba", username: "prueba" }),
   });
+  if (options.rawUser === null) params.delete("user");
+  else if (options.rawUser !== undefined) params.set("user", options.rawUser);
+  if (options.rawAuthDate === null) params.delete("auth_date");
+  else if (options.rawAuthDate !== undefined) params.set("auth_date", options.rawAuthDate);
+  for (const [k, v] of Object.entries(options.extra ?? {})) params.set(k, v);
   const dataCheck = [...params.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).map(([k, v]) => `${k}=${v}`).join("\n");
   const secret = createHmac("sha256", "WebAppData").update(options.token ?? BOT_TOKEN).digest();
   params.set("hash", createHmac("sha256", secret).update(dataCheck).digest("hex"));
   if (options.tamperUserId) {
     params.set("user", JSON.stringify({ id: options.tamperUserId, first_name: "Otra" }));
   }
+  options.afterSign?.(params);
   return params.toString();
 }
 
