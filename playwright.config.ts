@@ -15,7 +15,8 @@ const urlFor = (user?: string) => {
   return url.toString();
 };
 process.env.TEST_OWNER_URL = urlFor();
-const PORT = 3100;
+// Puerto configurable con E2E_PORT (3100 por defecto) para correr e2e en dos worktrees a la vez.
+const PORT = Number(process.env.E2E_PORT ?? 3100);
 
 export default defineConfig({
   testDir: "tests/e2e",
