@@ -104,15 +104,31 @@ export interface paths {
         put?: never;
         /**
          * Revocar mi autorización de tratamiento de datos
-         * @description "Revocar mi autorización" (D-018). En una transacción: borra las solicitudes enviadas por la persona y avisa al prestador;
-         *     si es prestador, borra su número de identidad, su registro y su rol, borra las solicitudes recibidas por sus negocios y avisa a cada visitante,
-         *     y deja sus fichas como están (D-019, D-029); si es administrador, pierde el rol (D-020).
-         *     Conserva solo la prueba de autorización y revocación: evento, fecha, canal y versión del aviso, sin número de identidad
-         *     ni ningún pseudónimo del ID de Telegram (D-021, D-036). Borra todas las filas de permisos con su ID de Telegram.
-         *     Disponible para cualquier persona con cuenta, aunque haya aceptado una versión anterior del aviso (HU-030 criterio 1; ADR 0005).
-         *     Responde 409 `principal_admin_protected` si es el administrador principal y 409 `last_admin_protected` si es el único administrador (D-020, D-032).
-         *     Mientras F035 no exista, responde 409 `has_active_role` a toda cuenta con rol activo de administrador (incluido el principal)
-         *     o de prestador, sin cambiar datos (D-133; F034 criterio 31); F035 reemplaza este caso.
+         * @description "Revocar mi autorización" (D-018). Exige `{ "confirmed": true }` (invariante 8). Disponible para cualquier persona con cuenta,
+         *     aunque haya aceptado una versión anterior del aviso (HU-030 criterio 1; ADR 0005).
+         *
+         *     En una sola transacción: escribe el evento `revoked` y borra la cuenta, su sesión del bot, sus contadores de intentos,
+         *     los avisos de `notification_outbox` dirigidos a su ID de Telegram y todas las filas de `role_grants` con su ID de Telegram (D-139).
+         *     Conserva solo la prueba de autorización y revocación: evento, fecha, canal y versión del aviso aceptada, sin número de identidad
+         *     ni ningún pseudónimo del ID de Telegram (D-021, D-036). Las claves que apuntan a la cuenta en otras tablas (permisos concedidos,
+         *     catálogos, registros decididos, auditoría) quedan en nulo y esas filas se conservan. No escribe en `audit_events` ni avisa
+         *     a otros administradores (D-139).
+         *
+         *     Regla por rol, aplicada siempre en el backend (F035; D-020, D-032, D-139):
+         *     - Cuenta sin rol: revoca.
+         *     - Prestador: revoca; además se borran su número de identidad cifrado, su sello y su registro, y pierde el rol (D-019).
+         *     - Administrador que no es el principal ni el único: revoca y pierde el rol; los demás administradores no cambian.
+         *     - Cuenta con rol de prestador y de administrador: se aplica la regla de administrador; si revoca, pierde ambos roles y su registro.
+         *     - Administrador principal (el ID configurado, con o sin fila en `role_grants`): 409 `principal_admin_protected`, sin cambiar nada.
+         *     - Único administrador (una sola fila activa con `role = admin` en `role_grants`; el principal sin fila no cuenta):
+         *       409 `last_admin_protected`, sin cambiar nada. Si es principal y además único, responde `principal_admin_protected`.
+         *     El `detail` del 409 es el texto que muestran el bot y la Mini App. Las filas de administradores activos se bloquean en el mismo
+         *     orden que usa `revokeRole`, de modo que dos revocaciones simultáneas nunca dejan el sistema sin administrador.
+         *     Orden de las respuestas de error: 401, 403 `forbidden` (sin cuenta), 422, 409 (principal y luego único).
+         *     Desde F035 ya no responde `has_active_role` (D-139).
+         *
+         *     Pendiente de F037, en la misma transacción: borra las solicitudes enviadas por la persona y avisa al prestador; si es prestador,
+         *     borra las solicitudes recibidas por sus negocios, avisa a cada visitante y deja sus fichas como están (D-019, D-029).
          */
         post: operations["revokeMyAuthorization"];
         delete?: never;
@@ -971,7 +987,10 @@ export interface components {
             detail?: string;
             errors?: components["schemas"]["FieldError"][];
         };
-        /** @enum {string} */
+        /**
+         * @description Código estable del error. `has_active_role` ya no lo emite ninguna ruta desde F035; se conserva en la lista por compatibilidad (D-139, contracts/F035.md P7).
+         * @enum {string}
+         */
         ErrorCode: "unauthenticated" | "forbidden" | "consent_required" | "not_found" | "validation_failed" | "confirmation_required" | "duplicate" | "invalid_state_transition" | "notice_version_outdated" | "principal_admin_protected" | "last_admin_protected" | "has_active_role" | "listing_not_accepting_requests" | "admin_cannot_register_as_provider" | "role_conflict" | "photo_limit_exceeded" | "photo_total_size_exceeded" | "photo_too_large" | "storage_quota_exceeded" | "upload_not_found" | "rate_limited" | "internal_error";
         FieldError: {
             field: string;
@@ -1041,7 +1060,7 @@ export interface components {
                 acceptedVersion?: string | null;
                 /** Format: date-time */
                 acceptedAt?: string | null;
-                /** @description Verdadero si tiene cuenta y no es el administrador principal ni el único administrador; la interfaz muestra "Revocar mi autorización" (D-018, D-020) */
+                /** @description Verdadero si la persona tiene cuenta, con el aviso vigente o con una versión anterior; la interfaz muestra "Revocar mi autorización" a todos los roles (D-018, D-139). No anticipa la regla del administrador principal ni del único administrador: el backend la aplica al revocar y responde 409 (D-020, D-139) */
                 canRevoke: boolean;
             };
             /** @description Roles activos según la base de datos; vacío si no ha aceptado el aviso. */
