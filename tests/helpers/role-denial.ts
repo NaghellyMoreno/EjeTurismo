@@ -1,0 +1,220 @@
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, relative, sep } from "node:path";
+import type { Pool } from "pg";
+import { createAccount, createOldVersionAccount, grantAdmin } from "../factories/accounts";
+import { createRegistration, makeProvider } from "../factories/review";
+import { PROTECTED_OPERATIONS, specOperations, UNKNOWN_ID, type ProtectedOperation } from "./protected-operations";
+
+// Matriz de F007: acceso denegado por rol (visitante y registro pendiente). Las funcionalidades siguientes (F012 en adelante)
+// pasan `hasRoute` a true al crear la ruta de cada operación y agregan su caso en ROLE_CASES (D-136, D-137).
+export type PersonKey = "A1" | "A2" | "A3" | "A4" | "A5";
+export const PERSON_KEYS: PersonKey[] = ["A1", "A2", "A3", "A4", "A5"];
+
+// Datos ficticios (rango 900007001 en adelante).
+export const ADMIN_TEST = 900007001; // administrador de prueba, con permiso `admin` en role_grants
+export const ADMIN_OTHER = 900007002; // segundo administrador; su permiso se revoca en el control positivo
+export const PERSON_IDS: Record<PersonKey, number> = { A1: 900007011, A2: 900007012, A3: 900007013, A4: 900007014, A5: 900007015 };
+export const PENDING_OWNER = 900007021; // registro `pending` "Registro Ficticio Secreto"
+export const PENDING_OTHER = 900007022; // segundo registro `pending` para el control positivo
+export const PROVIDER_CONTROL = 900007031; // prestador activo de las rutas de muestra
+export const NEW_ADMIN_ID = "900007041"; // ID ficticio que se autoriza
+export const SECRET_REGISTRATION_NAME = "Registro Ficticio Secreto";
+export const SECRET_MUNICIPALITY_NAME = "Municipio Ficticio Secreto";
+export const SECRET_IDENTITY_NUMBER = "9000070210";
+export const VALID_REASON = "Documento ilegible";
+
+export interface Denial {
+  status: 403;
+  code: "consent_required" | "forbidden";
+}
+// D-108 y D-039: sin cuenta o con aviso anterior, 403 `consent_required`; con aviso vigente y sin rol, 403 `forbidden`.
+export const EXPECTED_DENIAL: Record<PersonKey, Denial> = {
+  A1: { status: 403, code: "consent_required" },
+  A2: { status: 403, code: "forbidden" },
+  A3: { status: 403, code: "consent_required" },
+  A4: { status: 403, code: "forbidden" },
+  A5: { status: 403, code: "forbidden" },
+};
+
+export interface RoleDenialOperation {
+  operationId: string;
+  roles: ("admin" | "provider")[];
+  hasRoute: boolean;
+  deniedPersons: Record<PersonKey, Denial>;
+}
+
+const entry = (operationId: string, roles: ("admin" | "provider")[], hasRoute: boolean): RoleDenialOperation => ({
+  operationId,
+  roles,
+  hasRoute,
+  deniedPersons: { ...EXPECTED_DENIAL },
+});
+
+// Las 14 operaciones de administrador con ruta (criterio 1 de F007; las ejecuta la matriz).
+export const ADMIN_OPERATION_IDS = [
+  "listProviderRegistrations", "approveProviderRegistration", "rejectProviderRegistration", "listRoleGrants", "authorizeAdministrator",
+  "revokeRole", "createMunicipality", "updateMunicipality", "createCategory", "updateCategory", "createExperienceType",
+  "updateExperienceType", "createEstablishmentType", "updateEstablishmentType",
+];
+
+// Las 17 operaciones de rol sin `route.ts` todavía (criterio 15 de F007; cobertura diferida a F012 y F013).
+export const UNROUTED_OPERATION_IDS = [
+  "listManagedListings", "createListing", "getManagedListing", "saveListingDraft", "submitListingForReview", "getListingStatusHistory",
+  "createPhotoUpload", "registerPhoto", "removePhoto", "listPendingReviews", "getReview", "approveListingVersion", "rejectListingVersion",
+  "listMyBusinessInformationRequests", "getInformationRequest", "replyToInformationRequest", "changeInformationRequestStatus",
+];
+
+export const ROLE_DENIAL_OPERATIONS: RoleDenialOperation[] = [
+  ...ADMIN_OPERATION_IDS.map((id) => entry(id, ["admin"], true)),
+  ...UNROUTED_OPERATION_IDS.map((id) => entry(id, specRoles(id), false)),
+];
+
+function specRoles(operationId: string): ("admin" | "provider")[] {
+  const roles = specOperations.find((o) => o.operationId === operationId)?.roles ?? [];
+  return roles.filter((r): r is "admin" | "provider" => r === "admin" || r === "provider");
+}
+
+// ---- Rutas existentes según el sistema de archivos ---------------------------------------------------------------
+const walk = (dir: string): string[] =>
+  readdirSync(dir).flatMap((name) => {
+    const full = join(dir, name);
+    return statSync(full).isDirectory() ? walk(full) : [full];
+  });
+
+// operationId de las operaciones del openapi que tienen `route.ts` con el método exportado.
+export function operationIdsWithRoute(): Set<string> {
+  const root = join(process.cwd(), "src/app/api");
+  const keys = new Set(
+    walk(join(root, "v1"))
+      .filter((f) => f.endsWith(`${sep}route.ts`))
+      .flatMap((file) => {
+        const path = "/api/" + relative(root, file).split(sep).slice(0, -1).join("/").replace(/\[(\w+)\]/g, "{$1}");
+        return [...readFileSync(file, "utf8").matchAll(/export const (GET|POST|PUT|PATCH|DELETE)\b/g)].map((m) => `${m[1]} ${path}`);
+      }),
+  );
+  return new Set(specOperations.filter((o) => keys.has(`${o.method} ${o.path}`)).map((o) => o.operationId));
+}
+
+// Operaciones con `x-roles` que incluye `admin` o `provider`.
+export const roleOperations = () => specOperations.filter((o) => o.roles.some((r) => r === "admin" || r === "provider"));
+
+// ---- Casos de la matriz HTTP -------------------------------------------------------------------------------------
+export type ResourceKey = "registrationId" | "secondRegistrationId" | "grantId" | "municipalityId" | "categoryId" | "experienceTypeId" | "establishmentTypeId";
+
+export interface RoleCase {
+  operationId: string;
+  resource?: ResourceKey; // el ID real que reemplaza al de la ruta
+  body?: Record<string, unknown>; // cuerpo válido (columna "Cuerpo" del criterio 10); sin él, la operación no lleva cuerpo
+  positive: number; // código exacto del control positivo
+}
+
+// En el orden del control positivo del criterio 10 de F007.
+export const ROLE_CASES: RoleCase[] = [
+  { operationId: "listProviderRegistrations", positive: 200 },
+  { operationId: "listRoleGrants", positive: 200 },
+  { operationId: "createMunicipality", body: { name: "Municipio Control Uno", department: "Caldas", confirmed: true }, positive: 201 },
+  { operationId: "createCategory", body: { name: "Categoria Control Uno", confirmed: true }, positive: 201 },
+  { operationId: "createExperienceType", body: { name: "Experiencia Control Uno", confirmed: true }, positive: 201 },
+  { operationId: "createEstablishmentType", body: { name: "Establecimiento Control Uno", confirmed: true }, positive: 201 },
+  { operationId: "updateMunicipality", resource: "municipalityId", body: { name: "Municipio Control Dos", confirmed: true }, positive: 200 },
+  { operationId: "updateCategory", resource: "categoryId", body: { name: "Categoria Control Dos", confirmed: true }, positive: 200 },
+  { operationId: "updateExperienceType", resource: "experienceTypeId", body: { name: "Experiencia Control Dos", confirmed: true }, positive: 200 },
+  { operationId: "updateEstablishmentType", resource: "establishmentTypeId", body: { name: "Establecimiento Control Dos", confirmed: true }, positive: 200 },
+  { operationId: "authorizeAdministrator", body: { telegramUserId: NEW_ADMIN_ID, confirmed: true }, positive: 201 },
+  { operationId: "approveProviderRegistration", resource: "registrationId", body: { confirmed: true }, positive: 200 },
+  { operationId: "rejectProviderRegistration", resource: "secondRegistrationId", body: { confirmed: true, reason: VALID_REASON }, positive: 200 },
+  { operationId: "revokeRole", resource: "grantId", body: { confirmed: true }, positive: 200 },
+];
+
+export const roleCaseOf = (operationId: string): RoleCase => {
+  const found = ROLE_CASES.find((c) => c.operationId === operationId);
+  if (!found) throw new Error(`Falta el caso de ROLE_CASES para ${operationId}: toda operación con ruta entra a la matriz (D-136)`);
+  return found;
+};
+
+export const operationOf = (operationId: string): ProtectedOperation => {
+  const found = PROTECTED_OPERATIONS.find((o) => o.operationId === operationId);
+  if (!found) throw new Error(`Falta ${operationId} en PROTECTED_OPERATIONS`);
+  return found;
+};
+
+// ---- Datos de prueba ---------------------------------------------------------------------------------------------
+export interface RoleFixtures {
+  ids: Record<ResourceKey, string>;
+  a4RegistrationId: string;
+  providerControlAccountId: string;
+}
+
+export async function seedRoleDenial(owner: Pool): Promise<RoleFixtures> {
+  await createAccount(owner, ADMIN_TEST, "Administrador Ficticio");
+  await grantAdmin(owner, ADMIN_TEST);
+  await createAccount(owner, ADMIN_OTHER, "Administrador Ficticio Dos");
+  await grantAdmin(owner, ADMIN_OTHER);
+  // A1: sin cuenta. A2: aviso vigente. A3: aviso anterior. A4: registro pendiente. A5: registro rechazado.
+  await createAccount(owner, PERSON_IDS.A2, "Visitante Ficticio");
+  await createOldVersionAccount(owner, PERSON_IDS.A3);
+  const a4 = await createAccount(owner, PERSON_IDS.A4, "Pendiente Ficticio");
+  const a4RegistrationId = await createRegistration(owner, a4, { status: "pending", number: "9000070140" });
+  const a5 = await createAccount(owner, PERSON_IDS.A5, "Rechazada Ficticia");
+  await createRegistration(owner, a5, { status: "rejected", number: "9000070150" });
+  const secretAccount = await createAccount(owner, PENDING_OWNER, SECRET_REGISTRATION_NAME);
+  const registrationId = await createRegistration(owner, secretAccount, { status: "pending", number: SECRET_IDENTITY_NUMBER });
+  const otherAccount = await createAccount(owner, PENDING_OTHER, "Otra Persona Ficticia");
+  const secondRegistrationId = await createRegistration(owner, otherAccount, { status: "pending", number: "9000070220" });
+  // Registro `approved` con el número cifrado de verdad (el listado de administrador lo descifra) y permiso `provider`.
+  const providerControlAccountId = await makeProvider(owner, PROVIDER_CONTROL, "9000070310");
+
+  const one = async (sql: string, params: unknown[] = []) => (await owner.query(sql, params)).rows[0].id as string;
+  const grantId = await one("select id from app.role_grants where telegram_user_id = $1 and role = 'admin'", [ADMIN_OTHER]);
+  const municipalityId = await one(
+    "insert into app.municipalities (name, name_normalized, department) values ($1, 'municipio ficticio secreto', 'Caldas') returning id",
+    [SECRET_MUNICIPALITY_NAME],
+  );
+  const categoryId = await one("insert into app.categories (name, name_normalized) values ('Categoria Ficticia', 'categoria ficticia') returning id");
+  const experienceTypeId = await one("insert into app.experience_types (name, name_normalized) values ('Experiencia Ficticia', 'experiencia ficticia') returning id");
+  const establishmentTypeId = await one("insert into app.establishment_types (name, name_normalized) values ('Establecimiento Ficticio', 'establecimiento ficticio') returning id");
+  return {
+    ids: { registrationId, secondRegistrationId, grantId, municipalityId, categoryId, experienceTypeId, establishmentTypeId },
+    a4RegistrationId,
+    providerControlAccountId,
+  };
+}
+
+// ---- Peticiones --------------------------------------------------------------------------------------------------
+export function roleRequest(fixtures: RoleFixtures, rc: RoleCase, headers: Record<string, string>, variant: "valid" | "empty" = "valid"): Request {
+  const op = operationOf(rc.operationId);
+  const id = rc.resource ? (variant === "valid" ? fixtures.ids[rc.resource] : UNKNOWN_ID) : UNKNOWN_ID;
+  const url = `http://localhost${op.path.replace(UNKNOWN_ID, id)}`;
+  if (!op.hasBody) return new Request(url, { method: op.method, headers });
+  const body = variant === "valid" ? rc.body : {};
+  return new Request(url, { method: op.method, headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify(body) });
+}
+
+// Los manejadores leen su propio parámetro; se entregan todos con el mismo ID.
+export const roleContext = (id: string) => ({
+  params: Promise.resolve({
+    registrationId: id, grantId: id, municipalityId: id, categoryId: id, experienceTypeId: id, establishmentTypeId: id,
+  }),
+});
+export const contextFor = (fixtures: RoleFixtures, rc: RoleCase, variant: "valid" | "empty" = "valid") =>
+  roleContext(rc.resource && variant === "valid" ? fixtures.ids[rc.resource] : UNKNOWN_ID);
+
+// ---- Instantánea -------------------------------------------------------------------------------------------------
+export type Snapshot = Record<string, { count: number; md5: string }>;
+
+// Por cada tabla del esquema `app`: conteo de filas y md5 de su contenido ordenado, con el rol propietario.
+export async function snapshotAll(owner: Pool): Promise<Snapshot> {
+  const tables = (await owner.query("select table_name from information_schema.tables where table_schema = 'app' and table_type = 'BASE TABLE' order by table_name")).rows;
+  const out: Snapshot = {};
+  for (const { table_name: table } of tables) {
+    const { rows } = await owner.query(
+      `select count(*)::int as count, md5(coalesce(string_agg(row_to_json(t)::text, '|' order by row_to_json(t)::text), '')) as md5 from app."${table}" t`,
+    );
+    out[table] = rows[0];
+  }
+  return out;
+}
+
+// Nombres de las tablas cuyo conteo o contenido difiere.
+export const changedTables = (before: Snapshot, after: Snapshot): string[] =>
+  [...new Set([...Object.keys(before), ...Object.keys(after)])].filter((t) => JSON.stringify(before[t]) !== JSON.stringify(after[t])).sort();
