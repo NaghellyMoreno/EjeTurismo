@@ -183,7 +183,7 @@
       "Aceptar el aviso y verificar que la cuenta vuelve a usar el bot como visitante (D-019)",
       "Verificar que en ningún paso se pide, envía o solicita un código (D-018)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F035",
