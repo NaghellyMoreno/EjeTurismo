@@ -27,4 +27,6 @@ export {
 export type { AdminProviderRegistration, AdminProviderRegistrationPage, Decision } from "./provider-review";
 export { authorizeAdministrator, TELEGRAM_USER_ID_PATTERN } from "./administrator-authorization";
 export { ensurePrincipalGrant } from "./principal-grant";
+export { createMunicipality, listMunicipalities, updateMunicipality } from "./municipalities";
+export type { Municipality } from "./municipalities";
 export type { RoleGrant } from "./administrator-authorization";

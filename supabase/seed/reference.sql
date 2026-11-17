@@ -101,3 +101,13 @@ Se aplica la Política de Tratamiento de Datos Personales de la Universidad de C
   now(),
   not exists (select 1 from app.privacy_notice_versions where is_current)
 on conflict (version) do nothing;
+
+
+-- Municipios iniciales (D-027, ADR 0011): UUID fijo e idempotente, sin columna de conflicto. Sin responsable (created_by nulo).
+-- Si el administrador cambia un nombre, volver a sembrar no lo deshace ni duplica la fila.
+insert into app.municipalities (id, name, name_normalized, department)
+values
+  ('5f0c1a10-0000-4000-8000-000000000001', 'Manizales', 'manizales', 'Caldas'),
+  ('5f0c1a10-0000-4000-8000-000000000002', 'Supía', 'supia', 'Caldas'),
+  ('5f0c1a10-0000-4000-8000-000000000003', 'Filadelfia', 'filadelfia', 'Caldas')
+on conflict do nothing;

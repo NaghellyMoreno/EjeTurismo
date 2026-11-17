@@ -10,14 +10,17 @@ import {
   acceptPrivacyNotice,
   approveProviderRegistration,
   authorizeAdministrator,
+  createMunicipality,
   createProviderRegistration,
   getActiveRoles,
   getConsentState,
   getCurrentPrivacyNotice,
   getMe,
   getMyProviderRegistration,
+  listMunicipalities,
   listProviderRegistrations,
   rejectProviderRegistration,
+  updateMunicipality,
 } from "@/server/services";
 import type { ConsentState } from "@/server/services";
 import type { Deps } from "./deps";
@@ -190,6 +193,39 @@ export const approveProviderRegistrationHandler = (deps: Deps) =>
 
 export const rejectProviderRegistrationHandler = (deps: Deps) =>
   decisionHandler(deps, "provider_registration.reject_failed", rejectProviderRegistration);
+
+// GET /api/v1/municipalities (listMunicipalities): cualquier cuenta con el aviso vigente (D-039).
+export function listMunicipalitiesHandler(deps: Deps) {
+  return (request: Request) =>
+    guarded("municipality.list_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      return json(await listMunicipalities(deps.db(), actor));
+    });
+}
+
+// POST /api/v1/municipalities (createMunicipality): solo administradores. 403, 422 y 409 los aplica el servicio.
+export function createMunicipalityHandler(deps: Deps) {
+  return (request: Request) =>
+    guarded("municipality.create_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const body: unknown = await request.json().catch(() => undefined);
+      return json(await createMunicipality(deps.db(), deps.config(), actor, body, deps.now()), 201);
+    });
+}
+
+// PATCH /api/v1/municipalities/{municipalityId} (updateMunicipality): solo administradores.
+export function updateMunicipalityHandler(deps: Deps) {
+  return (request: Request, context: { params: Promise<{ municipalityId: string }> }) =>
+    guarded("municipality.update_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const { municipalityId } = await context.params;
+      const body: unknown = await request.json().catch(() => undefined);
+      return json(await updateMunicipality(deps.db(), deps.config(), actor, municipalityId, body, deps.now()));
+    });
+}
 
 // POST /api/v1/role-grants (authorizeAdministrator). Orden (D-108): 401, 403 `consent_required`, 403 `forbidden`, 422,
 // 409 `duplicate` y 409 `role_conflict`; los aplica el servicio.
