@@ -85,7 +85,7 @@
       "Abrir el bot con una cuenta sin rol y verificar que solo se muestran las opciones de visitante y la de registrarse como prestador",
       "Abrir la Mini App con cada una de las tres cuentas y verificar que muestra solo las opciones del rol que informa el backend"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F006",
