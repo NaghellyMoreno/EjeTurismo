@@ -134,3 +134,4 @@ Solo se agregan filas al final, con `>>`. Ninguna fila se edita, se borra ni se 
 | D-128 | 5 | 2 | F006: aprobados los textos nuevos del bot y de la Mini App (tablas Textos nuevos de contracts/F006.md) y que el prestador revocado reciba en el bot solo menu.welcome sin botones (criterio 17) | 2026-11-16 |
 | D-129 | 5 | 2 | F010: aprobados los textos nuevos de la Mini App, incluido el enlace Administrar municipios (tabla Textos nuevos de contracts/F010.md) | 2026-11-16 |
 | D-130 | 5 | 2 | F011: aprobados los textos nuevos de la Mini App, incluido el enlace Categorías y tipos (tabla Textos nuevos de contracts/F011.md) | 2026-11-16 |
+| D-131 | 5 | 1 | Para reducir gasto: agrupar funcionalidades parecidas en un mismo lote (tras confirmar independencia en la trazabilidad) y pedir que el contrato traiga los textos nuevos de una vez, sin versión extra por ese motivo | 2026-11-16 |
