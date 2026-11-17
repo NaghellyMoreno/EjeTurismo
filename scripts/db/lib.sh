@@ -12,7 +12,15 @@ if [ -f "$DB_ROOT/.env" ]; then
   set +a
 fi
 
-LOCAL_DB_NAME="${LOCAL_DB_NAME:-eje_turismo_dev}"
+# Base propia por worktree: si LOCAL_DB_NAME no está definida y esto es un worktree de git (no el checkout principal),
+# se deriva de la carpeta (eje_turismo_dev_<carpeta>). En el checkout principal sigue siendo eje_turismo_dev.
+if [ -z "${LOCAL_DB_NAME:-}" ]; then
+  LOCAL_DB_NAME="eje_turismo_dev"
+  if [ "$(git -C "$DB_ROOT" rev-parse --git-dir 2>/dev/null)" != "$(git -C "$DB_ROOT" rev-parse --git-common-dir 2>/dev/null)" ]; then
+    suffix="$(basename "$DB_ROOT" | tr 'A-Z-' 'a-z_' | tr -cd 'a-z0-9_' | cut -c1-40)"
+    [ -n "$suffix" ] && LOCAL_DB_NAME="eje_turismo_dev_${suffix}"
+  fi
+fi
 LOCAL_PG_SUPERUSER_URL="${LOCAL_PG_SUPERUSER_URL:-postgresql://localhost:5432/postgres}"
 LOCAL_DATABASE_MIGRATIONS_URL="${LOCAL_DATABASE_MIGRATIONS_URL:-postgresql://postgres@localhost:5432/${LOCAL_DB_NAME}}"
 
@@ -70,3 +78,14 @@ require_db_name() {
 }
 
 psql_run() { "$PG_BIN/psql" -X -q -v ON_ERROR_STOP=1 "$@"; }
+
+# Borra una base sin `with (force)` (exige superusuario): cierra las sesiones de cliente y reintenta. $1 = URL de administración, $2 = base.
+drop_database() {
+  local admin_url="$1" name="$2" attempt
+  for attempt in 1 2 3 4 5; do
+    psql_run -d "$admin_url" -c "select pg_terminate_backend(pid) from pg_stat_activity where datname = '$name' and backend_type = 'client backend' and pid <> pg_backend_pid()" >/dev/null
+    if psql_run -d "$admin_url" -c "drop database if exists \"$name\"" 2>/dev/null; then return 0; fi
+    sleep 0.2
+  done
+  psql_run -d "$admin_url" -c "drop database if exists \"$name\""
+}

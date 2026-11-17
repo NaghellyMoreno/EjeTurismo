@@ -14,7 +14,7 @@ while IFS= read -r name; do
   [[ "$name" =~ ^eje_turismo_(test|e2e)_([0-9]{14})_[a-z0-9]+$ ]] || continue
   stamp="${BASH_REMATCH[2]}"
   if [ "$stamp" -lt "$cutoff" ]; then
-    psql_run -d "$admin_url" -c "drop database if exists \"$name\" with (force)"
+    drop_database "$admin_url" "$name"
     echo "Borrada: $name"
     removed=$((removed + 1))
   fi
