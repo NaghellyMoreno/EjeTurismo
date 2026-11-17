@@ -101,6 +101,23 @@ export interface NotificationOutboxTable {
   sent_at: Timestamp | null;
 }
 
+interface CatalogColumns {
+  id: Generated<string>;
+  name: string;
+  name_normalized: string;
+  created_by_account_id: string | null;
+  created_at: DefaultedTimestamp;
+  updated_by_account_id: string | null;
+  updated_at: DefaultedTimestamp;
+}
+
+export type CategoriesTable = CatalogColumns;
+
+// `is_gastronomic` solo lo fija la semilla (ADR 0004, 0011): la aplicación no puede escribirla.
+export interface TypeCatalogTable extends CatalogColumns {
+  is_gastronomic: ColumnType<boolean, never, never>;
+}
+
 export interface Database {
   privacy_notice_versions: PrivacyNoticeVersionsTable;
   accounts: AccountsTable;
@@ -112,4 +129,7 @@ export interface Database {
   role_grants: RoleGrantsTable;
   audit_events: AuditEventsTable;
   notification_outbox: NotificationOutboxTable;
+  categories: CategoriesTable;
+  experience_types: TypeCatalogTable;
+  establishment_types: TypeCatalogTable;
 }

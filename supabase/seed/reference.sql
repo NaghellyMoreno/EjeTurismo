@@ -101,3 +101,6 @@ Se aplica la Política de Tratamiento de Datos Personales de la Universidad de C
   now(),
   not exists (select 1 from app.privacy_notice_versions where is_current)
 on conflict (version) do nothing;
+
+-- Listas cerradas (F011): tipo de experiencia gastronómica y tipos de establecimiento.
+\ir reference-gastronomic-experience-type.sql

@@ -28,3 +28,5 @@ export type { AdminProviderRegistration, AdminProviderRegistrationPage, Decision
 export { authorizeAdministrator, TELEGRAM_USER_ID_PATTERN } from "./administrator-authorization";
 export { ensurePrincipalGrant } from "./principal-grant";
 export type { RoleGrant } from "./administrator-authorization";
+export { createCatalogItem, listCatalog, renameCatalogItem } from "./catalogs";
+export type { CatalogItem, CatalogKind } from "./catalogs";
