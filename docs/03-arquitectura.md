@@ -228,7 +228,7 @@ Mecanismo de subida (ADR 0009): la Mini App pide una URL firmada `PUT` al backen
   - 401: sin identidad válida.
   - 403: sin permiso, recurso de otro negocio, `consent_required` o `admin_cannot_register_as_provider`.
   - 404: recurso inexistente.
-  - 409: duplicado, transición inválida, `role_conflict`, regla protegida (`principal_admin_protected`, `last_admin_protected`, `listing_not_accepting_requests`) o límites de fotos.
+  - 409: duplicado, transición inválida, `role_conflict`, regla protegida (`principal_admin_protected`, `last_admin_protected`, `listing_not_accepting_requests`), `has_active_role` (revocación con rol activo hasta F035; D-133) o límites de fotos.
   - 422: validación, `photo_too_large` o falta de `confirmed`.
   - 429: límite de intentos, solo para cuentas.
   - 500: error del sistema.
