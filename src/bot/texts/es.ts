@@ -1,3 +1,5 @@
+const PRINCIPAL_MARK = "administrador principal";
+
 // Textos del bot en español. Cada texto aprobado se copia sin cambios de redacción (D-067, D-071, D-079).
 export const es = {
   notice: {
@@ -79,6 +81,23 @@ export const es = {
     cancelled: "No se hizo ningún cambio. No se autorizó a nadie.",
     noDraft: "No hay ninguna autorización por confirmar.",
     error: "No pude completar la autorización. Inténtalo de nuevo más tarde.",
+  },
+  // B09: revocar el rol de un administrador o prestador (D-020, D-128). Solo llevan el nombre o el ID de Telegram del afectado.
+  revoke: {
+    button: "Revocar rol",
+    listHeader: "Elige a la persona a la que quieres quitar el rol.",
+    listItem: (who: string, role: "admin" | "provider", principal: boolean) =>
+      `${who} (${principal ? PRINCIPAL_MARK : role === "admin" ? "administrador" : "prestador"})`,
+    principalMark: PRINCIPAL_MARK,
+    more: "Ver más",
+    confirmAdmin: (who: string) => `¿Confirmas que quitas el rol de administrador a ${who}? Perderá el acceso de inmediato.`,
+    confirmProvider: (who: string) =>
+      `¿Confirmas que quitas el rol de prestador a ${who}? Perderá el acceso de inmediato; sus fichas no se borran.`,
+    cancelled: "No se hizo ningún cambio. La persona conserva su rol.",
+    revoked: (who: string) => `Rol revocado. ${who} ya no tiene acceso.`,
+    principalProtected: "No se puede quitar el rol al administrador principal.",
+    lastAdminProtected: "No se puede quitar el rol porque el sistema se quedaría sin administradores.",
+    alreadyRevoked: "Ese rol ya fue revocado o no está disponible.",
   },
   // B21: textos comunes a todos los formularios conversacionales (D-083). Ninguno incluye lo escrito por la persona.
   common: {

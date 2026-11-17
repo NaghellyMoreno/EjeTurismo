@@ -44,7 +44,7 @@ export interface ListQuery {
 const STATUSES = ["pending", "approved", "rejected"] as const;
 const isStatus = (v: string): v is RegistrationStatus => (STATUSES as readonly string[]).includes(v);
 
-function parseInteger(raw: string | null | undefined, field: string, max: number, fallback: number, errors: FieldError[]): number {
+export function parseInteger(raw: string | null | undefined, field: string, max: number, fallback: number, errors: FieldError[]): number {
   if (raw === undefined || raw === null) return fallback;
   const n = /^[0-9]+$/.test(raw) ? Number(raw) : NaN;
   if (!Number.isSafeInteger(n) || n < 1 || n > max) {

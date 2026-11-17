@@ -28,3 +28,5 @@ export type { AdminProviderRegistration, AdminProviderRegistrationPage, Decision
 export { authorizeAdministrator, TELEGRAM_USER_ID_PATTERN } from "./administrator-authorization";
 export { ensurePrincipalGrant } from "./principal-grant";
 export type { RoleGrant } from "./administrator-authorization";
+export { assertProvider, findActiveRoleGrant, listRoleGrants, revokeRole, ROLE_REVOKED_ACTION } from "./role-revocation";
+export type { RoleGrantPage } from "./role-revocation";

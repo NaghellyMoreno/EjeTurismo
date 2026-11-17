@@ -17,6 +17,7 @@ const TEXT = {
   "role-provider": "Ya tienes el rol de prestador. Las opciones de prestador estarán disponibles pronto.",
   "role-admin": "Eres administrador. Las opciones de administración se usan desde el bot de Telegram.",
   "register-hint": "Para registrarte como prestador, escribe /start en el bot de Telegram y pulsa «Registrarme como prestador».",
+  "role-revoked": "Tu rol de prestador fue revocado y ya no tienes acceso a las opciones de prestador. Si tienes dudas, comunícate con el administrador.",
   "registration-pending": "Tu registro como prestador queda a la espera de autorización del administrador.",
   "consent-required": "Para continuar, acepta el aviso de privacidad desde el bot de Telegram escribiendo /start.",
   "session-error": "Tu sesión venció o no se pudo verificar. Cierra la Mini App y ábrela de nuevo desde el bot.",
@@ -85,7 +86,8 @@ test("27: decide solo por getMe en cada carga y no guarda datos de rol", async (
   await expectOnly(page, "role-provider");
   await owner.query("update app.role_grants set revoked_at = now() where telegram_user_id = $1", [PROVIDER]);
   await open(page, initData);
-  await expectOnly(page, "register-hint");
+  // F006, criterio 20 (D-125): tras la revocación aparece role-revoked con su texto, y no role-provider, role-admin ni register-hint.
+  await expectOnly(page, "role-revoked");
   expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
 });
 
