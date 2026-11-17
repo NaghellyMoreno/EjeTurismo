@@ -235,7 +235,7 @@
       "Editar la información del municipio de prueba, agregar una zona, confirmar y verificar que el cambio se refleja",
       "Verificar que la creación y la edición quedan registradas con fecha y administrador responsable"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F011",
