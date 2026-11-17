@@ -2,7 +2,7 @@ import type { Pool } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { BOT_COMMANDS } from "@/bot/commands";
 import { es } from "@/bot/texts/es";
-import { buttonsOf, createTestBot } from "../helpers/bot";
+import { buttonsOf, createTestBot, providerMenu } from "../helpers/bot";
 import { ownerPool, resetDb } from "../helpers/db";
 import { adminCallbacks, PROVIDER_A6, PROVIDER_A6B, seedA6b } from "../helpers/provider-denial";
 import { changedTables, seedRoleDenial, snapshotAll, type RoleFixtures } from "../helpers/role-denial";
@@ -15,7 +15,7 @@ vi.mock("next/server", () => ({ after: (task: () => unknown) => void afterTasks.
 let owner: Pool;
 let fx: RoleFixtures;
 const t = createTestBot();
-const MENU = [es.menu.welcome, es.menu.providerAvailable];
+const MENU = providerMenu;
 
 beforeAll(() => void (owner = ownerPool()));
 afterAll(async () => {
@@ -107,9 +107,9 @@ describe("criterio 16: menú del prestador", () => {
     await start();
     for (const callback of adminCallbacks(fx)) await t.send(callbackUpdate(callback, { fromId: PROVIDER_A6 }));
     await start();
-    const forbidden = [es.admin.pendingButton, es.admin.authorizeButton, es.revoke.button, es.selfRevoke.button];
+    const forbidden = [es.admin.pendingButton, es.admin.authorizeButton, es.revoke.button];
     for (const payload of outgoing) {
-      expect(payload.reply_markup).toBeUndefined();
+      // F035: el prestador ve solo "Revocar mi autorización" (en el mensaje de bienvenida); ninguna opción de administrador.
       const text = JSON.stringify(payload);
       for (const word of forbidden) expect(text).not.toContain(word);
       expect(text).not.toMatch(/"(adm|auth):/);

@@ -2,7 +2,7 @@ import type { Pool } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { es } from "@/bot/texts/es";
 import { createAccount, createOldVersionAccount, grantProvider, PERSON_1, PERSON_2, PERSON_NO_ACCOUNT, PERSON_OLD_VERSION, PERSON_PRINCIPAL } from "../factories/accounts";
-import { buttonsOf, createTestBot, noRoleMenu, pendingMenu } from "../helpers/bot";
+import { buttonsOf, createTestBot, noRoleMenu, pendingMenu, ADMIN_MENU_BUTTONS, adminMenu } from "../helpers/bot";
 import { countsF002, ownerPool, resetDb, rowsMentioningF002 } from "../helpers/db";
 import { failingDb } from "../helpers/failing-db";
 import { callbackUpdate, textUpdate } from "../helpers/telegram";
@@ -214,7 +214,7 @@ describe("paso 1: cancelar (criterios 1 a 10, 32)", () => {
       [pendingId],
     );
     const before = await countsF002(owner);
-    const cases: [number, string][] = [[PERSON_1, es.menu.welcome], [PERSON_PRINCIPAL, es.menu.welcome], [PERSON_2, pendingMenu]];
+    const cases: [number, string][] = [[PERSON_1, noRoleMenu], [PERSON_PRINCIPAL, adminMenu], [PERSON_2, pendingMenu]];
     for (const [id, menu] of cases) {
       for (const update of [typed(id, "/cancelar"), press(id, CANCEL)]) {
         t.clear();
@@ -222,7 +222,7 @@ describe("paso 1: cancelar (criterios 1 a 10, 32)", () => {
         expect(t.texts()[0]).toBe(es.common.nothingToCancel);
         expect(t.texts()[1]).toBe(menu);
         if (id !== PERSON_1) expect(t.texts()).toHaveLength(2);
-        if (id === PERSON_PRINCIPAL) expect(buttonsOf(t.messages()[1].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton, es.revoke.button]);
+        if (id === PERSON_PRINCIPAL) expect(buttonsOf(t.messages()[1].payload)).toEqual(ADMIN_MENU_BUTTONS);
       }
     }
     // D-101: la cuenta del principal obtiene su fila `is_principal` en su primera actualización; no cambia nada más.

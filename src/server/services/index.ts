@@ -34,5 +34,5 @@ export { assertProvider, findActiveRoleGrant, listRoleGrants, revokeRole, ROLE_R
 export type { RoleGrantPage } from "./role-revocation";
 export { createCatalogItem, listCatalog, renameCatalogItem } from "./catalogs";
 export type { CatalogItem, CatalogKind } from "./catalogs";
-export { revokeMyAuthorization } from "./self-revocation";
+export { getSelfRevocationBlock, revokeMyAuthorization } from "./self-revocation";
 export type { RevocationResult } from "./self-revocation";

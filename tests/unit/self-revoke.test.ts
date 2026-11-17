@@ -28,7 +28,10 @@ describe("textos de selfRevoke (criterios 4, 6, 26 y 35)", () => {
     expect(es.selfRevoke.confirmButton).toBe("Sí, revocar");
     expect(es.selfRevoke.cancelButton).toBe("Cancelar");
     expect(Object.keys(es.selfRevoke).sort()).toEqual(
-      ["activeRole", "blocked", "button", "cancelButton", "cancelled", "confirm", "confirmButton", "error", "note", "revoked"],
+      [
+        "button", "cancelButton", "cancelled", "confirm", "confirmAdmin", "confirmButton", "confirmProvider", "confirmProviderAdmin", "error",
+        "lastAdminProtected", "note", "principalProtected", "revoked",
+      ],
     );
   });
 

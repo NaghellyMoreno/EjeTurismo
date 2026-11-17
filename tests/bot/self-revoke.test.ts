@@ -106,11 +106,11 @@ describe("paso 1 y 2: la opción y la frase en el inicio (criterios 1 a 5)", () 
     ["principal con fila", async (): Promise<void> => principal(owner, true), PRINCIPAL],
     ["principal sin fila", async (): Promise<void> => principal(owner, false), PRINCIPAL],
     ["prestador", async (): Promise<void> => void (await provider(owner, PROVIDER_A)), PROVIDER_A],
-  ] as const)("3 y 5: %s no recibe el botón ni la frase", async (_label, seed, id) => {
+  ] as const)("3 y 5 (F035): %s también recibe el botón y la frase", async (_label, seed, id) => {
     await seed();
     await t.send(start(id));
-    expect(allButtons()).not.toContain(es.selfRevoke.button);
-    expect(t.texts().join("\n")).not.toContain(es.selfRevoke.note);
+    expect(allButtons()).toContain(es.selfRevoke.button);
+    expect(t.texts().join("\n")).toContain(es.selfRevoke.note);
   });
 });
 
@@ -273,17 +273,18 @@ describe("paso 9: nunca un código (criterio 26)", () => {
 });
 
 describe("control de acceso y errores (criterios 32 a 34)", () => {
+  // F035 reemplaza la respuesta `blocked`: el principal y el único administrador reciben el motivo y no se ejecuta nada.
   it.each([
-    ["prestador", async (): Promise<void> => void (await provider(owner, PROVIDER_A)), PROVIDER_A],
-    ["administrador", async (): Promise<void> => void (await admin(owner, ADMIN_A)), ADMIN_A],
-    ["principal", async (): Promise<void> => principal(owner, false), PRINCIPAL],
-  ] as const)("32: el botón antiguo de %s con rol activo responde blocked y no ejecuta nada", async (_label, seed, id) => {
+    ["administrador único", async (): Promise<void> => void (await admin(owner, ADMIN_A)), ADMIN_A, es.selfRevoke.lastAdminProtected],
+    ["principal con fila", async (): Promise<void> => principal(owner, true), PRINCIPAL, es.selfRevoke.principalProtected],
+    ["principal sin fila", async (): Promise<void> => principal(owner, false), PRINCIPAL, es.selfRevoke.principalProtected],
+  ] as const)("32 (F035): el botón antiguo de %s recibe el motivo y no ejecuta nada", async (_label, seed, id, text) => {
     await seed();
     const before = await state();
-    for (const data of [SELF_REVOKE_CONFIRM, SELF_REVOKE_ASK, SELF_REVOKE_CANCEL]) {
+    for (const data of [SELF_REVOKE_CONFIRM, SELF_REVOKE_ASK]) {
       t.clear();
       await t.send(press(id, data));
-      expect(t.texts()).toEqual([es.selfRevoke.blocked]);
+      expect(t.texts()).toEqual([text]);
     }
     expect(await accountId(id)).toBeDefined();
     expect(await revokedEvents()).toEqual([]);

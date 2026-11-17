@@ -111,10 +111,16 @@ export const es = {
     cancelled: "No se hizo ningún cambio. Tu autorización sigue vigente",
     revoked:
       "Revocaste tu autorización. Tus datos fueron eliminados. Si quieres volver a usar el bot, envía /start y acepta de nuevo el aviso de privacidad",
-    blocked:
-      "Tu cuenta tiene un rol activo y por ahora no puedes revocar tu autorización desde aquí. Comunícate con el administrador",
-    // `detail` del 409 `has_active_role` por HTTP.
-    activeRole: "Tu cuenta tiene un rol activo. Debes resolverlo antes con el administrador para poder revocar tu autorización",
+    confirmProvider:
+      "¿Confirmas que revocas tu autorización? Se borrarán tu número de identidad, tu registro como prestador y la vinculación de este chat, y perderás el rol de prestador. Solo se conservará la prueba de que autorizaste y revocaste, sin tu número de identidad. Para volver a usar el bot tendrás que aceptar de nuevo el aviso de privacidad",
+    confirmAdmin:
+      "¿Confirmas que revocas tu autorización? Perderás el rol de administrador y se borrarán la vinculación de este chat y los datos de tu cuenta. Solo se conservará la prueba de que autorizaste y revocaste, sin datos que te identifiquen. Para volver a usar el bot tendrás que aceptar de nuevo el aviso de privacidad",
+    confirmProviderAdmin:
+      "¿Confirmas que revocas tu autorización? Se borrarán tu número de identidad, tu registro como prestador y la vinculación de este chat, y perderás tus dos roles: el de prestador y el de administrador. Solo se conservará la prueba de que autorizaste y revocaste, sin tu número de identidad. Para volver a usar el bot tendrás que aceptar de nuevo el aviso de privacidad",
+    // `detail` del 409 `principal_admin_protected` por HTTP.
+    principalProtected: "Eres el administrador principal, por eso no puedes revocar tu autorización. No se borró ni se cambió nada",
+    // `detail` del 409 `last_admin_protected` por HTTP.
+    lastAdminProtected: "Eres el único administrador, por eso no puedes revocar tu autorización. Autoriza primero a otro administrador. No se borró ni se cambió nada",
     error: "No pude completar la revocación. Inténtalo de nuevo más tarde",
   },
   // B21: textos comunes a todos los formularios conversacionales (D-083). Ninguno incluye lo escrito por la persona.

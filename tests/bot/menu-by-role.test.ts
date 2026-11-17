@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { es } from "@/bot/texts/es";
 import { createAccount, createOldVersionAccount, PERSON_PRINCIPAL } from "../factories/accounts";
 import { createRegistration, grantAdminRole, makeProvider, namedAccount, NUMBER_1, pendingFor } from "../factories/review";
-import { buttonsOf, createTestBot, noRoleMenu, pendingMenu } from "../helpers/bot";
+import { buttonsOf, createTestBot, noRoleMenu, pendingMenu, ADMIN_MENU_BUTTONS, adminMenu, providerMenu } from "../helpers/bot";
 import { ownerPool, resetDb } from "../helpers/db";
 import { failingDb } from "../helpers/failing-db";
 import { callbackUpdate, textUpdate } from "../helpers/telegram";
@@ -29,7 +29,8 @@ const press = (id: number, data: string) => callbackUpdate(data, { fromId: id })
 const rows = async (sql: string, params: unknown[] = []) => (await owner.query(sql, params)).rows;
 const count = async (table: string) => Number((await rows(`select count(*) from app.${table}`))[0].count);
 const allButtons = () => t.messages().flatMap((m) => buttonsOf(m.payload));
-const noButtons = () => t.messages().every((m) => m.payload.reply_markup === undefined);
+// F035: el único botón del menú de prestador es "Revocar mi autorización" (en el mensaje de bienvenida); sin botón de registro.
+const noButtons = () => allButtons().join() === es.selfRevoke.button;
 
 beforeAll(() => void (owner = ownerPool()));
 afterAll(async () => {
@@ -48,7 +49,7 @@ describe("paso 1: el prestador no repite el registro (criterios 1 a 5)", () => {
     await makeProvider(owner, PROVIDER);
     const before = await count("provider_registrations");
     await t.send(start(PROVIDER));
-    expect(t.texts()).toEqual([es.menu.welcome, es.menu.providerAvailable]);
+    expect(t.texts()).toEqual(providerMenu);
     expect(noButtons()).toBe(true);
     expect(t.texts()).not.toContain(es.provider.askType);
     expect(t.texts()).not.toContain(es.provider.askNumber);
@@ -65,7 +66,7 @@ describe("paso 1: el prestador no repite el registro (criterios 1 a 5)", () => {
     while (afterTasks.length > 0) await afterTasks.shift()!();
     t.clear();
     await t.send(start(PROVIDER));
-    expect(t.texts()).toEqual([es.menu.welcome, es.menu.providerAvailable]);
+    expect(t.texts()).toEqual(providerMenu);
     expect(noButtons()).toBe(true);
     expect(await count("bot_sessions")).toBe(0);
   });
@@ -74,7 +75,7 @@ describe("paso 1: el prestador no repite el registro (criterios 1 a 5)", () => {
     await makeProvider(owner, PROVIDER);
     const before = [await count("provider_registrations"), await count("bot_sessions")];
     await t.send(press(PROVIDER, REGISTER));
-    expect(t.texts()).toEqual([es.menu.welcome, es.menu.providerAvailable]);
+    expect(t.texts()).toEqual(providerMenu);
     expect(noButtons()).toBe(true);
     expect([await count("provider_registrations"), await count("bot_sessions")]).toEqual(before);
   });
@@ -89,13 +90,13 @@ describe("paso 1: el prestador no repite el registro (criterios 1 a 5)", () => {
 });
 
 describe("paso 2: el administrador ve su menú (criterios 6 a 9)", () => {
-  const adminButtons = [es.admin.pendingButton, es.admin.authorizeButton, es.revoke.button];
+  const adminButtons = ADMIN_MENU_BUTTONS;
 
   it("6: permiso admin, exactamente los tres botones (F006)", async () => {
     await createAccount(owner, ADMIN);
     await grantAdminRole(owner, ADMIN);
     await t.send(start(ADMIN));
-    expect(t.texts()).toEqual([es.menu.welcome]);
+    expect(t.texts()).toEqual([adminMenu]);
     expect(allButtons()).toEqual(adminButtons);
     expect(t.texts()).not.toContain(es.menu.providerAvailable);
   });
@@ -107,7 +108,7 @@ describe("paso 2: el administrador ve su menú (criterios 6 a 9)", () => {
     await createAccount(owner, PERSON_PRINCIPAL);
     if (withRow) await owner.query("insert into app.role_grants (telegram_user_id, role, is_principal) values ($1, 'admin', true)", [PERSON_PRINCIPAL]);
     await t.send(start(PERSON_PRINCIPAL));
-    expect(t.texts()).toEqual([es.menu.welcome]);
+    expect(t.texts()).toEqual([adminMenu]);
     expect(allButtons()).toEqual(adminButtons);
   });
 
@@ -120,7 +121,7 @@ describe("paso 2: el administrador ve su menú (criterios 6 a 9)", () => {
     expect(accept).toBeDefined();
     t.clear();
     await t.send(press(ADMIN, accept!.callback_data!));
-    expect(t.texts()).toContain(es.menu.welcome);
+    expect(t.texts()).toContain(adminMenu);
     expect(allButtons()).toEqual(adminButtons);
     expect(t.texts()).not.toContain(es.provider.askType);
     expect(t.texts()).not.toContain(es.provider.askNumber);
@@ -130,7 +131,7 @@ describe("paso 2: el administrador ve su menú (criterios 6 a 9)", () => {
     await makeProvider(owner, BOTH);
     await grantAdminRole(owner, BOTH);
     await t.send(start(BOTH));
-    expect(t.texts()).toEqual([es.menu.welcome]);
+    expect(t.texts()).toEqual([adminMenu]);
     expect(allButtons()).toEqual(adminButtons);
   });
 });

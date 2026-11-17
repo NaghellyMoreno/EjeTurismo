@@ -245,20 +245,20 @@ describe("revocar: acceso y datos inválidos (criterios 27 a 31)", () => {
     expect(await all()).toEqual(before);
   });
 
+  // F035 reemplaza el 409 `has_active_role` (D-133): el principal y el único administrador reciben su 409; el prestador revoca.
   it.each([
-    ["administrador", async (): Promise<void> => void (await admin(owner, ADMIN_A)), ADMIN_A],
-    ["principal con fila", async (): Promise<void> => principal(owner, true), PRINCIPAL],
-    ["principal sin fila", async (): Promise<void> => principal(owner, false), PRINCIPAL],
-    ["prestador", async (): Promise<void> => void (await provider(owner, PROVIDER_A)), PROVIDER_A],
-  ] as const)("31: %s recibe 409 has_active_role con el texto de selfRevoke.activeRole y nada cambia", async (_label, seed, id) => {
+    ["administrador único", async (): Promise<void> => void (await admin(owner, ADMIN_A)), ADMIN_A, "last_admin_protected", es.selfRevoke.lastAdminProtected],
+    ["principal con fila", async (): Promise<void> => principal(owner, true), PRINCIPAL, "principal_admin_protected", es.selfRevoke.principalProtected],
+    ["principal sin fila", async (): Promise<void> => principal(owner, false), PRINCIPAL, "principal_admin_protected", es.selfRevoke.principalProtected],
+  ] as const)("31 (F035): %s recibe 409 con el texto del motivo y nada cambia", async (_label, seed, id, code, detail) => {
     await seed();
     const before = await all();
     const res = await api.revoke(id);
     expect(res.status).toBe(409);
     expect(res.headers.get("content-type")).toContain("application/problem+json");
     const problem = await problemOf(res);
-    expect(problem.code).toBe("has_active_role");
-    expect(problem.detail).toBe(es.selfRevoke.activeRole);
+    expect(problem.code).toBe(code);
+    expect(problem.detail).toBe(detail);
     expect(await all()).toEqual(before);
   });
 });

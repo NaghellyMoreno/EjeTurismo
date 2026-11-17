@@ -3,7 +3,7 @@ import type { Actor } from "@/server/auth/actor";
 import type { Config } from "@/server/config";
 import { AppError } from "@/server/errors";
 import { logError } from "@/server/observability/logger";
-import { revokeMyAuthorization } from "@/server/services";
+import { getSelfRevocationBlock, revokeMyAuthorization } from "@/server/services";
 import type { AccountContext, Db } from "@/server/services";
 import { AccountGoneError } from "./common";
 import { send } from "./send";
@@ -35,10 +35,20 @@ export function parseSelfRevokeCallback(data: string): Action | null {
   return null;
 }
 
-// Una cuenta con rol activo no revoca aquí; es de F035 (D-133).
-export const hasActiveRole = (info: AccountContext) => info.isPrincipalAdmin || info.roles.length > 0;
+const blockedText = (block: "principal_admin_protected" | "last_admin_protected") =>
+  block === "principal_admin_protected" ? es.selfRevoke.principalProtected : es.selfRevoke.lastAdminProtected;
 
-// Texto de B02 con la frase de D-023 y el botón, para cuentas sin rol activo.
+// Confirmación según los roles activos de la cuenta (invariante 8): el texto dice qué se pierde.
+function confirmText(info: AccountContext): string {
+  const provider = info.roles.includes("provider");
+  const admin = info.roles.includes("admin");
+  if (provider && admin) return es.selfRevoke.confirmProviderAdmin;
+  if (admin) return es.selfRevoke.confirmAdmin;
+  if (provider) return es.selfRevoke.confirmProvider;
+  return es.selfRevoke.confirm;
+}
+
+// Texto de B02 con la frase de D-023 y el botón, para todas las cuentas (F035).
 export const withSelfRevoke = (text: string) => `${text}\n\n${es.selfRevoke.note}`;
 export const addSelfRevokeButton = (keyboard: InlineKeyboard = new InlineKeyboard()) => keyboard.text(es.selfRevoke.button, SELF_REVOKE_ASK).row();
 
@@ -53,10 +63,12 @@ export async function handleSelfRevokeCallback(
 ): Promise<void> {
   const action = parseSelfRevokeCallback(data);
   if (!action) return;
-  if (hasActiveRole(info)) return void (await send(ctx, es.selfRevoke.blocked));
+  // Con `srv:yes` el backend vuelve a aplicar la regla; con `srv:ask` el bot solo la consulta para explicar el motivo.
   if (action === "ask") {
+    const block = await getSelfRevocationBlock(deps.db(), deps.config(), actor);
+    if (block) return void (await send(ctx, blockedText(block)));
     const keyboard = new InlineKeyboard().text(es.selfRevoke.confirmButton, SELF_REVOKE_CONFIRM).text(es.selfRevoke.cancelButton, SELF_REVOKE_CANCEL);
-    return void (await send(ctx, es.selfRevoke.confirm, keyboard));
+    return void (await send(ctx, confirmText(info), keyboard));
   }
   if (action === "cancel") {
     await send(ctx, es.selfRevoke.cancelled);
@@ -67,7 +79,9 @@ export async function handleSelfRevokeCallback(
     await revokeMyAuthorization(deps.db(), deps.config(), actor, { confirmed: true }, "bot", deps.now());
     await send(ctx, es.selfRevoke.revoked);
   } catch (error) {
-    if (error instanceof AppError && error.code === "has_active_role") return void (await send(ctx, es.selfRevoke.blocked));
+    if (error instanceof AppError && (error.code === "principal_admin_protected" || error.code === "last_admin_protected")) {
+      return void (await send(ctx, blockedText(error.code)));
+    }
     // Confirmación repetida o simultánea: la cuenta ya no existe y se muestra el aviso (D-039).
     if (error instanceof AppError && error.code === "forbidden") throw new AccountGoneError();
     logError("self_revoke.failed", error);

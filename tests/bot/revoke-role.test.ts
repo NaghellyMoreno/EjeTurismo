@@ -5,7 +5,7 @@ import {
   ADMIN_A, ADMIN_B, ADMIN_NO_ACCOUNT, admin, grantId, NO_ROLE, nameOf, OLD_NOTICE, oldNoticePerson, PENDING, pendingPerson,
   person, PRINCIPAL, principal, PROVIDER_A, PROVIDER_B, provider, REVOKED_ADMIN, revokedAdmin, snapshot,
 } from "../factories/revocation";
-import { buttonsOf, createTestBot, noRoleMenu, type ApiCall } from "../helpers/bot";
+import { buttonsOf, createTestBot, noRoleMenu, type ApiCall, ADMIN_MENU_BUTTONS } from "../helpers/bot";
 import { ownerPool, resetDb } from "../helpers/db";
 import { callbackUpdate, textUpdate } from "../helpers/telegram";
 
@@ -51,20 +51,23 @@ describe("paso 1: la opción Revocar rol (criterios 1 a 4)", () => {
   it("1: el administrador ve tres botones en orden, con el texto exacto Revocar rol", async () => {
     await admin(owner, ADMIN_A);
     await t.send(start(ADMIN_A));
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton, es.revoke.button]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual(ADMIN_MENU_BUTTONS);
     expect(buttonsOf(t.messages()[0].payload)[2]).toBe("Revocar rol");
   });
 
-  it("2: ningún botón del menú de administrador es Revocar mi autorización", async () => {
+  it("2: F035: Revocar mi autorización es otro botón, con otro callback, y no se confunde con Revocar rol", async () => {
     await admin(owner, ADMIN_A);
     await t.send(start(ADMIN_A));
-    expect(buttonsOf(t.messages()[0].payload)).not.toContain("Revocar mi autorización");
+    expect(es.selfRevoke.button).not.toBe(es.revoke.button);
+    const keyboard = (t.messages()[0].payload.reply_markup as { inline_keyboard: { text: string; callback_data: string }[][] }).inline_keyboard.flat();
+    expect(keyboard.find((b) => b.text === es.selfRevoke.button)?.callback_data).toBe("srv:ask");
+    expect(keyboard.find((b) => b.text === es.revoke.button)?.callback_data).not.toBe("srv:ask");
   });
 
   it.each([[true], [false]])("3: el principal (con fila is_principal: %s) ve el mismo menú", async (withRow) => {
     await principal(owner, withRow);
     await t.send(start(PRINCIPAL));
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton, es.revoke.button]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual(ADMIN_MENU_BUTTONS);
   });
 
   it("4: prestador, sin rol y registro pendiente no reciben el botón", async () => {

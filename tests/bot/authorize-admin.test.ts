@@ -7,7 +7,7 @@ import {
   seedAll, WITH_PENDING, WITH_PROVIDER, WITH_REJECTED,
 } from "../factories/admin-auth";
 import { TEST_PRINCIPAL_ADMIN_ID } from "../helpers/config";
-import { buttonsOf, createTestBot, noRoleMenu, pendingMenu, type ApiCall } from "../helpers/bot";
+import { buttonsOf, createTestBot, noRoleMenu, pendingMenu, type ApiCall, ADMIN_MENU_BUTTONS, adminMenu, providerMenu } from "../helpers/bot";
 import { NOTICE_VERSION, ownerPool, resetDb } from "../helpers/db";
 import { callbackUpdate, textUpdate } from "../helpers/telegram";
 
@@ -77,8 +77,8 @@ describe("paso 1: el principal entra sin registro (criterios 1, 2, 4 y 5)", () =
     expect(t.messages()).toHaveLength(3);
     t.clear();
     await t.send(press(PRINCIPAL, `consent:accept:${NOTICE_VERSION}`));
-    expect(t.texts()).toEqual([es.menu.welcome]);
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton, es.revoke.button]);
+    expect(t.texts()).toEqual([adminMenu]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual(ADMIN_MENU_BUTTONS);
     const grant = async () => rows("select * from app.role_grants");
     expect(await grant()).toHaveLength(1);
     expect((await grant())[0]).toMatchObject({ role: "admin", is_principal: true, revoked_at: null, provider_registration_id: null, granted_by_account_id: null });
@@ -108,8 +108,8 @@ describe("paso 1: el principal entra sin registro (criterios 1, 2, 4 y 5)", () =
   it("con la fila is_principal de otro ID activa, el principal actual entra sin error y sin segunda fila", async () => {
     await owner.query("insert into app.role_grants (telegram_user_id, role, is_principal) values (900000098, 'admin', true)");
     await t.send(press(PRINCIPAL, `consent:accept:${NOTICE_VERSION}`));
-    expect(t.texts()).toEqual([es.menu.welcome]);
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton, es.revoke.button]);
+    expect(t.texts()).toEqual([adminMenu]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual(ADMIN_MENU_BUTTONS);
     expect(await count("role_grants")).toBe(1);
   });
 });
@@ -215,8 +215,8 @@ describe("paso 4: la cuenta autorizada (criterios 17 a 19)", () => {
     await t.send(press(ADMIN_A, CONFIRM));
     t.clear();
     await t.send(start(PERSON_WITH_ACCOUNT));
-    expect(t.texts()).toEqual([es.menu.welcome]);
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton, es.revoke.button]);
+    expect(t.texts()).toEqual([adminMenu]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual(ADMIN_MENU_BUTTONS);
     t.clear();
     await t.send(press(PERSON_WITH_ACCOUNT, "adm:list"));
     expect(t.texts()).toEqual([es.admin.noPending]);
@@ -237,8 +237,8 @@ describe("paso 4: la cuenta autorizada (criterios 17 a 19)", () => {
     expect(t.texts().join("")).not.toContain(es.menu.welcome);
     t.clear();
     await t.send(press(PERSON_NO_ACCOUNT, `consent:accept:${NOTICE_VERSION}`));
-    expect(t.texts()).toEqual([es.menu.welcome]);
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton, es.revoke.button]);
+    expect(t.texts()).toEqual([adminMenu]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual(ADMIN_MENU_BUTTONS);
     expect(await count("provider_registrations")).toBe(0);
     expect(await rows("select 1 from app.bot_sessions where account_id = $1", [await idOf(PERSON_NO_ACCOUNT)])).toHaveLength(0);
   });
@@ -317,7 +317,7 @@ describe("reglas transversales (criterios 28 a 31 y 33)", () => {
   const TEXT_REPLY: [string, number, string[]][] = [
     ["sin rol", NO_ROLE, [noRoleMenu]],
     ["registro pending", WITH_PENDING, [pendingMenu]],
-    ["permiso provider", WITH_PROVIDER, [es.menu.welcome, es.menu.providerAvailable]],
+    ["permiso provider", WITH_PROVIDER, providerMenu],
   ];
 
   it.each(TEXT_REPLY)("%s: el botón recibe admin.forbidden y un texto con un ID recibe lo de siempre, sin sesión", async (_label, id, usual) => {

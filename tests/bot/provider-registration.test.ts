@@ -14,7 +14,7 @@ import {
   PERSON_OLD_VERSION,
   PERSON_PRINCIPAL,
 } from "../factories/accounts";
-import { buttonsOf, createTestBot, noRoleMenu, pendingMenu } from "../helpers/bot";
+import { buttonsOf, createTestBot, noRoleMenu, pendingMenu, ADMIN_MENU_BUTTONS, adminMenu } from "../helpers/bot";
 import { rateLimitsEnv, testConfig } from "../helpers/config";
 import { countsF002, ownerPool, resetDb, rowsMentioningF002 } from "../helpers/db";
 import { callbackUpdate, textUpdate } from "../helpers/telegram";
@@ -75,22 +75,22 @@ describe("paso 1: elegir registrarse (criterios 1 y 3)", () => {
     for (const id of [PERSON_ADMIN, PERSON_PRINCIPAL]) {
       t.clear();
       await t.send(start(id));
-      expect(t.texts()).toEqual([es.menu.welcome]);
+      expect(t.texts()).toEqual([adminMenu]);
       // D-091, D-102: tres botones en línea ("Registros pendientes", "Autorizar administrador" y "Revocar rol", F006) y sin "Registrarme como prestador".
-      expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton, es.revoke.button]);
+      expect(buttonsOf(t.messages()[0].payload)).toEqual(ADMIN_MENU_BUTTONS);
       // El callback antiguo tampoco abre el formulario.
       t.clear();
       await t.send(press(id, REGISTER));
-      expect(t.texts()).toEqual([es.menu.welcome]);
+      expect(t.texts()).toEqual([adminMenu]);
     }
     expect(await count("bot_sessions")).toBe(0);
   });
 
   it("el administrador principal que acepta el aviso por el bot recibe B02 sin botón", async () => {
     await t.send(press(PERSON_PRINCIPAL, "consent:accept:2026-11-v3"));
-    expect(t.texts()).toEqual([es.menu.welcome]);
+    expect(t.texts()).toEqual([adminMenu]);
     // D-091, D-102: tres botones en línea ("Registros pendientes", "Autorizar administrador" y "Revocar rol", F006) y sin "Registrarme como prestador".
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton, es.revoke.button]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual(ADMIN_MENU_BUTTONS);
   });
 });
 

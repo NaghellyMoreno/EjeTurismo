@@ -20,7 +20,7 @@ import {
   USER_PENDING,
   USER_REJECT,
 } from "../factories/review";
-import { buttonsOf, createTestBot, noRoleMenu, type ApiCall } from "../helpers/bot";
+import { buttonsOf, createTestBot, noRoleMenu, type ApiCall, ADMIN_MENU_BUTTONS, adminMenu, providerMenu } from "../helpers/bot";
 import { ownerPool, resetDb } from "../helpers/db";
 import { callbackUpdate, textUpdate } from "../helpers/telegram";
 
@@ -92,8 +92,8 @@ describe("B06 y B02 mínimos (criterios 1, 15 y 22)", () => {
     for (const id of [ADMIN_1, PERSON_PRINCIPAL]) {
       t.clear();
       await t.send(start(id));
-      expect(t.texts()).toEqual([es.menu.welcome]);
-      expect(buttonsOf(t.messages()[0].payload)).toEqual(["Registros pendientes", "Autorizar administrador", "Revocar rol"]);
+      expect(t.texts()).toEqual([adminMenu]);
+      expect(buttonsOf(t.messages()[0].payload)).toEqual([...ADMIN_MENU_BUTTONS.slice(0, 2), "Revocar rol", es.selfRevoke.button]);
       expect(callbacksOf(t.messages()[0])[0].callback_data).toBe("adm:list");
     }
   });
@@ -101,9 +101,9 @@ describe("B06 y B02 mínimos (criterios 1, 15 y 22)", () => {
   it("el prestador recibe menu.welcome y menu.providerAvailable, sin botón de registro ni provider.pending", async () => {
     await makeProvider(owner, USER_APPROVE);
     await t.send(start(USER_APPROVE));
-    expect(t.texts()).toEqual([es.menu.welcome, es.menu.providerAvailable]);
+    expect(t.texts()).toEqual(providerMenu);
     expect(es.menu.providerAvailable).toBe("Ya tienes el rol de prestador. Las opciones de prestador estarán disponibles pronto.");
-    expect(t.messages().every((m) => m.payload.reply_markup === undefined)).toBe(true);
+    expect(t.messages().flatMap((m) => buttonsOf(m.payload))).toEqual([es.selfRevoke.button]);
     expect(t.texts()).not.toContain(es.provider.pending);
   });
 
@@ -269,7 +269,7 @@ describe("autorizar y rechazar (criterios 12, 14, 18, 20, 29, 40)", () => {
     // El usuario ya ve el menú de prestador.
     t.clear();
     await t.send(start(USER_APPROVE));
-    expect(t.texts()).toEqual([es.menu.welcome, es.menu.providerAvailable]);
+    expect(t.texts()).toEqual(providerMenu);
   });
 
   it("'Confirmar' tras 'Rechazar' rechaza, sin permiso, y avisa sin motivo, tipo ni número", async () => {

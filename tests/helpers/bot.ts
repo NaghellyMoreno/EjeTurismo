@@ -55,4 +55,8 @@ export function buttonsOf(payload: Record<string, unknown>): string[] {
 
 // F034: el menú de una cuenta sin rol lleva la frase de D-023 al final (y el botón de revocar); el estado pendiente, igual.
 export const noRoleMenu = `${es.menu.welcome}\n\n${es.selfRevoke.note}`;
+// F035: el menú de administrador y el de prestador también llevan la frase y el botón de revocar la autorización.
+export const adminMenu = noRoleMenu;
+export const ADMIN_MENU_BUTTONS = [es.admin.pendingButton, es.admin.authorizeButton, es.revoke.button, es.selfRevoke.button];
+export const providerMenu = [noRoleMenu, es.menu.providerAvailable];
 export const pendingMenu = `${es.provider.pending}\n\n${es.selfRevoke.note}`;

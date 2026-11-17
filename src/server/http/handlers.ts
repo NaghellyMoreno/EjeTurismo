@@ -257,7 +257,7 @@ export function listRoleGrantsHandler(deps: Deps) {
     });
 }
 
-// POST /api/v1/consents/revocations (revokeMyAuthorization). Orden: 401, 403 sin cuenta, 422, 409 `has_active_role`.
+// POST /api/v1/consents/revocations (revokeMyAuthorization). Orden: 401, 403 sin cuenta, 422, 409 `principal_admin_protected` y luego `last_admin_protected` (F035).
 // Por HTTP el canal siempre es `mini_app`; no exige la versión vigente del aviso (ADR 0005).
 export function revokeMyAuthorizationHandler(deps: Deps) {
   return (request: Request) =>
