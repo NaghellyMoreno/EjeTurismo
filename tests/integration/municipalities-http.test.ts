@@ -98,7 +98,8 @@ describe("semilla (1)", () => {
   });
 
   it("cargar reference.sql dos veces no duplica ni cambia los UUID", async () => {
-    const sql = readFileSync("supabase/seed/reference.sql", "utf8");
+    // pg no entiende las metaórdenes de psql (`\ir` de las listas cerradas de F011, cubiertas en catalogs-db.test.ts).
+    const sql = readFileSync("supabase/seed/reference.sql", "utf8").replace(/^\\.*$/gm, "");
     const before = await rows("select id, name from app.municipalities order by id");
     await owner.query(sql);
     await owner.query(sql);

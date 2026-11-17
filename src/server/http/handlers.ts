@@ -11,6 +11,7 @@ import {
   approveProviderRegistration,
   authorizeAdministrator,
   createMunicipality,
+  createCatalogItem,
   createProviderRegistration,
   getActiveRoles,
   getConsentState,
@@ -18,13 +19,15 @@ import {
   getMe,
   getMyProviderRegistration,
   listMunicipalities,
+  listCatalog,
   listProviderRegistrations,
   listRoleGrants,
   rejectProviderRegistration,
   revokeRole,
   updateMunicipality,
+  renameCatalogItem,
 } from "@/server/services";
-import type { ConsentState } from "@/server/services";
+import type { CatalogKind, ConsentState } from "@/server/services";
 import type { Deps } from "./deps";
 import { fromError, internalError, json, problem, unauthenticated } from "./problem";
 
@@ -265,5 +268,39 @@ export function revokeRoleHandler(deps: Deps) {
       const { grantId } = await context.params;
       const body: unknown = await request.json().catch(() => undefined);
       return json(await revokeRole(deps.db(), deps.config(), actor, grantId, body, deps.now()));
+    });
+}
+
+// ---- Listas cerradas (F011) ------------------------------------------------------------------------------------
+// GET lee con el aviso vigente (D-039); POST y PATCH son solo del administrador (D-041). Orden de las escrituras:
+// 401, 403 `consent_required`, 403 `forbidden`, 422, 404 y 409; lo aplica el servicio.
+export function listCatalogHandler(deps: Deps, kind: CatalogKind) {
+  return (request: Request) =>
+    guarded(`${kind}.list_failed`, async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      return json(await listCatalog(deps.db(), actor, kind));
+    });
+}
+
+export function createCatalogItemHandler(deps: Deps, kind: CatalogKind) {
+  return (request: Request) =>
+    guarded(`${kind}.create_failed`, async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const body: unknown = await request.json().catch(() => undefined);
+      return json(await createCatalogItem(deps.db(), deps.config(), actor, kind, body, deps.now()), 201);
+    });
+}
+
+// `idParam` es el nombre del parámetro de la ruta (categoryId, experienceTypeId, establishmentTypeId).
+export function renameCatalogItemHandler<P extends string>(deps: Deps, kind: CatalogKind, idParam: P) {
+  return (request: Request, context: { params: Promise<Record<P, string>> }) =>
+    guarded(`${kind}.update_failed`, async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const id = (await context.params)[idParam];
+      const body: unknown = await request.json().catch(() => undefined);
+      return json(await renameCatalogItem(deps.db(), deps.config(), actor, kind, id, body, deps.now()));
     });
 }

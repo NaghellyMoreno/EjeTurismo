@@ -111,3 +111,5 @@ values
   ('5f0c1a10-0000-4000-8000-000000000002', 'Supía', 'supia', 'Caldas'),
   ('5f0c1a10-0000-4000-8000-000000000003', 'Filadelfia', 'filadelfia', 'Caldas')
 on conflict do nothing;
+-- Listas cerradas (F011): tipo de experiencia gastronómica y tipos de establecimiento.
+\ir reference-gastronomic-experience-type.sql

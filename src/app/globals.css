@@ -42,3 +42,68 @@ body {
   margin: 0;
   line-height: 1.5;
 }
+
+/* M11: listas cerradas (F011). Botones con texto blanco sobre el primario oscuro. */
+.screen .catalog-list {
+  margin-bottom: 1rem;
+}
+
+.screen .catalog-list ul {
+  margin: 0 0 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.screen .catalog-list li button {
+  width: 100%;
+  margin-bottom: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-background);
+  color: var(--color-text);
+  border: 1px solid var(--color-primary);
+  border-radius: 0.5rem;
+  text-align: left;
+}
+
+.screen .catalog-list li button[aria-pressed="true"] {
+  background: var(--color-secondary);
+}
+
+.screen .catalog-list label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.screen .catalog-list input {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  border: 1px solid var(--color-primary);
+  border-radius: 0.5rem;
+  color: var(--color-text);
+}
+
+.screen .catalog-list button[data-testid="catalog-save"],
+.screen .catalog-list button[data-testid="catalog-confirm"] {
+  padding: 0.5rem 1rem;
+  background: var(--color-primary-dark);
+  color: #fff;
+  border: 0;
+  border-radius: 0.5rem;
+}
+
+.screen .catalog-list button[data-testid="catalog-cancel"] {
+  margin-left: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--color-background);
+  color: var(--color-text);
+  border: 1px solid var(--color-primary);
+  border-radius: 0.5rem;
+}
+
+.screen [role="alert"] {
+  margin-top: 0.5rem;
+  font-weight: 600;
+}

@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createApiClient } from "@/shared/api/client";
 import { type HomeView, homeTitle, homeView, homeViewText } from "./home";
-import { miniappTexts } from "./texts";
+import { catalogTexts, miniappTexts } from "./texts";
 
-type State = { kind: "loading" } | { kind: "error" } | { kind: "view"; view: HomeView };
+type State =
+  { kind: "loading" } | { kind: "error" } | { kind: "view"; view: HomeView };
 
 interface TelegramWebApp {
   initData?: string;
@@ -18,15 +19,22 @@ export function HomeScreen() {
   const [state, setState] = useState<State>({ kind: "loading" });
 
   useEffect(() => {
-    const webApp = (window as unknown as { Telegram?: { WebApp?: TelegramWebApp } }).Telegram?.WebApp;
+    const webApp = (
+      window as unknown as { Telegram?: { WebApp?: TelegramWebApp } }
+    ).Telegram?.WebApp;
     webApp?.ready?.();
     const initData = webApp?.initData ?? "";
     let cancelled = false;
     // Sin initData no hay sesión que verificar: se muestra M12 sin llamar al servidor.
-    const request = initData ? createApiClient(initData).GET("/api/v1/me") : Promise.resolve({ data: undefined });
+    const request = initData
+      ? createApiClient(initData).GET("/api/v1/me")
+      : Promise.resolve({ data: undefined });
     request
       .then(({ data }) => {
-        if (!cancelled) setState(data ? { kind: "view", view: homeView(data) } : { kind: "error" });
+        if (!cancelled)
+          setState(
+            data ? { kind: "view", view: homeView(data) } : { kind: "error" },
+          );
       })
       .catch(() => {
         if (!cancelled) setState({ kind: "error" });
@@ -41,14 +49,25 @@ export function HomeScreen() {
       <h1>{homeTitle}</h1>
       <section data-testid="miniapp-home" aria-live="polite">
         {state.kind === "loading" && <p>{miniappTexts.loading}</p>}
-        {state.kind === "error" && <p data-testid="session-error">{miniappTexts.sessionExpired}</p>}
-        {state.kind === "view" && <p data-testid={state.view}>{homeViewText[state.view]}</p>}
+        {state.kind === "error" && (
+          <p data-testid="session-error">{miniappTexts.sessionExpired}</p>
+        )}
+        {state.kind === "view" && (
+          <p data-testid={state.view}>{homeViewText[state.view]}</p>
+        )}
         {state.kind === "view" && state.view === "role-admin" && (
-          <p>
-            <Link href="/municipios" data-testid="municipalities-link">
-              {miniappTexts.adminMunicipalitiesLink}
-            </Link>
-          </p>
+          <>
+            <p>
+              <Link href="/municipios" data-testid="municipalities-link">
+                {miniappTexts.adminMunicipalitiesLink}
+              </Link>
+            </p>
+            <p>
+              <Link href="/catalogos" data-testid="catalog-link">
+                {catalogTexts.link}
+              </Link>
+            </p>
+          </>
         )}
       </section>
     </main>

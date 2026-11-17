@@ -32,3 +32,5 @@ export type { Municipality } from "./municipalities";
 export type { RoleGrant } from "./administrator-authorization";
 export { assertProvider, findActiveRoleGrant, listRoleGrants, revokeRole, ROLE_REVOKED_ACTION } from "./role-revocation";
 export type { RoleGrantPage } from "./role-revocation";
+export { createCatalogItem, listCatalog, renameCatalogItem } from "./catalogs";
+export type { CatalogItem, CatalogKind } from "./catalogs";

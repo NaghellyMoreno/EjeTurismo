@@ -39,3 +39,22 @@ export const municipalityTexts = {
   error: "No pudimos completar la operación. Intenta de nuevo en unos minutos.",
   forbidden: "No tienes permiso para administrar municipios.",
 } as const;
+
+// M11 (F011): textos aprobados en D-130. Ninguno lleva identificadores de Telegram ni datos personales.
+export const catalogTexts = {
+  link: "Categorías y tipos",
+  title: "Categorías y tipos",
+  categories: "Categorías",
+  experienceTypes: "Tipos de experiencia",
+  establishmentTypes: "Tipos de establecimiento",
+  nameLabel: "Nombre",
+  save: "Guardar",
+  confirmCreate: (name: string) => `Vas a crear «${name}». ¿Confirmas?`,
+  confirmEdit: (name: string) => `Vas a cambiar el nombre a «${name}». El cambio se verá en las fichas que lo usan. ¿Confirmas?`,
+  confirm: "Confirmar",
+  cancel: "Cancelar",
+  nameRequired: "Escribe un nombre.",
+  duplicate: "Ya existe un elemento con ese nombre.",
+  forbidden: "No tienes permiso para administrar estas listas.",
+  genericError: "No pudimos guardar el cambio. Inténtalo de nuevo.",
+} as const;

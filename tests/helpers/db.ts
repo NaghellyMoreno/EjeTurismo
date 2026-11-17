@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { Pool } from "pg";
 import { createDb } from "@/server/db";
 
@@ -32,8 +34,10 @@ export async function restoreMunicipalitySeed(owner: Pool): Promise<void> {
 }
 
 export async function resetDb(owner: Pool): Promise<void> {
-  await owner.query("truncate app.notification_outbox, app.audit_events, app.role_grants, app.provider_registrations, app.bot_sessions, app.rate_limit_counters, app.processed_updates, app.consent_events, app.municipalities, app.accounts restart identity");
+  await owner.query("truncate app.notification_outbox, app.audit_events, app.role_grants, app.provider_registrations, app.bot_sessions, app.rate_limit_counters, app.processed_updates, app.consent_events, app.municipalities, app.accounts, app.categories, app.experience_types, app.establishment_types restart identity");
   await restoreMunicipalitySeed(owner);
+  // Las listas cerradas (F011) referencian cuentas y se truncan con ellas; se vuelve a cargar su semilla de referencia (ADR 0011).
+  await owner.query(readFileSync(resolve(process.cwd(), "supabase/seed/reference-gastronomic-experience-type.sql"), "utf8"));
   await owner.query("delete from app.privacy_notice_versions where version <> $1", [NOTICE_VERSION]);
   await owner.query("update app.privacy_notice_versions set is_current = (version = $1)", [NOTICE_VERSION]);
 }
