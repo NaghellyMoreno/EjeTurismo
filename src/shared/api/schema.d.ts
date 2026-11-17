@@ -111,6 +111,8 @@ export interface paths {
          *     ni ningún pseudónimo del ID de Telegram (D-021, D-036). Borra todas las filas de permisos con su ID de Telegram.
          *     Disponible para cualquier persona con cuenta, aunque haya aceptado una versión anterior del aviso (HU-030 criterio 1; ADR 0005).
          *     Responde 409 `principal_admin_protected` si es el administrador principal y 409 `last_admin_protected` si es el único administrador (D-020, D-032).
+         *     Mientras F035 no exista, responde 409 `has_active_role` a toda cuenta con rol activo de administrador (incluido el principal)
+         *     o de prestador, sin cambiar datos (D-133; F034 criterio 31); F035 reemplaza este caso.
          */
         post: operations["revokeMyAuthorization"];
         delete?: never;
@@ -970,7 +972,7 @@ export interface components {
             errors?: components["schemas"]["FieldError"][];
         };
         /** @enum {string} */
-        ErrorCode: "unauthenticated" | "forbidden" | "consent_required" | "not_found" | "validation_failed" | "confirmation_required" | "duplicate" | "invalid_state_transition" | "notice_version_outdated" | "principal_admin_protected" | "last_admin_protected" | "listing_not_accepting_requests" | "admin_cannot_register_as_provider" | "role_conflict" | "photo_limit_exceeded" | "photo_total_size_exceeded" | "photo_too_large" | "storage_quota_exceeded" | "upload_not_found" | "rate_limited" | "internal_error";
+        ErrorCode: "unauthenticated" | "forbidden" | "consent_required" | "not_found" | "validation_failed" | "confirmation_required" | "duplicate" | "invalid_state_transition" | "notice_version_outdated" | "principal_admin_protected" | "last_admin_protected" | "has_active_role" | "listing_not_accepting_requests" | "admin_cannot_register_as_provider" | "role_conflict" | "photo_limit_exceeded" | "photo_total_size_exceeded" | "photo_too_large" | "storage_quota_exceeded" | "upload_not_found" | "rate_limited" | "internal_error";
         FieldError: {
             field: string;
             /**

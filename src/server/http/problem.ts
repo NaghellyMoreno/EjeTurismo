@@ -1,8 +1,7 @@
 import type { components } from "@/shared/api/schema";
 import { AppError, type ErrorCode, type FieldError } from "@/server/errors";
 
-// `code` admite `has_active_role` (F034), que viaja en el 409 genérico del contrato.
-type Problem = Omit<components["schemas"]["Problem"], "code"> & { code: ErrorCode };
+type Problem = components["schemas"]["Problem"];
 
 const TITLES: Partial<Record<ErrorCode, string>> = {
   unauthenticated: "No autenticado",
