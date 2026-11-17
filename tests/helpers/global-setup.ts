@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { Client } from "pg";
+import { dropDatabase } from "./drop-database";
 
 // Crea una base temporal por ejecución (ADR 0014), la migra con los mismos scripts de db:* y la borra al terminar.
 // Si PostgreSQL local no está disponible, falla con un mensaje claro: nunca se omiten las pruebas de integración en silencio.
@@ -37,7 +38,7 @@ export async function teardown() {
   const admin = new Client({ connectionString: urlFor("postgres") });
   await admin.connect();
   try {
-    await admin.query(`drop database if exists "${dbName}" with (force)`);
+    await dropDatabase(admin, dbName);
   } finally {
     await admin.end();
   }
