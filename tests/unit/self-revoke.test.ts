@@ -35,8 +35,8 @@ describe("textos de selfRevoke (criterios 4, 6, 26 y 35)", () => {
     );
   });
 
-  it("6: la frase es la de D-023 y coincide con la frase del aviso aprobado (que la cierra con punto)", () => {
-    expect(es.selfRevoke.note).toBe(D023);
+  it("6: la frase es la de D-023 con punto final (D-143) e igual a la del aviso aprobado", () => {
+    expect(es.selfRevoke.note).toBe(`${D023}.`);
     expect(readNoticeSource().revocationNote).toBe(`${D023}.`);
     expect(readFileSync(resolve(process.cwd(), "supabase/seed/reference.sql"), "utf8")).toContain(`$aviso$${D023}.$aviso$`);
   });

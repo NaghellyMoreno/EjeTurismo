@@ -63,7 +63,7 @@ describe("criterios 13, 14 y 17: 14 callbacks de administrador x A6 y A6b (28 ca
       const calls = t.messages();
       expect(calls, `A6b / ${label(callback)}`).toHaveLength(3);
       const texts = calls.map((c) => String(c.payload.text));
-      expect(texts[0]).toMatch(/^\*\*Eje Turismo\. Aviso de privacidad, versión /);
+      expect(texts[0]).toMatch(/^<b>Eje Turismo\. Aviso de privacidad, versión /);
       expect(texts[2]).toContain("Leí el aviso de privacidad de Eje Turismo");
       // F036 (criterio 40): la cuenta con versión anterior ve además el botón de revocar.
       expect(buttonsOf(calls[2].payload)).toEqual(["Acepto", "No acepto", es.selfRevoke.button]);

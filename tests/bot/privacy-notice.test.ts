@@ -2,7 +2,7 @@ import type { Pool } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { BOT_COMMANDS } from "@/bot/commands";
 import { es } from "@/bot/texts/es";
-import { DATE_PLACEHOLDER, TELEGRAM_MESSAGE_LIMIT } from "@/server/domain/notice";
+import { DATE_PLACEHOLDER, noticePlainText, TELEGRAM_MESSAGE_LIMIT } from "@/server/domain/notice";
 import { formatBogotaDate } from "@/lib/time";
 import { buttonsOf, createTestBot, noRoleMenu } from "../helpers/bot";
 import { counts, EMPTY_COUNTS, NOTICE_VERSION, ownerPool, resetDb, rowsMentioning } from "../helpers/db";
@@ -27,21 +27,28 @@ const ACCEPT_DATA = `consent:accept:${NOTICE_VERSION}`;
 const start = (fromId = NEW_USER, extra = {}) => textUpdate("/start", { fromId, ...extra });
 const accept = (fromId = NEW_USER, version = NOTICE_VERSION) => callbackUpdate(`consent:accept:${version}`, { fromId });
 
+// Texto que ve la persona en un mensaje con parse_mode HTML: sin etiquetas y con las entidades resueltas.
+const visibleText = (html: string) =>
+  html.replace(/<\/?(b|blockquote)( expandable)?>/g, "").replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&amp;", "&");
+
 // El aviso completo: 3 mensajes, con "Acepto" y "No acepto" solo en el último.
 // F036 (criterio 40): con `oldAccount` el último mensaje trae además la frase y el botón de revocar (D-133).
 function expectNoticeShown(calls = t.messages(), oldAccount = false) {
   expect(calls).toHaveLength(3);
   const texts = calls.map((c) => String(c.payload.text));
-  expect(texts[0]).toMatch(/^\*\*Eje Turismo\. Aviso de privacidad, versión 2026-11-v3\./);
-  expect(texts[0]).toContain("### 4.");
-  expect(texts[0]).not.toContain("### 5.");
-  expect(texts[1]).toMatch(/^### 5\./);
-  expect(texts[1]).toContain("### 9.");
-  expect(texts[1]).not.toContain("### 10.");
-  expect(texts[2]).toMatch(/^### 10\./);
-  expect(texts[2]).toContain("### 13.");
+  // D-143: HTML con títulos en negrita y los apartados en un bloque plegable ("leer más"), sin ### ni **.
+  expect(texts[0]).toMatch(/^<b>Eje Turismo\. Aviso de privacidad, versión 2026-11-v3\./);
+  expect(texts[0]).toContain("<b>4. ");
+  expect(texts[0]).not.toContain("<b>5. ");
+  expect(texts[1]).toMatch(/^<blockquote expandable><b>5\. /);
+  expect(texts[1]).toContain("<b>9. ");
+  expect(texts[1]).not.toContain("<b>10. ");
+  expect(texts[2]).toMatch(/^<blockquote expandable><b>10\. /);
+  expect(texts[2]).toContain("<b>13. ");
+  for (const text of texts) expect(text).not.toMatch(/^#|\*\*/m);
+  for (const call of calls) expect(call.payload.parse_mode).toBe("HTML");
   expect(texts[2]).toContain("Leí el aviso de privacidad de Eje Turismo");
-  for (const text of texts) expect(text.length).toBeLessThanOrEqual(TELEGRAM_MESSAGE_LIMIT);
+  for (const text of texts) expect(visibleText(text).length).toBeLessThanOrEqual(TELEGRAM_MESSAGE_LIMIT);
   expect(buttonsOf(calls[0].payload)).toEqual([]);
   expect(calls[0].payload.reply_markup).toBeUndefined();
   expect(calls[1].payload.reply_markup).toBeUndefined();
@@ -61,8 +68,8 @@ describe("paso 1 y 2: primer contacto (criterios 1, 2, 4)", () => {
     const clean = readNoticeSource();
     const { rows } = await owner.query("select published_at from app.privacy_notice_versions where is_current");
     const date = formatBogotaDate(rows[0].published_at);
-    const expected = `${clean.body.replaceAll(DATE_PLACEHOLDER, date)}\n\n${clean.declaration}`;
-    expect(t.texts().join("\n\n")).toBe(expected);
+    const expected = `${noticePlainText(clean.body.replaceAll(DATE_PLACEHOLDER, date))}\n\n${clean.declaration}`;
+    expect(t.texts().map(visibleText).join("\n\n")).toBe(expected);
     expect(source.body).toMatch(/\[Confirmado/); // la fuente sí traía marcas
     expect(t.texts().join("")).not.toMatch(/\[(Confirmado|Inferido|Pendiente)/);
     expect(t.texts().join("")).not.toContain("El número de identidad se usa solo para verificar");
@@ -127,7 +134,7 @@ describe("paso 4: aceptar y menú (criterios 10, 11, 12, 13, 14)", () => {
     await t.send(accept());
     expect(t.messages()).toHaveLength(1);
     const [menu] = t.messages();
-    expect(menu.payload.text).toBe("Te damos la bienvenida a Eje Turismo.\n\nComandos disponibles:\n/start: mostrar este menú\n\nEl número de identidad se usa solo para verificar tu identidad y atender tu solicitud de registro como prestador");
+    expect(menu.payload.text).toBe("Te damos la bienvenida a Eje Turismo.\n\nComandos disponibles:\n/start: mostrar este menú\n\nEl número de identidad se usa solo para verificar tu identidad y atender tu solicitud de registro como prestador.");
     expect(menu.payload.text).toBe(noRoleMenu);
     // D-074: un único botón en línea para la cuenta recién aceptada (sin rol y sin registro).
     expect(buttonsOf(menu.payload)).toEqual(["Registrarme como prestador", "Revocar mi autorización"]);

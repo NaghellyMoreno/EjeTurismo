@@ -1,16 +1,16 @@
 import { Bot, type Context, InlineKeyboard } from "grammy";
 import type { UserFromGetMe } from "grammy/types";
 import { displayNameOf } from "@/server/auth/init-data";
-import { buildNoticeMessages } from "@/server/domain/notice";
+import { buildNoticeHtmlMessages } from "@/server/domain/notice";
 import { AppError } from "@/server/errors";
 import { logError } from "@/server/observability/logger";
 import { acceptPrivacyNotice, claimUpdate, getConsentState } from "@/server/services";
 import type { Db, PrivacyNotice } from "@/server/services";
 import type { Config } from "@/server/config";
 import { handleAccountUpdate, showAccountMenu } from "./forms/provider-registration";
-import { handleSelfRevokeCallback, parseSelfRevokeCallback, SELF_REVOKE_ASK, withSelfRevoke } from "./self-revoke";
+import { handleSelfRevokeCallback, parseSelfRevokeCallback, SELF_REVOKE_ASK } from "./self-revoke";
 import { AccountGoneError, SessionConflictError } from "./common";
-import { send } from "./send";
+import { send, sendHtml } from "./send";
 import { es } from "./texts/es";
 
 export interface BotDeps {
@@ -43,12 +43,13 @@ export function createBot(token: string, deps: BotDeps, options: { botInfo?: Use
 // B01: el aviso en 3 mensajes (D-066); "Acepto" y "No acepto" solo en el último. Una cuenta con una versión anterior ve además,
 // al final del último mensaje, la frase de D-023 y el botón "Revocar mi autorización" en otra fila (F036, D-133, D-141).
 async function showNotice(ctx: Context, notice: PrivacyNotice, hasAccount = false) {
-  const [first, second, third] = buildNoticeMessages(notice);
-  await send(ctx, first);
-  await send(ctx, second);
+  // En HTML con los apartados plegados ("leer más", D-143); la frase de D-023 queda visible al final del tercero.
+  const [first, second, third] = buildNoticeHtmlMessages(notice, hasAccount ? es.selfRevoke.note : undefined);
+  await sendHtml(ctx, first);
+  await sendHtml(ctx, second);
   const keyboard = new InlineKeyboard().text(es.notice.accept, `${ACCEPT}${notice.version}`).text(es.notice.decline, DECLINE);
   if (hasAccount) keyboard.row().text(es.selfRevoke.button, SELF_REVOKE_ASK);
-  await send(ctx, hasAccount ? withSelfRevoke(third) : third, keyboard);
+  await sendHtml(ctx, third, keyboard);
 }
 
 async function handle(ctx: Context, deps: BotDeps): Promise<void> {

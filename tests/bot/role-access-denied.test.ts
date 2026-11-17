@@ -42,7 +42,7 @@ const callbacks = (): string[] => adminCallbacks(fx);
 function expectNotice(calls = t.messages(), oldVersionAccount = false) {
   expect(calls).toHaveLength(3);
   const texts = calls.map((c) => String(c.payload.text));
-  expect(texts[0]).toMatch(/^\*\*Eje Turismo\. Aviso de privacidad, versión /);
+  expect(texts[0]).toMatch(/^<b>Eje Turismo\. Aviso de privacidad, versión /);
   expect(texts[2]).toContain("Leí el aviso de privacidad de Eje Turismo");
   expect(buttonsOf(calls[2].payload)).toEqual(oldVersionAccount ? ["Acepto", "No acepto", es.selfRevoke.button] : ["Acepto", "No acepto"]);
   for (const text of texts) expect(text).not.toBe(es.admin.forbidden);

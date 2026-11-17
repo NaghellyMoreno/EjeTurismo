@@ -103,7 +103,7 @@ export const es = {
   selfRevoke: {
     button: "Revocar mi autorización",
     // Frase de D-023, idéntica a `revocationNote` del aviso vigente.
-    note: "El número de identidad se usa solo para verificar tu identidad y atender tu solicitud de registro como prestador",
+    note: "El número de identidad se usa solo para verificar tu identidad y atender tu solicitud de registro como prestador.",
     confirm:
       "¿Confirmas que revocas tu autorización? Se borrarán la vinculación de este chat, los datos de tu cuenta y, si tienes, tu registro como prestador con su número de identidad. Solo se conservará la prueba de que autorizaste y revocaste, sin tu número de identidad. Para volver a usar el bot tendrás que aceptar de nuevo el aviso de privacidad",
     confirmButton: "Sí, revocar",
