@@ -121,3 +121,16 @@ Solo se agregan filas al final, con `>>`. Ninguna fila se edita, se borra ni se 
 | D-115 | 5 | 1 | F005 P4: el botón de registro tras un rechazo (D-094) se habilita también en el bot | 2026-11-16 |
 | D-116 | 5 | 1 | F005 P5: si una cuenta tiene permisos de administrador y de prestador a la vez, prevalece el administrador | 2026-11-16 |
 | D-117 | 5 | 1 | F005: aprobados los textos nuevos de la Mini App (sección Textos nuevos de la Mini App de contracts/F005.md) | 2026-11-16 |
+| D-118 | 5 | 1 | F010 P6 y F011 P1: el nombre se normaliza para detectar duplicados recortando espacios, juntando los repetidos, pasando a minúsculas y quitando tildes (Inferido, aprobado) | 2026-11-16 |
+| D-119 | 5 | 1 | F011 P1: el nombre de categorías y tipos tiene máximo 100 caracteres, igual que el nombre de ficha (D-042) | 2026-11-16 |
+| D-120 | 5 | 1 | F010 P2 y F011 P5: el inicio del administrador en la Mini App agrega un enlace a M10 y otro a M11, se mantiene el texto de D-117 y se ajusta una aserción de F005 sin borrar pruebas; los textos nuevos requieren aprobación de la usuaria | 2026-11-16 |
+| D-121 | 5 | 1 | F011 P3: crear y editar categorías y tipos se registra en audit_events sin datos personales (precedente D-076) | 2026-11-16 |
+| D-122 | 5 | 1 | F010 P1, P3, P5, P7 y P8: department se precarga con Caldas, límite de 4096 caracteres también en PATCH, lista en orden alfabético, PATCH sin campos responde 200 sin cambios y no hay datos de prueba en producción | 2026-11-16 |
+| D-123 | 5 | 1 | F011 P4 y P7: se siembra solo Sabores de Caldas (D-052) y los tipos de establecimiento de D-040, y F011 incluye los endpoints de tipos de establecimiento | 2026-11-16 |
+| D-124 | 5 | 1 | F011 P2: F011 verifica listas y una tabla de prueba; la verificación de extremo a extremo se exige en los contratos de F012 y F013 y se anota en progress.md | 2026-11-16 |
+| D-125 | 5 | 1 | F006 P1 opción a: se ajusta ahora el texto de la Mini App para el prestador revocado (texto por aprobar) y la reautorización por el administrador queda para otra funcionalidad | 2026-11-16 |
+| D-126 | 5 | 1 | F006 P2 y P4: F006 agrega y prueba assertProvider a nivel de servicio; la ruta HTTP y el efecto de D-043 sobre las fichas se verifican en F013, F023 | 2026-11-16 |
+| D-127 | 5 | 1 | F006 P3, P5, P6 y P7: no se avisa a la persona afectada, lista del bot de 8 por página con Ver más incluida la propia cuenta, revocar un permiso ya revocado o inexistente responde 404 not_found y traza role_grant.revoked con la forma de D-105 | 2026-11-16 |
+| D-128 | 5 | 2 | F006: aprobados los textos nuevos del bot y de la Mini App (tablas Textos nuevos de contracts/F006.md) y que el prestador revocado reciba en el bot solo menu.welcome sin botones (criterio 17) | 2026-11-16 |
+| D-129 | 5 | 2 | F010: aprobados los textos nuevos de la Mini App, incluido el enlace Administrar municipios (tabla Textos nuevos de contracts/F010.md) | 2026-11-16 |
+| D-130 | 5 | 2 | F011: aprobados los textos nuevos de la Mini App, incluido el enlace Categorías y tipos (tabla Textos nuevos de contracts/F011.md) | 2026-11-16 |
