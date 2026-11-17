@@ -104,7 +104,7 @@
       "Intentar \"Revocar rol\" sobre el administrador principal y verificar que el sistema lo impide y que el mensaje explica el motivo nombrándolo \"administrador principal\" (regla Inferida a partir de D-007 y D-020, pregunta 21 sin respuesta; nombre D-032)",
       "Con la única cuenta de administrador, intentar revocarse el rol a sí misma y verificar que el sistema lo impide (D-020)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F007",
