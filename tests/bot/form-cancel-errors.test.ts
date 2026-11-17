@@ -222,7 +222,7 @@ describe("paso 1: cancelar (criterios 1 a 10, 32)", () => {
         expect(t.texts()[0]).toBe(es.common.nothingToCancel);
         expect(t.texts()[1]).toBe(menu);
         if (id !== PERSON_1) expect(t.texts()).toHaveLength(2);
-        if (id === PERSON_PRINCIPAL) expect(buttonsOf(t.messages()[1].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton]);
+        if (id === PERSON_PRINCIPAL) expect(buttonsOf(t.messages()[1].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton, es.revoke.button]);
       }
     }
     // D-101: la cuenta del principal obtiene su fila `is_principal` en su primera actualización; no cambia nada más.

@@ -93,7 +93,7 @@ describe("B06 y B02 mínimos (criterios 1, 15 y 22)", () => {
       t.clear();
       await t.send(start(id));
       expect(t.texts()).toEqual([es.menu.welcome]);
-      expect(buttonsOf(t.messages()[0].payload)).toEqual(["Registros pendientes", "Autorizar administrador"]);
+      expect(buttonsOf(t.messages()[0].payload)).toEqual(["Registros pendientes", "Autorizar administrador", "Revocar rol"]);
       expect(callbacksOf(t.messages()[0])[0].callback_data).toBe("adm:list");
     }
   });

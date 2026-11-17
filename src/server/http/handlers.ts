@@ -17,7 +17,9 @@ import {
   getMe,
   getMyProviderRegistration,
   listProviderRegistrations,
+  listRoleGrants,
   rejectProviderRegistration,
+  revokeRole,
 } from "@/server/services";
 import type { ConsentState } from "@/server/services";
 import type { Deps } from "./deps";
@@ -200,5 +202,32 @@ export function authorizeAdministratorHandler(deps: Deps) {
       if (actor instanceof Response) return actor;
       const body: unknown = await request.json().catch(() => undefined);
       return json(await authorizeAdministrator(deps.db(), deps.config(), actor, body, deps.now()), 201);
+    });
+}
+
+// GET /api/v1/role-grants (listRoleGrants): solo administradores. 401, 403 y 422 los aplica el servicio.
+export function listRoleGrantsHandler(deps: Deps) {
+  return (request: Request) =>
+    guarded("role_grant.list_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const params = new URL(request.url).searchParams;
+      const query = { role: params.get("role"), page: params.get("page"), pageSize: params.get("pageSize") };
+      return json(await listRoleGrants(deps.db(), deps.config(), actor, query));
+    });
+}
+
+type GrantRoute = { params: Promise<{ grantId: string }> };
+
+// POST /api/v1/role-grants/{grantId}/revocation (revokeRole). Orden (contrato F006, criterio 31): 401, 403, 422, 404, 409.
+// No avisa a la persona afectada (D-127).
+export function revokeRoleHandler(deps: Deps) {
+  return (request: Request, context: GrantRoute) =>
+    guarded("role_grant.revoke_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const { grantId } = await context.params;
+      const body: unknown = await request.json().catch(() => undefined);
+      return json(await revokeRole(deps.db(), deps.config(), actor, grantId, body, deps.now()));
     });
 }

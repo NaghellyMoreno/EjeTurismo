@@ -78,7 +78,7 @@ describe("paso 1: el principal entra sin registro (criterios 1, 2, 4 y 5)", () =
     t.clear();
     await t.send(press(PRINCIPAL, `consent:accept:${NOTICE_VERSION}`));
     expect(t.texts()).toEqual([es.menu.welcome]);
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton, es.revoke.button]);
     const grant = async () => rows("select * from app.role_grants");
     expect(await grant()).toHaveLength(1);
     expect((await grant())[0]).toMatchObject({ role: "admin", is_principal: true, revoked_at: null, provider_registration_id: null, granted_by_account_id: null });
@@ -109,7 +109,7 @@ describe("paso 1: el principal entra sin registro (criterios 1, 2, 4 y 5)", () =
     await owner.query("insert into app.role_grants (telegram_user_id, role, is_principal) values (900000098, 'admin', true)");
     await t.send(press(PRINCIPAL, `consent:accept:${NOTICE_VERSION}`));
     expect(t.texts()).toEqual([es.menu.welcome]);
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton, es.revoke.button]);
     expect(await count("role_grants")).toBe(1);
   });
 });
@@ -216,7 +216,7 @@ describe("paso 4: la cuenta autorizada (criterios 17 a 19)", () => {
     t.clear();
     await t.send(start(PERSON_WITH_ACCOUNT));
     expect(t.texts()).toEqual([es.menu.welcome]);
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton, es.revoke.button]);
     t.clear();
     await t.send(press(PERSON_WITH_ACCOUNT, "adm:list"));
     expect(t.texts()).toEqual([es.admin.noPending]);
@@ -238,7 +238,7 @@ describe("paso 4: la cuenta autorizada (criterios 17 a 19)", () => {
     t.clear();
     await t.send(press(PERSON_NO_ACCOUNT, `consent:accept:${NOTICE_VERSION}`));
     expect(t.texts()).toEqual([es.menu.welcome]);
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.admin.authorizeButton, es.revoke.button]);
     expect(await count("provider_registrations")).toBe(0);
     expect(await rows("select 1 from app.bot_sessions where account_id = $1", [await idOf(PERSON_NO_ACCOUNT)])).toHaveLength(0);
   });

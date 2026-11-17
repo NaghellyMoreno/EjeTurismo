@@ -47,6 +47,9 @@ function parseSession(data: unknown): Session | null {
   return raw.form === FORM && (raw.step === "id" || raw.step === "confirm") ? raw : null;
 }
 
+// Sesión de este formulario con forma válida (la usa el bot para negar el paso siguiente a quien ya no es administrador).
+export const isAuthorizeAdminSession = (data: unknown): boolean => parseSession(data) !== null;
+
 const idKeyboard = () => new InlineKeyboard().text(es.adminAuth.cancelButton, AUTH_CANCEL);
 const confirmKeyboard = () =>
   new InlineKeyboard().text(es.adminAuth.confirmButton, AUTH_CONFIRM).text(es.adminAuth.cancelButton, AUTH_CANCEL);

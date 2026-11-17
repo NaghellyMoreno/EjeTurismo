@@ -89,9 +89,9 @@ describe("paso 1: el prestador no repite el registro (criterios 1 a 5)", () => {
 });
 
 describe("paso 2: el administrador ve su menú (criterios 6 a 9)", () => {
-  const adminButtons = [es.admin.pendingButton, es.admin.authorizeButton];
+  const adminButtons = [es.admin.pendingButton, es.admin.authorizeButton, es.revoke.button];
 
-  it("6: permiso admin, exactamente los dos botones", async () => {
+  it("6: permiso admin, exactamente los tres botones (F006)", async () => {
     await createAccount(owner, ADMIN);
     await grantAdminRole(owner, ADMIN);
     await t.send(start(ADMIN));

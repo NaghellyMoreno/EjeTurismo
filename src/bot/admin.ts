@@ -14,6 +14,7 @@ import {
 import type { AdminProviderRegistration, Db, Decision } from "@/server/services";
 import { formatBogotaShort } from "@/lib/time";
 import { AUTH_START } from "./forms/authorize-admin";
+import { handleRevokeCallback, isRevokeCallback, REVOKE_LIST } from "./revoke";
 import { send } from "./send";
 import { es } from "./texts/es";
 
@@ -123,6 +124,8 @@ async function decide(ctx: Context, deps: AdminDeps, actor: Actor, id: string, k
 
 // El llamador ya comprobó que la cuenta es administradora; los servicios lo vuelven a verificar contra la base.
 export async function handleAdminCallback(ctx: Context, deps: AdminDeps, actor: Actor, data: string): Promise<void> {
+  // B09: revocar rol (src/bot/revoke.ts).
+  if (isRevokeCallback(data)) return handleRevokeCallback(ctx, deps, actor, data);
   const parsed = parseAdminCallback(data);
   if (!parsed) return void (await send(ctx, es.admin.error));
   try {
@@ -146,4 +149,9 @@ export async function handleAdminCallback(ctx: Context, deps: AdminDeps, actor: 
 }
 
 export const adminKeyboard = () =>
-  new InlineKeyboard().text(es.admin.pendingButton, LIST_PENDING).row().text(es.admin.authorizeButton, AUTH_START);
+  new InlineKeyboard()
+    .text(es.admin.pendingButton, LIST_PENDING)
+    .row()
+    .text(es.admin.authorizeButton, AUTH_START)
+    .row()
+    .text(es.revoke.button, REVOKE_LIST);

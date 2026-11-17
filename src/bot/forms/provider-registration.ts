@@ -24,7 +24,7 @@ import {
 } from "@/server/services";
 import type { AccountContext, Db } from "@/server/services";
 import { adminKeyboard, handleAdminCallback, isAdminCallback } from "../admin";
-import { handleAuthorizeUpdate, isAuthCallback } from "./authorize-admin";
+import { handleAuthorizeUpdate, isAuthCallback, isAuthorizeAdminSession } from "./authorize-admin";
 import { isCancelCommand, SessionConflictError } from "../common";
 import { send } from "../send";
 import { es } from "../texts/es";
@@ -137,6 +137,11 @@ export async function handleAccountUpdate(ctx: Context, deps: FormDeps, actor: A
 
   const stored = await loadBotSession(db, accountId);
   const session = parseSession(stored?.data);
+  // Un administrador revocado con una sesión de B08 abierta: no se crea ningún permiso y se descarta el borrador (F006, criterio 24).
+  if (callback !== REGISTER && isAuthorizeAdminSession(stored?.data)) {
+    await clearBotSession(db, accountId, now);
+    return void (await send(ctx, es.admin.forbidden));
+  }
   const save = async (next: Session) => {
     if (!(await saveBotSession(db, accountId, next, stored?.updatedAt ?? null, now))) throw new SessionConflictError();
   };

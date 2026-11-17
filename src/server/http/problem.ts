@@ -13,6 +13,8 @@ const TITLES: Partial<Record<ErrorCode, string>> = {
   rate_limited: "Demasiados intentos",
   invalid_state_transition: "Registro ya decidido",
   role_conflict: "Conflicto de roles",
+  principal_admin_protected: "Administrador principal protegido",
+  last_admin_protected: "Último administrador protegido",
   validation_failed: "Datos inválidos",
   notice_version_outdated: "El aviso cambió",
   internal_error: "Error del sistema",
