@@ -148,7 +148,7 @@
       "Enviar una petición con datos de inicio cuya firma fue alterada (por ejemplo, cambiando el ID de usuario por el de un administrador) y verificar que responde acceso denegado",
       "Abrir la Mini App normalmente desde Telegram y verificar que las peticiones se aceptan"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F028",
