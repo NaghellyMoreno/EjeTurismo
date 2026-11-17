@@ -3,6 +3,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { es } from "@/bot/texts/es";
 import { buttonsOf, createTestBot } from "../helpers/bot";
 import { ownerPool, resetDb } from "../helpers/db";
+import { adminCallbacks } from "../helpers/provider-denial";
 import {
   ADMIN_TEST,
   changedTables,
@@ -35,16 +36,7 @@ beforeEach(async () => {
 });
 afterEach(() => vi.restoreAllMocks());
 
-// Las 14 formas de callback_data de administrador, con <uuid> de un recurso real.
-const callbacks = (): string[] => {
-  const registration = fx.ids.registrationId;
-  const grant = fx.ids.grantId;
-  return [
-    "adm:list", `adm:a:${registration}`, `adm:r:${registration}`, `adm:ca:${registration}`, `adm:cr:${registration}`, `adm:x:${registration}`,
-    "adm:vl", "adm:vp:1", `adm:vs:${grant}`, `adm:vc:${grant}`, `adm:vx:${grant}`,
-    "auth:start", "auth:confirm:900007099", "auth:cancel",
-  ];
-};
+const callbacks = (): string[] => adminCallbacks(fx);
 
 function expectNotice(calls = t.messages()) {
   expect(calls).toHaveLength(3);
