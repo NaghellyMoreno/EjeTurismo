@@ -219,7 +219,7 @@
       "Elegir la opción, confirmar y verificar los mismos efectos que en F034, con canal Mini App en la prueba de revocación",
       "Abrir de nuevo la Mini App y verificar que muestra el aviso antes de cualquier otro paso"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F010",
