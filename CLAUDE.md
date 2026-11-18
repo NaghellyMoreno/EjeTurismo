@@ -32,9 +32,9 @@ Plataforma de promoción y descubrimiento de destinos, atractivos, servicios y e
 | `docs/03-arquitectura.md`, `docs/adr/` | Arquitectura y decisiones | architect |
 | `api/openapi.yaml` | Contrato entre frontend y backend | architect |
 | `docs/04-readiness.md` | Revisión de preparación | readiness-reviewer |
-| `feature_list.json` | Funcionalidades y estado `passes` | product-manager crea; solo qa-evaluator cambia `passes` |
+| `feature_list.json` | Funcionalidades y estado `passes` | product-manager crea; solo qa-evaluator o qa-evaluator-ui cambian `passes` |
 | `contracts/<id>.md` | Contrato de terminado por funcionalidad | developer propone, qa-evaluator revisa |
-| `qa/<id>.md` | Informe de QA por funcionalidad | qa-evaluator |
+| `qa/<id>.md` | Informe de QA por funcionalidad | qa-evaluator (sin navegador) o qa-evaluator-ui (con Playwright) |
 | `progress.md` | Bitácora: una línea por trabajo terminado | developer |
 | `init.sh` | Levanta el entorno y corre una prueba de humo | developer |
 
