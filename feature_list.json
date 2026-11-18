@@ -306,7 +306,7 @@
       "Con la cuenta de administrador, aprobarla con confirmación y verificar que pasa a publicada y aparece en la exploración del visitante",
       "Verificar que el rechazo y la aprobación quedan registrados con fecha, responsable y motivo"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F015",
