@@ -3,6 +3,7 @@ import { join, relative, sep } from "node:path";
 import type { Pool } from "pg";
 import { createAccount, createOldVersionAccount, grantAdmin } from "../factories/accounts";
 import { createRegistration, makeProvider } from "../factories/review";
+import { seedListing } from "./listing-data";
 import { PROTECTED_OPERATIONS, specOperations, UNKNOWN_ID, type ProtectedOperation } from "./protected-operations";
 
 // Matriz de F007: acceso denegado por rol (visitante y registro pendiente). Las funcionalidades siguientes (F012 en adelante)
@@ -57,13 +58,13 @@ export const ADMIN_OPERATION_IDS = [
   "updateExperienceType", "createEstablishmentType", "updateEstablishmentType",
 ];
 
-// Operaciones de rol con ruta: las 14 de solo administrador más `createListing` (F012, criterios 15 y 18; D-136 y D-137).
+// Operaciones de rol con ruta: las 14 de solo administrador, `createListing` (F012) y las 4 de F013 (D-136 y D-137).
 // `ADMIN_OPERATION_IDS` no cambia: F008 y la autorrevocación la usan.
-export const ROUTED_OPERATION_IDS = [...ADMIN_OPERATION_IDS, "createListing"];
+export const ROUTED_OPERATION_IDS = [...ADMIN_OPERATION_IDS, "createListing", "listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview"];
 
-// Las 16 operaciones de rol sin `route.ts` todavía (criterio 15 de F007; cobertura diferida a F013 en adelante).
+// Las 12 operaciones de rol sin `route.ts` todavía (criterio 15 de F007; cobertura diferida a F014 en adelante).
 export const UNROUTED_OPERATION_IDS = [
-  "listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview", "getListingStatusHistory",
+  "getListingStatusHistory",
   "createPhotoUpload", "registerPhoto", "removePhoto", "listPendingReviews", "getReview", "approveListingVersion", "rejectListingVersion",
   "listMyBusinessInformationRequests", "getInformationRequest", "replyToInformationRequest", "changeInformationRequestStatus",
 ];
@@ -71,6 +72,7 @@ export const UNROUTED_OPERATION_IDS = [
 export const ROLE_DENIAL_OPERATIONS: RoleDenialOperation[] = [
   ...ADMIN_OPERATION_IDS.map((id) => entry(id, ["admin"], true)),
   entry("createListing", ["provider", "admin"], true),
+  ...["listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview"].map((id) => entry(id, specRoles(id), true)),
   ...UNROUTED_OPERATION_IDS.map((id) => entry(id, specRoles(id), false)),
 ];
 
@@ -104,7 +106,9 @@ export function operationIdsWithRoute(): Set<string> {
 export const roleOperations = () => specOperations.filter((o) => o.roles.some((r) => r === "admin" || r === "provider"));
 
 // ---- Casos de la matriz HTTP -------------------------------------------------------------------------------------
-export type ResourceKey = "registrationId" | "secondRegistrationId" | "grantId" | "municipalityId" | "categoryId" | "experienceTypeId" | "establishmentTypeId";
+export type ResourceKey =
+  | "registrationId" | "secondRegistrationId" | "grantId" | "municipalityId" | "categoryId" | "experienceTypeId" | "establishmentTypeId"
+  | "draftListingId" | "submitListingId" | "pendingListingId";
 
 export interface RoleCase {
   operationId: string;
@@ -112,6 +116,8 @@ export interface RoleCase {
   body?: Record<string, unknown>; // cuerpo válido (columna "Cuerpo" del criterio 10); sin él, la operación no lleva cuerpo
   bodyFor?: (fixtures: RoleFixtures) => Record<string, unknown>; // cuerpo válido que usa datos reales de `seedRoleDenial`
   positive: number; // código exacto del control positivo
+  positiveActor?: number; // quien obtiene el control positivo (F013): por defecto, el administrador de prueba
+  kind?: "attraction" | "establishment"; // segundo caso de `createListing` (F013, P8)
 }
 
 // En el orden del control positivo del criterio 10 de F007.
@@ -148,10 +154,48 @@ export const ROLE_CASES: RoleCase[] = [
     }),
     positive: 201,
   },
+  // F013 (D-136, D-137, P8): establecimiento del prestador y las 4 operaciones nuevas.
+  {
+    operationId: "createListing",
+    kind: "establishment",
+    bodyFor: (fixtures) => ({
+      kind: "establishment",
+      content: {
+        name: "Establecimiento Ficticio Uno",
+        municipalityId: fixtures.ids.municipalityId,
+        categoryId: fixtures.ids.categoryId,
+        establishmentTypeId: fixtures.ids.establishmentTypeId,
+        description: "Descripción ficticia.",
+        schedule: "Todos los días de 8:00 a 17:00",
+        contact: "contacto@ejemplo.invalid",
+        mapsUrl: "https://maps.app.goo.gl/AbCdEf123",
+      },
+      confirmed: true,
+    }),
+    positive: 201,
+    positiveActor: PROVIDER_CONTROL,
+  },
+  { operationId: "listManagedListings", positive: 200 },
+  { operationId: "getManagedListing", resource: "pendingListingId", positive: 200 },
+  {
+    operationId: "saveListingDraft",
+    resource: "draftListingId",
+    bodyFor: (fixtures) => ({ content: { name: "Ficha Sembrada Borrador Editada", municipalityId: fixtures.ids.municipalityId }, confirmed: true }),
+    positive: 200,
+    positiveActor: PROVIDER_CONTROL,
+  },
+  {
+    operationId: "submitListingForReview",
+    resource: "submitListingId",
+    body: { confirmed: true, thirdPartyAuthorizationDeclared: true },
+    positive: 200,
+    positiveActor: PROVIDER_CONTROL,
+  },
 ];
 
-export const roleCaseOf = (operationId: string): RoleCase => {
-  const found = ROLE_CASES.find((c) => c.operationId === operationId);
+// `roleCaseOf("createListing")` devuelve el de atractivo; el de establecimiento se pide con `kind`.
+export const roleCaseOf = (operationId: string, kind?: RoleCase["kind"]): RoleCase => {
+  const found = ROLE_CASES.find((c) => c.operationId === operationId && (kind === undefined || c.kind === kind));
   if (!found) throw new Error(`Falta el caso de ROLE_CASES para ${operationId}: toda operación con ruta entra a la matriz (D-136)`);
   return found;
 };
@@ -197,8 +241,13 @@ export async function seedRoleDenial(owner: Pool): Promise<RoleFixtures> {
   const categoryId = await one("insert into app.categories (name, name_normalized) values ('Categoria Ficticia', 'categoria ficticia') returning id");
   const experienceTypeId = await one("insert into app.experience_types (name, name_normalized) values ('Experiencia Ficticia', 'experiencia ficticia') returning id");
   const establishmentTypeId = await one("insert into app.establishment_types (name, name_normalized) values ('Establecimiento Ficticio', 'establecimiento ficticio') returning id");
+  // F013: tres fichas de A6 para los controles positivos (un borrador, un borrador completo y una pendiente).
+  const own = { accountId: providerControlAccountId, municipalityId, categoryId };
+  const draftListingId = (await seedListing(owner, { ...own, name: "Ficha Sembrada Borrador" })).listingId;
+  const submitListingId = (await seedListing(owner, { ...own, name: "Ficha Sembrada Completa", complete: true })).listingId;
+  const pendingListingId = (await seedListing(owner, { ...own, name: "Ficha Sembrada Pendiente", status: "pending" })).listingId;
   return {
-    ids: { registrationId, secondRegistrationId, grantId, municipalityId, categoryId, experienceTypeId, establishmentTypeId },
+    ids: { registrationId, secondRegistrationId, grantId, municipalityId, categoryId, experienceTypeId, establishmentTypeId, draftListingId, submitListingId, pendingListingId },
     a4RegistrationId,
     providerControlAccountId,
   };
@@ -217,7 +266,7 @@ export function roleRequest(fixtures: RoleFixtures, rc: RoleCase, headers: Recor
 // Los manejadores leen su propio parámetro; se entregan todos con el mismo ID.
 export const roleContext = (id: string) => ({
   params: Promise.resolve({
-    registrationId: id, grantId: id, municipalityId: id, categoryId: id, experienceTypeId: id, establishmentTypeId: id,
+    registrationId: id, grantId: id, municipalityId: id, categoryId: id, experienceTypeId: id, establishmentTypeId: id, listingId: id,
   }),
 });
 export const contextFor = (fixtures: RoleFixtures, rc: RoleCase, variant: "valid" | "empty" = "valid") =>

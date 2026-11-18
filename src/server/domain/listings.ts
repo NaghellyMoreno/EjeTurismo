@@ -32,18 +32,26 @@ const MESSAGES: Record<string, string> = {
   "kind.invalid": "El tipo de ficha no es válido.",
   "content.required": "Faltan los datos del atractivo.",
   "body.invalid_json": "La solicitud no tiene un formato válido.",
+  // F013 (establecimientos).
+  "thirdPartyAuthorizationDeclared.declaration_required": "Debes declarar que tienes la autorización de los guías y contactos.",
+  "establishmentTypeId.invalid": "El tipo de establecimiento elegido no es válido.",
+  "establishmentTypeId.not_found": "El tipo de establecimiento elegido ya no existe. Actualiza la pantalla.",
 };
 export const LISTING_ERROR_MESSAGES: Readonly<Record<string, string>> = MESSAGES;
 
 export const PARAM_INVALID_TEXT = "El valor indicado no es válido.";
 
-export function listingErrorMessage(field: string, code: string): string {
-  if (code === "not_allowed") return "Este dato no corresponde a un atractivo.";
+export function listingErrorMessage(field: string, code: string, kind: "attraction" | "establishment" = "attraction"): string {
+  if (code === "not_allowed") return kind === "establishment" ? "Este dato no corresponde a un establecimiento." : "Este dato no corresponde a un atractivo.";
   if (code === "unknown_field") return "Este dato no se reconoce.";
   return MESSAGES[`${field}.${code}`] ?? PARAM_INVALID_TEXT;
 }
 
-const fieldError = (field: string, code: string): FieldError => ({ field, code, message: listingErrorMessage(field, code) });
+const fieldError = (field: string, code: string, kind: "attraction" | "establishment" = "attraction"): FieldError => ({
+  field,
+  code,
+  message: listingErrorMessage(field, code, kind),
+});
 
 const isUuid = (value: unknown): value is string => z.uuid().safeParse(value).success;
 const isRecord = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value);
@@ -151,4 +159,154 @@ export function parsePublishedListQuery(params: URLSearchParams): { ok: true; qu
     else errors.push(paramError("kind"));
   }
   return errors.length > 0 ? { ok: false, errors } : { ok: true, query };
+}
+
+// ---- Establecimientos del prestador (F013) --------------------------------------------------------------------
+
+export interface DraftContent {
+  name: string;
+  municipalityId: string;
+  categoryId: string | null;
+  establishmentTypeId: string | null;
+  description: string | null;
+  schedule: string | null;
+  contact: string | null;
+  mapsUrl: string | null;
+}
+
+const OPTIONAL_TEXT_FIELDS = ["description", "schedule", "contact", "mapsUrl"] as const;
+const DRAFT_KEYS = ["name", "municipalityId", "categoryId", "establishmentTypeId", ...OPTIONAL_TEXT_FIELDS];
+const NOT_ALLOWED_FOR_ESTABLISHMENT = ["experienceTypeId", "guidesInfo"];
+const est = (field: string, code: string): FieldError => fieldError(field, code, "establishment");
+
+// Contenido de un borrador de establecimiento (P6): solo `name` y `municipalityId` son obligatorios; un campo opcional
+// vacío (`""`, solo espacios o `null`) se guarda como NULL. Reúne todos los errores en `errors`.
+function parseDraftContent(content: unknown, errors: FieldError[]): DraftContent | undefined {
+  if (content === undefined || content === null) {
+    errors.push(est("content", "required"));
+    return undefined;
+  }
+  if (!isRecord(content)) {
+    errors.push(est("content", "invalid"));
+    return undefined;
+  }
+  const before = errors.length;
+  for (const key of Object.keys(content)) {
+    if (NOT_ALLOWED_FOR_ESTABLISHMENT.includes(key)) errors.push(est(key, "not_allowed"));
+    else if (!DRAFT_KEYS.includes(key)) errors.push(est(key, "unknown_field"));
+  }
+  const value: DraftContent = { name: "", municipalityId: "", categoryId: null, establishmentTypeId: null, description: null, schedule: null, contact: null, mapsUrl: null };
+
+  const name = typeof content.name === "string" ? content.name.trim() : "";
+  if (name === "") errors.push(est("name", "required"));
+  else if ([...name].length > LISTING_LIMITS.name) errors.push(est("name", "too_long"));
+  else value.name = name;
+
+  const municipality = content.municipalityId;
+  if (municipality === undefined || municipality === null || municipality === "") errors.push(est("municipalityId", "required"));
+  else if (!isUuid(municipality)) errors.push(est("municipalityId", "invalid"));
+  else value.municipalityId = municipality;
+
+  for (const field of ["categoryId", "establishmentTypeId"] as const) {
+    const raw = content[field];
+    if (raw === undefined || raw === null || (typeof raw === "string" && raw.trim() === "")) continue;
+    if (!isUuid(raw)) errors.push(est(field, "invalid"));
+    else value[field] = raw;
+  }
+
+  for (const field of OPTIONAL_TEXT_FIELDS) {
+    const raw = content[field];
+    if (raw === undefined || raw === null) continue;
+    if (typeof raw !== "string") {
+      errors.push(est(field, field === "mapsUrl" ? "invalid_maps_url" : "invalid"));
+      continue;
+    }
+    const text = raw.trim();
+    if (text === "") continue;
+    if (field === "mapsUrl") {
+      if (isGoogleMapsUrl(text)) value.mapsUrl = text;
+      else errors.push(est(field, "invalid_maps_url"));
+    } else if ([...text].length > LISTING_LIMITS[field]) errors.push(est(field, "too_long"));
+    else value[field] = text;
+  }
+  return errors.length === before ? value : undefined;
+}
+
+const confirmationError = (raw: Record<string, unknown>, errors: FieldError[]) => {
+  if (raw.confirmed !== true) errors.push(est("confirmed", "confirmation_required"));
+};
+const unknownRootKeys = (raw: Record<string, unknown>, allowed: string[], errors: FieldError[]) => {
+  for (const key of Object.keys(raw)) if (!allowed.includes(key)) errors.push(est(key, "unknown_field"));
+};
+
+export type ParsedDraftCreate =
+  | { ok: true; content: DraftContent }
+  | { ok: false; errors: FieldError[] }
+  | { ok: false; forbiddenKind: true };
+
+// `createListing` del prestador con `kind: establishment`. `attraction` es de administrador (403); `route_experience` aún
+// no existe (F018) y responde 422 `kind` `invalid` (P5).
+export function parseEstablishmentCreate(raw: unknown): ParsedDraftCreate {
+  if (!isRecord(raw)) return { ok: false, errors: [est("body", "invalid_json")] };
+  const errors: FieldError[] = [];
+  const kind = raw.kind;
+  if (kind === undefined || kind === null) errors.push(est("kind", "required"));
+  else if (kind === "attraction") return { ok: false, forbiddenKind: true };
+  else if (kind !== "establishment") errors.push(est("kind", "invalid"));
+  unknownRootKeys(raw, ["kind", "content", "confirmed"], errors);
+  const content = parseDraftContent(raw.content, errors);
+  confirmationError(raw, errors);
+  return errors.length > 0 || !content ? { ok: false, errors } : { ok: true, content };
+}
+
+// `saveListingDraft`: el cuerpo lleva `content` y `confirmed`; reemplaza el contenido completo (P6).
+export function parseDraftSave(raw: unknown): { ok: true; content: DraftContent } | { ok: false; errors: FieldError[] } {
+  if (!isRecord(raw)) return { ok: false, errors: [est("body", "invalid_json")] };
+  const errors: FieldError[] = [];
+  unknownRootKeys(raw, ["content", "confirmed"], errors);
+  const content = parseDraftContent(raw.content, errors);
+  confirmationError(raw, errors);
+  return errors.length > 0 || !content ? { ok: false, errors } : { ok: true, content };
+}
+
+// Los 5 campos de D-003 que el borrador puede tener vacíos; se exigen al enviar a revisión sobre el contenido guardado.
+export const REQUIRED_TO_SUBMIT = ["categoryId", "description", "schedule", "contact", "mapsUrl"] as const;
+
+export function missingToSubmit(saved: Partial<Record<(typeof REQUIRED_TO_SUBMIT)[number], string | null>>): FieldError[] {
+  return REQUIRED_TO_SUBMIT.filter((field) => (saved[field] ?? "").trim() === "").map((field) => est(field, "required"));
+}
+
+// `submitListingForReview`: confirmación y declaración de autorización de terceros (D-024).
+export function parseSubmission(raw: unknown): { ok: true } | { ok: false; errors: FieldError[] } {
+  if (!isRecord(raw)) return { ok: false, errors: [est("body", "invalid_json")] };
+  const errors: FieldError[] = [];
+  unknownRootKeys(raw, ["confirmed", "thirdPartyAuthorizationDeclared"], errors);
+  if (raw.thirdPartyAuthorizationDeclared !== true) errors.push(est("thirdPartyAuthorizationDeclared", "declaration_required"));
+  confirmationError(raw, errors);
+  return errors.length > 0 ? { ok: false, errors } : { ok: true };
+}
+
+export type DisplayStatusValue = "draft" | "pending" | "published" | "rejected";
+export const DISPLAY_STATUSES: readonly DisplayStatusValue[] = ["draft", "pending", "published", "rejected"];
+
+export interface ManagedListQuery {
+  page: number;
+  pageSize: number;
+  kind?: ListingKindValue;
+  displayStatus?: DisplayStatusValue;
+}
+
+// Parámetros de `listManagedListings`: `page` >= 1, `pageSize` de 1 a 50, `kind` y `displayStatus` de sus enumeraciones.
+export function parseManagedListQuery(params: URLSearchParams): { ok: true; query: ManagedListQuery } | { ok: false; errors: FieldError[] } {
+  const base = parsePublishedListQuery(new URLSearchParams([...params].filter(([key]) => key === "page" || key === "pageSize" || key === "kind")));
+  const errors: FieldError[] = base.ok ? [] : [...base.errors];
+  const displayStatus = params.get("displayStatus");
+  let status: DisplayStatusValue | undefined;
+  if (displayStatus !== null) {
+    if ((DISPLAY_STATUSES as readonly string[]).includes(displayStatus)) status = displayStatus as DisplayStatusValue;
+    else errors.push({ field: "displayStatus", code: "invalid", message: PARAM_INVALID_TEXT });
+  }
+  if (errors.length > 0 || !base.ok) return { ok: false, errors };
+  const { page, pageSize, kind } = base.query;
+  return { ok: true, query: { page, pageSize, ...(kind ? { kind } : {}), ...(status ? { displayStatus: status } : {}) } };
 }

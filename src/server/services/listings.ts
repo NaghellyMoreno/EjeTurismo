@@ -16,7 +16,7 @@ export type PublicListingSummaryPage = components["schemas"]["PublicListingSumma
 export const LISTING_CREATED_ACTION = "listing.created";
 
 const VALIDATION_DETAIL = "Revisa los campos marcados.";
-const validationFailed = (errors: FieldError[]) =>
+export const validationFailed = (errors: FieldError[]) =>
   new AppError("validation_failed", 422, "Datos inválidos", errors, {
     detail: errors.length === 1 && errors[0]!.field === "confirmed" ? CONFIRMATION_REQUIRED_TEXT : VALIDATION_DETAIL,
   });

@@ -220,3 +220,53 @@ body {
   border: 1px solid var(--color-primary);
   border-radius: 0.5rem;
 }
+
+/* M04 y M08 (F013): lista y detalle de fichas. Enlaces con el color de texto; los que parecen botón, blanco sobre el primario oscuro. */
+.screen a {
+  color: var(--color-text);
+}
+
+.screen a.primary {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: var(--color-primary-dark);
+  color: #fff;
+  border-radius: 0.5rem;
+  text-decoration: none;
+}
+
+.screen a:focus-visible {
+  outline: 3px solid var(--color-text);
+  outline-offset: 2px;
+}
+
+.screen .listing-list ul {
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.screen .listing-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-background);
+  border: 1px solid var(--color-primary);
+  border-radius: 0.5rem;
+}
+
+.screen .listing-list dt {
+  font-weight: 600;
+}
+
+.screen .listing-list dd {
+  margin: 0 0 0.5rem;
+}
+
+.screen .listing-form input[type="checkbox"] {
+  display: inline-block;
+  width: auto;
+  margin: 0 0.5rem 0 0;
+}

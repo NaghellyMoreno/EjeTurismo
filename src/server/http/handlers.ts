@@ -10,15 +10,17 @@ import {
   acceptPrivacyNotice,
   approveProviderRegistration,
   authorizeAdministrator,
-  createAttractionListing,
+  createListing,
   createMunicipality,
   createCatalogItem,
   createProviderRegistration,
   getActiveRoles,
   getConsentState,
   getCurrentPrivacyNotice,
+  getManagedListing,
   getMe,
   getMyProviderRegistration,
+  listManagedListings,
   listMunicipalities,
   listPublishedListings,
   listCatalog,
@@ -27,6 +29,8 @@ import {
   rejectProviderRegistration,
   revokeMyAuthorization,
   revokeRole,
+  saveListingDraft,
+  submitListingForReview,
   updateMunicipality,
   renameCatalogItem,
 } from "@/server/services";
@@ -321,15 +325,15 @@ export function renameCatalogItemHandler<P extends string>(deps: Deps, kind: Cat
 }
 
 // ---- Fichas (F012) ---------------------------------------------------------------------------------------------
-// POST /api/v1/managed-listings (createListing): en esta entrega solo el atractivo del administrador. Orden: 401, 403
-// `consent_required`, 403 `forbidden`, 422, 409 `duplicate`; los aplica el servicio.
+// POST /api/v1/managed-listings (createListing): atractivo del administrador (F012) o establecimiento del prestador (F013).
+// Orden: 401, 403 `consent_required`, 403 `forbidden`, 422, 409 `duplicate`; los aplica el servicio.
 export function createListingHandler(deps: Deps) {
   return (request: Request) =>
     guarded("listing.create_failed", async () => {
       const actor = authenticate(request, deps);
       if (actor instanceof Response) return actor;
       const body: unknown = await request.json().catch(() => undefined);
-      return json(await createAttractionListing(deps.db(), deps.config(), actor, body, deps.now()), 201);
+      return json(await createListing(deps.db(), deps.config(), actor, body, deps.now()), 201);
     });
 }
 
@@ -340,5 +344,52 @@ export function listPublishedListingsHandler(deps: Deps) {
       const actor = authenticate(request, deps);
       if (actor instanceof Response) return actor;
       return json(await listPublishedListings(deps.db(), actor, new URL(request.url).searchParams));
+    });
+}
+
+// GET /api/v1/managed-listings (listManagedListings): prestador (lo suyo) y administrador (desde que se envían).
+export function listManagedListingsHandler(deps: Deps) {
+  return (request: Request) =>
+    guarded("listing.list_managed_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      return json(await listManagedListings(deps.db(), deps.config(), actor, new URL(request.url).searchParams));
+    });
+}
+
+type ListingRoute = { params: Promise<{ listingId: string }> };
+
+// GET /api/v1/managed-listings/{listingId} (getManagedListing). Una ficha ajena o inexistente responde 403.
+export function getManagedListingHandler(deps: Deps) {
+  return (request: Request, context: ListingRoute) =>
+    guarded("listing.get_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const { listingId } = await context.params;
+      return json(await getManagedListing(deps.db(), deps.config(), actor, listingId));
+    });
+}
+
+// PUT .../draft (saveListingDraft) y POST .../submission (submitListingForReview): solo prestador. Orden: 401, 403
+// `consent_required`, 403 `forbidden` (rol o ficha ajena), 409 `invalid_state_transition`, 422 y 409 `duplicate`.
+export function saveListingDraftHandler(deps: Deps) {
+  return (request: Request, context: ListingRoute) =>
+    guarded("listing.save_draft_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const { listingId } = await context.params;
+      const body: unknown = await request.json().catch(() => undefined);
+      return json(await saveListingDraft(deps.db(), deps.config(), actor, listingId, body, deps.now()));
+    });
+}
+
+export function submitListingForReviewHandler(deps: Deps) {
+  return (request: Request, context: ListingRoute) =>
+    guarded("listing.submit_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const { listingId } = await context.params;
+      const body: unknown = await request.json().catch(() => undefined);
+      return json(await submitListingForReview(deps.db(), deps.config(), actor, listingId, body, deps.now()));
     });
 }

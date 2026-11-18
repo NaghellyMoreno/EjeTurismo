@@ -265,8 +265,9 @@ describe("matriz de las 14 operaciones (criterios 7 a 10)", () => {
     const derived = adminOnly.map((e) => e.operationId).sort();
     expect(derived).toHaveLength(14);
     expect(derived, "operaciones de solo administrador vs ADMIN_OPERATION_IDS").toEqual([...ADMIN_OPERATION_IDS].sort());
-    // F012 (criterio 15): ROLE_CASES suma `createListing`, que no es de solo administrador.
-    expect(ROLE_CASES.map((c) => c.operationId).sort(), "ROLE_CASES").toEqual([...derived, "createListing"].sort());
+    // F012 y F013: ROLE_CASES suma `createListing` (dos casos) y las 4 operaciones de fichas gestionadas (20 elementos).
+    const expected = [...derived, "createListing", "createListing", "listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview"];
+    expect(ROLE_CASES.map((c) => c.operationId).sort(), "ROLE_CASES").toEqual(expected.sort());
     const missing = derived.filter((id) => !executed.has(id));
     const extra = [...executed].filter((id) => !derived.includes(id));
     expect(missing, `operaciones que la matriz no ejecutó: ${missing.join(", ")}`).toEqual([]);

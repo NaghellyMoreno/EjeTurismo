@@ -12,6 +12,7 @@ import { failingDb } from "../helpers/failing-db";
 import { validateSchema } from "../helpers/openapi";
 import { responseSchemaName } from "../helpers/protected-operations";
 import {
+  ADMIN_OPERATION_IDS,
   ADMIN_TEST,
   changedTables,
   contextFor,
@@ -80,7 +81,7 @@ const hasRoute = ROLE_DENIAL_OPERATIONS.filter((e) => e.hasRoute);
 const executed = new Set<string>();
 
 describe("paso 1: sin identidad válida (criterios 1 a 3)", () => {
-  it("1 y 2: 15 operaciones x 3 variantes dan 401 unauthenticated y no cambian ninguna tabla (45 casos)", async () => {
+  it("1 y 2: 19 operaciones x 3 variantes dan 401 unauthenticated y no cambian ninguna tabla (57 casos)", async () => {
     expect(hasRoute.map((e) => e.operationId).sort()).toEqual([...ROUTED_OPERATION_IDS].sort());
     let cases = 0;
     for (const entry of hasRoute) {
@@ -96,7 +97,7 @@ describe("paso 1: sin identidad válida (criterios 1 a 3)", () => {
         cases++;
       }
     }
-    expect(cases).toBe(45);
+    expect(cases).toBe(57);
   });
 
   it("3: aprobar o rechazar sin cabecera da 401; el registro sigue pending y no hay filas nuevas", async () => {
@@ -113,14 +114,14 @@ describe("paso 1: sin identidad válida (criterios 1 a 3)", () => {
 });
 
 describe("paso 2: visitante y registro pendiente (criterios 4 a 10)", () => {
-  it("4 a 6 y 8: 15 operaciones x A1 a A5, con cuerpo válido y vacío; mismo código, sin cambios y sin filtrar datos", async () => {
+  it("4 a 6 y 8: 20 casos x A1 a A5, con cuerpo válido y vacío; mismo código, sin cambios y sin filtrar datos (200 casos)", async () => {
     const table: Array<{ operacion: string; persona: string; esperado: string; obtenido: string }> = [];
     const secrets = [
       SECRET_REGISTRATION_NAME, SECRET_MUNICIPALITY_NAME, SECRET_IDENTITY_NUMBER,
-      String(ADMIN_TEST), String(PENDING_OWNER), String(PENDING_OTHER), String(TEST_PRINCIPAL_ADMIN_ID), NEW_ADMIN_ID,
+      String(ADMIN_TEST), String(PENDING_OWNER), String(PENDING_OTHER), String(TEST_PRINCIPAL_ADMIN_ID), NEW_ADMIN_ID, "Establecimiento Ficticio Uno",
     ];
-    for (const entry of hasRoute) {
-      const rc = roleCaseOf(entry.operationId);
+    for (const rc of ROLE_CASES) {
+      const entry = hasRoute.find((e) => e.operationId === rc.operationId)!;
       for (const person of PERSON_KEYS) {
         const expected = entry.deniedPersons[person];
         const headers = initFor(PERSON_IDS[person]);
@@ -129,7 +130,7 @@ describe("paso 2: visitante y registro pendiente (criterios 4 a 10)", () => {
           const before = await snapshotAll(owner);
           const res = await run(rc, headers, variant);
           const text = await res.text();
-          const label = `${entry.operationId} / ${person} / ${variant}`;
+          const label = `${entry.operationId}${rc.kind ? ` (${rc.kind})` : ""} / ${person} / ${variant}`;
           const json = JSON.parse(text) as Record<string, any>;
           expect({ status: res.status, code: json.code }, label).toEqual(expected);
           expect(res.headers.get("content-type"), label).toContain("application/problem+json");
@@ -138,12 +139,12 @@ describe("paso 2: visitante y registro pendiente (criterios 4 a 10)", () => {
           results[variant] = `${res.status} ${json.code}`;
         }
         expect(results.empty, `${entry.operationId} / ${person}: vacío igual que válido`).toBe(results.valid);
-        table.push({ operacion: entry.operationId, persona: person, esperado: `${expected.status} ${expected.code}`, obtenido: results.valid });
+        table.push({ operacion: `${entry.operationId}${rc.kind ? ` (${rc.kind})` : ""}`, persona: person, esperado: `${expected.status} ${expected.code}`, obtenido: results.valid });
         executed.add(`${entry.operationId}:${person}`);
       }
     }
     console.table(table);
-    expect(table).toHaveLength(75);
+    expect(table).toHaveLength(100);
     expect(table.filter((r) => r.esperado !== r.obtenido)).toEqual([]);
   });
 
@@ -182,15 +183,14 @@ describe("paso 2: visitante y registro pendiente (criterios 4 a 10)", () => {
     }
   });
 
-  it("10: control positivo con el administrador de prueba, 15 filas con el código exacto de la tabla", async () => {
+  it("10: control positivo (administrador de prueba o prestador A6 según el caso), 20 filas con el código exacto de la tabla", async () => {
     const table: Array<{ orden: number; operacion: string; esperado: number; obtenido: number }> = [];
-    const headers = initFor(ADMIN_TEST);
     for (const [i, rc] of ROLE_CASES.entries()) {
-      const res = await run(rc, headers);
-      table.push({ orden: i + 1, operacion: rc.operationId, esperado: rc.positive, obtenido: res.status });
+      const res = await run(rc, initFor(rc.positiveActor ?? ADMIN_TEST));
+      table.push({ orden: i + 1, operacion: `${rc.operationId}${rc.kind ? ` (${rc.kind})` : ""}`, esperado: rc.positive, obtenido: res.status });
     }
     console.table(table);
-    expect(table).toHaveLength(15);
+    expect(table).toHaveLength(20);
     expect(table.filter((r) => r.esperado !== r.obtenido)).toEqual([]);
   });
 });
@@ -201,7 +201,7 @@ describe("paso 3: registro pendiente (criterios 11 y 12)", () => {
     return { status: res.status, json: await body(res) };
   };
 
-  it("11: A4 no obtiene permisos por tener un registro pendiente, antes ni después de los 150 casos", async () => {
+  it("11: A4 no obtiene permisos por tener un registro pendiente, antes ni después de los 200 casos", async () => {
     const schema = responseSchemaName("getMe", 200)!.name;
     const before = await getMe(PERSON_IDS.A4);
     expect(before.status).toBe(200);
@@ -229,7 +229,8 @@ describe("paso 3: registro pendiente (criterios 11 y 12)", () => {
     const me = await getMe(PERSON_IDS.A4);
     expect(me.json.roles).toEqual(["provider"]);
     expect(me.json.providerRegistrationStatus).toBe("approved");
-    for (const entry of hasRoute) {
+    // Las operaciones de prestador (F013) sí le corresponden; aquí solo las de administrador y el atractivo.
+    for (const entry of hasRoute.filter((e) => ADMIN_OPERATION_IDS.includes(e.operationId) || e.operationId === "createListing")) {
       const rc = roleCaseOf(entry.operationId);
       const res = await run(rc, initFor(PERSON_IDS.A4));
       expect({ status: res.status, code: (await body(res)).code }, entry.operationId).toEqual({ status: 403, code: "forbidden" });

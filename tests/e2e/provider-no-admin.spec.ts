@@ -44,7 +44,9 @@ test("18: en / el prestador ve solo role-provider, sin enlaces ni botones", asyn
   await open(page, "/");
   const home = page.getByTestId("miniapp-home");
   await expect(page.getByTestId("role-provider")).toHaveText("Ya tienes el rol de prestador. Las opciones de prestador estarán disponibles pronto.");
-  await expect(home.getByRole("link")).toHaveCount(0);
+  // F013: el prestador ve un único enlace, "Mis fichas"; ninguno de administrador.
+  await expect(home.getByRole("link")).toHaveCount(1);
+  await expect(page.getByTestId("listings-link")).toHaveText("Mis fichas");
   // F036 (criterio 40): M02 trae el botón de revocar; no hay otro botón.
   await expect(home.getByRole("button")).toHaveText([es.selfRevoke.button]);
   await absent(page, ["role-admin", "municipalities-link", "catalog-link", "register-hint", "registration-pending", "role-revoked", "consent-required", "session-error"]);

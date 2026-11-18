@@ -6,7 +6,7 @@ import type { Deps } from "@/server/http/deps";
 import { getCurrentPrivacyNoticeHandler } from "@/server/http/handlers";
 import { GET as healthGet } from "@/app/api/health/route";
 import { createAccount } from "../factories/accounts";
-import { createRegistration, grantAdminRole } from "../factories/review";
+import { createRegistration, grantAdminRole, makeProvider } from "../factories/review";
 import { testConfig, TEST_PRINCIPAL_ADMIN_ID } from "../helpers/config";
 import { appDb, ownerPool, resetDb } from "../helpers/db";
 import { failingDb } from "../helpers/failing-db";
@@ -20,6 +20,7 @@ const NO_ACCOUNT = 900000803;
 const ADMIN = 900000804;
 const ACCOUNT_HOLDER = 900000805;
 const EXTRA_USER = 900000806;
+const PROVIDER = 900000808;
 const FORGED_ID = 900000807;
 const UNAUTHENTICATED_DETAIL = "No pudimos verificar tu identidad de Telegram. Abre de nuevo la Mini App.";
 
@@ -44,6 +45,7 @@ beforeEach(async () => {
   await createAccount(owner, ACCOUNT_HOLDER);
   await createAccount(owner, TEST_PRINCIPAL_ADMIN_ID);
   await createAccount(owner, EXTRA_USER);
+  await makeProvider(owner, PROVIDER, "9000008080");
 });
 
 const nowSeconds = () => Math.floor(Date.now() / 1000);
@@ -78,7 +80,7 @@ async function expect401(res: Response, label: string) {
   return body;
 }
 
-describe("F009 criterios 1, 2, 5, 6 y 14: las 25 operaciones rechazan con 401 sin consultar la base", () => {
+describe("F009 criterios 1, 2, 5, 6 y 14: las 29 operaciones rechazan con 401 sin consultar la base", () => {
   for (const [cause, headers] of Object.entries({ ...REJECTIONS, ...MALFORMED })) {
     describe(cause, () => {
       for (const op of PROTECTED_OPERATIONS) {
@@ -156,7 +158,7 @@ describe("F009 criterio 14: el rechazo por vigencia no es por la cuenta", () => 
   });
 });
 
-const ROLE_USER: Record<PositiveRole, number> = { none: NO_ACCOUNT, account: ACCOUNT_HOLDER, consented: CONSENTED, admin: ADMIN };
+const ROLE_USER: Record<PositiveRole, number> = { none: NO_ACCOUNT, account: ACCOUNT_HOLDER, consented: CONSENTED, admin: ADMIN, provider: PROVIDER };
 
 describe("F009 criterio 15: apertura normal, ninguna operación protegida responde 401 con una persona del rol adecuado", () => {
   const table: string[] = [];
@@ -169,10 +171,10 @@ describe("F009 criterio 15: apertura normal, ninguna operación protegida respon
       if (op.operationId === "getMyProviderRegistration") await createRegistration(owner, (await rows("select id from app.accounts where telegram_user_id = $1", [CONSENTED]))[0].id);
       const headers = tma(signInitData({ userId: ROLE_USER[op.role] }));
       const res = await op.handler(realDeps)(buildRequest(op, headers, op.hasBody ? (op.body ?? {}) : undefined), routeContext());
-      table.push(`${op.operationId} | ${op.role === "none" ? "sin cuenta" : op.role === "account" ? "titular de cuenta" : op.role === "consented" ? "usuario con aviso" : "administrador"} | ${res.status}`);
+      table.push(`${op.operationId} | ${op.role === "none" ? "sin cuenta" : op.role === "account" ? "titular de cuenta" : op.role === "consented" ? "usuario con aviso" : op.role === "provider" ? "prestador" : "administrador"} | ${res.status}`);
       expect(res.status, op.operationId).not.toBe(401);
-      expect([200, 201, 422], op.operationId).toContain(res.status);
-      const schema = res.status === 422 ? { name: "Problem", array: false } : responseSchemaName(op.operationId, res.status);
+      expect(op.opening ? [op.opening] : [200, 201, 422], op.operationId).toContain(res.status);
+      const schema = res.status === 422 || res.status === 403 ? { name: "Problem", array: false } : responseSchemaName(op.operationId, res.status);
       expect(schema, `${op.operationId} sin esquema de respuesta ${res.status}`).not.toBeNull();
       const body = await res.json();
       if (schema!.array) expect(Array.isArray(body), op.operationId).toBe(true);

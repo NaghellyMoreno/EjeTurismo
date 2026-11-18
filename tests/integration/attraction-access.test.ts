@@ -102,12 +102,14 @@ describe("criterio 16: combinaciones no permitidas", () => {
       ["admin / route_experience", ADMIN_TEST, minimal("route_experience")],
       ["A6 prestador / attraction", PROVIDER_CONTROL, attractionBody(seedOf())],
     ];
+    // F013: `seedRoleDenial` ya siembra 3 negocios de A6; lo que se comprueba es que estas llamadas no crean ninguno.
+    const businessesBefore = (await owner.query("select count(*) from app.businesses")).rows[0].count;
     for (const [name, user, raw] of cases) {
       const before = await snapshotAll(owner);
       const res = await api.createAs(user, raw);
       expect([res.status, (await body(res)).code], name).toEqual([403, "forbidden"]);
       expect(changedTables(before, await snapshotAll(owner)), name).toEqual([]);
     }
-    expect((await owner.query("select count(*) from app.businesses")).rows[0].count).toBe("0");
+    expect((await owner.query("select count(*) from app.businesses")).rows[0].count).toBe(businessesBefore);
   });
 });

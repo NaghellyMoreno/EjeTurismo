@@ -7,6 +7,10 @@ import {
   authorizeAdministratorHandler,
   createCatalogItemHandler,
   createListingHandler,
+  getManagedListingHandler,
+  listManagedListingsHandler,
+  saveListingDraftHandler,
+  submitListingForReviewHandler,
   createMunicipalityHandler,
   createProviderRegistrationHandler,
   getMeHandler,
@@ -28,18 +32,19 @@ import { NOTICE_VERSION } from "./db";
 // Matriz de F009: las operaciones de /api/v1 con x-roles distinto de public, telegram_platform y vercel_cron que ya tienen
 // `route.ts`. Las funcionalidades siguientes (F012 en adelante) agregan aquí sus rutas (D-136, pendiente 5).
 export const UNKNOWN_ID = "00000000-0000-4000-8000-000000000000";
-export type PositiveRole = "none" | "account" | "consented" | "admin";
+export type PositiveRole = "none" | "account" | "consented" | "admin" | "provider";
 
 type Handler = (request: Request, context: { params: Promise<Record<string, string>> }) => Promise<Response>;
 
 export interface ProtectedOperation {
   operationId: string;
-  method: "GET" | "POST" | "PATCH";
+  method: "GET" | "POST" | "PUT" | "PATCH";
   path: string; // con parámetros reales, listo para armar la URL
   handler: (deps: Deps) => Handler;
   role: PositiveRole; // persona que debe poder usarla (según x-roles)
   body?: unknown; // cuerpo del camino positivo; sin él, la operación con cuerpo recibe uno vacío (422)
   hasBody: boolean;
+  opening?: number; // código esperado de la apertura normal cuando no es 200, 201 ni 422 (F013: ficha inexistente, 403)
 }
 
 const h = (fn: (deps: Deps) => unknown) => (deps: Deps) => fn(deps) as Handler;
@@ -69,22 +74,27 @@ export const PROTECTED_OPERATIONS: ProtectedOperation[] = [
   ...catalog("experience-types", "experience_type", "experienceTypeId", ["listExperienceTypes", "createExperienceType", "updateExperienceType"]),
   ...catalog("establishment-types", "establishment_type", "establishmentTypeId", ["listEstablishmentTypes", "createEstablishmentType", "updateEstablishmentType"]),
   { operationId: "createListing", method: "POST", path: "/api/v1/managed-listings", handler: h(createListingHandler), role: "admin", hasBody: true },
+  { operationId: "listManagedListings", method: "GET", path: "/api/v1/managed-listings", handler: h(listManagedListingsHandler), role: "admin", hasBody: false },
+  { operationId: "getManagedListing", method: "GET", path: `/api/v1/managed-listings/${ID}`, handler: h(getManagedListingHandler), role: "provider", hasBody: false, opening: 403 },
+  { operationId: "saveListingDraft", method: "PUT", path: `/api/v1/managed-listings/${ID}/draft`, handler: h(saveListingDraftHandler), role: "provider", hasBody: true, opening: 403 },
+  { operationId: "submitListingForReview", method: "POST", path: `/api/v1/managed-listings/${ID}/submission`, handler: h(submitListingForReviewHandler), role: "provider", hasBody: true, opening: 403 },
   { operationId: "listPublishedListings", method: "GET", path: "/api/v1/public/listings", handler: h(listPublishedListingsHandler), role: "consented", hasBody: false },
 ];
 
-// Los 25 operationId: los 23 de F009 (criterio 1) más `createListing` y `listPublishedListings` de F012 (criterio 17, D-136).
+// Los 29 operationId: los 23 de F009 (criterio 1), `createListing` y `listPublishedListings` de F012 (criterio 17, D-136) y las 4 de F013 (criterio 28).
 export const EXPECTED_OPERATION_IDS = [
   "getMe", "acceptPrivacyNotice", "revokeMyAuthorization", "createProviderRegistration", "listProviderRegistrations",
   "getMyProviderRegistration", "approveProviderRegistration", "rejectProviderRegistration", "listRoleGrants",
   "authorizeAdministrator", "revokeRole", "listMunicipalities", "createMunicipality", "updateMunicipality",
   "listCategories", "createCategory", "updateCategory", "listExperienceTypes", "createExperienceType", "updateExperienceType",
   "listEstablishmentTypes", "createEstablishmentType", "updateEstablishmentType", "createListing", "listPublishedListings",
+  "listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview",
 ];
 
 // Parámetros de ruta de cualquier operación (los manejadores leen solo el suyo).
 export const routeContext = () => ({
   params: Promise.resolve({
-    registrationId: ID, grantId: ID, municipalityId: ID, categoryId: ID, experienceTypeId: ID, establishmentTypeId: ID,
+    registrationId: ID, grantId: ID, municipalityId: ID, categoryId: ID, experienceTypeId: ID, establishmentTypeId: ID, listingId: ID,
   }),
 });
 

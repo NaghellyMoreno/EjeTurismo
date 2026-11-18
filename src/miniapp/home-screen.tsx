@@ -7,7 +7,7 @@ import { createApiClient } from "@/shared/api/client";
 import type { components } from "@/shared/api/schema";
 import { homeTitle, homeView, homeViewText, protectedText, revokeConfirmText } from "./home";
 import { noticeText } from "./notice";
-import { attractionTexts, catalogTexts, miniappTexts } from "./texts";
+import { attractionTexts, catalogTexts, listingTexts, miniappTexts } from "./texts";
 
 type Me = components["schemas"]["Me"];
 type Api = ReturnType<typeof createApiClient>;
@@ -198,6 +198,13 @@ export function HomeScreen() {
                   </Link>
                 </p>
               </>
+            )}
+            {homeView(state.me) === "role-provider" && (
+              <p>
+                <Link href="/fichas" data-testid="listings-link">
+                  {listingTexts.homeLink}
+                </Link>
+              </p>
             )}
             {state.me.consent.canRevoke && (
               <>
