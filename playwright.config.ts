@@ -38,6 +38,7 @@ export default defineConfig({
       IDENTITY_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString("base64"),
       IDENTITY_HASH_KEY: Buffer.alloc(32, 9).toString("base64"),
       PRINCIPAL_ADMIN_TELEGRAM_ID: "900000099",
+      APP_BASE_URL: "http://localhost:" + PORT,
     },
   },
 });

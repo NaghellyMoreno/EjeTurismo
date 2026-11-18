@@ -3,12 +3,16 @@ import { resolve } from "node:path";
 import { parse } from "yaml";
 import {
   acceptPrivacyNoticeHandler,
+  approveListingVersionHandler,
   approveProviderRegistrationHandler,
   authorizeAdministratorHandler,
   createCatalogItemHandler,
   createListingHandler,
   getManagedListingHandler,
+  getReviewHandler,
   listManagedListingsHandler,
+  listPendingReviewsHandler,
+  rejectListingVersionHandler,
   saveListingDraftHandler,
   submitListingForReviewHandler,
   createMunicipalityHandler,
@@ -78,10 +82,15 @@ export const PROTECTED_OPERATIONS: ProtectedOperation[] = [
   { operationId: "getManagedListing", method: "GET", path: `/api/v1/managed-listings/${ID}`, handler: h(getManagedListingHandler), role: "provider", hasBody: false, opening: 403 },
   { operationId: "saveListingDraft", method: "PUT", path: `/api/v1/managed-listings/${ID}/draft`, handler: h(saveListingDraftHandler), role: "provider", hasBody: true, opening: 403 },
   { operationId: "submitListingForReview", method: "POST", path: `/api/v1/managed-listings/${ID}/submission`, handler: h(submitListingForReviewHandler), role: "provider", hasBody: true, opening: 403 },
+  // F014: las 4 operaciones de revisión (solo administrador). Con un ID inexistente la apertura normal es 404.
+  { operationId: "listPendingReviews", method: "GET", path: "/api/v1/reviews", handler: h(listPendingReviewsHandler), role: "admin", hasBody: false },
+  { operationId: "getReview", method: "GET", path: `/api/v1/reviews/${ID}`, handler: h(getReviewHandler), role: "admin", hasBody: false, opening: 404 },
+  { operationId: "approveListingVersion", method: "POST", path: `/api/v1/reviews/${ID}/approval`, handler: h(approveListingVersionHandler), role: "admin", hasBody: true, opening: 404 },
+  { operationId: "rejectListingVersion", method: "POST", path: `/api/v1/reviews/${ID}/rejection`, handler: h(rejectListingVersionHandler), role: "admin", hasBody: true, opening: 404 },
   { operationId: "listPublishedListings", method: "GET", path: "/api/v1/public/listings", handler: h(listPublishedListingsHandler), role: "consented", hasBody: false },
 ];
 
-// Los 29 operationId: los 23 de F009 (criterio 1), `createListing` y `listPublishedListings` de F012 (criterio 17, D-136) y las 4 de F013 (criterio 28).
+// Los 33 operationId: los 23 de F009 (criterio 1), `createListing` y `listPublishedListings` de F012 (criterio 17, D-136), las 4 de F013 (criterio 28) y las 4 de F014 (criterio 15).
 export const EXPECTED_OPERATION_IDS = [
   "getMe", "acceptPrivacyNotice", "revokeMyAuthorization", "createProviderRegistration", "listProviderRegistrations",
   "getMyProviderRegistration", "approveProviderRegistration", "rejectProviderRegistration", "listRoleGrants",
@@ -89,12 +98,13 @@ export const EXPECTED_OPERATION_IDS = [
   "listCategories", "createCategory", "updateCategory", "listExperienceTypes", "createExperienceType", "updateExperienceType",
   "listEstablishmentTypes", "createEstablishmentType", "updateEstablishmentType", "createListing", "listPublishedListings",
   "listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview",
+  "listPendingReviews", "getReview", "approveListingVersion", "rejectListingVersion",
 ];
 
 // Parámetros de ruta de cualquier operación (los manejadores leen solo el suyo).
 export const routeContext = () => ({
   params: Promise.resolve({
-    registrationId: ID, grantId: ID, municipalityId: ID, categoryId: ID, experienceTypeId: ID, establishmentTypeId: ID, listingId: ID,
+    registrationId: ID, grantId: ID, municipalityId: ID, categoryId: ID, experienceTypeId: ID, establishmentTypeId: ID, listingId: ID, versionId: ID,
   }),
 });
 

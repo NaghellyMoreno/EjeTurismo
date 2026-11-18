@@ -3,11 +3,13 @@ import { after } from "next/server";
 import { es } from "@/bot/texts/es";
 import type { Config } from "@/server/config";
 import { logError } from "@/server/observability/logger";
+import { TEMPLATE_LISTING_APPROVED, TEMPLATE_LISTING_REJECTED } from "@/server/services/listing-review";
 import { TEMPLATE_APPROVED, TEMPLATE_REJECTED } from "@/server/services/provider-review";
 import type { Db } from "@/server/services";
 
 // Envío de los avisos de `notification_outbox` (ADR 0007). Las filas se crean dentro de la transacción de la operación;
-// aquí se envían después de responder (`after()`). Los mensajes no llevan tipo, número ni motivo (invariante 7).
+// aquí se envían después de responder (`after()`). Ningún mensaje lleva tipo, número de identidad ni ID de Telegram (invariante 7);
+// el rechazo de una ficha lleva el motivo que el administrador escribió para el prestador (F014, P1).
 
 export type Sender = (chatId: string, text: string) => Promise<unknown>;
 
@@ -20,9 +22,12 @@ export interface NotifyDeps {
 // Inferido: ADR 0007 no fija el intervalo; un fallo de Telegram se vuelve a intentar una hora después (D-093: sin cron todavía).
 export const RETRY_DELAY_MS = 60 * 60 * 1000;
 
-const TEXTS: Record<string, string> = {
-  [TEMPLATE_APPROVED]: es.provider.approved,
-  [TEMPLATE_REJECTED]: es.provider.rejected,
+type Payload = { listingName?: string; reason?: string } | null;
+const TEXTS: Record<string, (payload: Payload) => string> = {
+  [TEMPLATE_APPROVED]: () => es.provider.approved,
+  [TEMPLATE_REJECTED]: () => es.provider.rejected,
+  [TEMPLATE_LISTING_APPROVED]: (p) => es.provider.listingApproved(p?.listingName ?? ""),
+  [TEMPLATE_LISTING_REJECTED]: (p) => es.provider.listingRejected(p?.listingName ?? "", p?.reason ?? ""),
 };
 
 // Telegram responde 403 cuando la persona bloqueó el bot: no se reintenta.
@@ -34,16 +39,16 @@ export async function deliverNotifications(ids: string[], deps: NotifyDeps): Pro
   const db = deps.db();
   const rows = await db
     .selectFrom("notification_outbox")
-    .select(["id", "recipient_telegram_user_id", "template", "attempts"])
+    .select(["id", "recipient_telegram_user_id", "template", "attempts", "payload"])
     .where("id", "in", ids)
     .where("status", "=", "pending")
     .execute();
   for (const row of rows) {
-    const text = TEXTS[row.template];
+    const render = TEXTS[row.template];
     const now = deps.now();
     try {
-      if (!text) throw new Error("plantilla_desconocida");
-      await deps.send(String(row.recipient_telegram_user_id), text);
+      if (!render) throw new Error("plantilla_desconocida");
+      await deps.send(String(row.recipient_telegram_user_id), render(row.payload as Payload));
       await db
         .updateTable("notification_outbox")
         .set({ status: "sent", attempts: row.attempts + 1, next_attempt_at: null, sent_at: now })

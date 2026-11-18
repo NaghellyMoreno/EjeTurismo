@@ -146,7 +146,9 @@ describe("criterio 27: la migración", () => {
     await insertVersion(owner, listing, { status: "draft" });
     await owner.query("update app.listing_versions set status = 'pending' where listing_id = $1", [listing]);
     await owner.query("update app.listing_versions set description = 'Otra descripción' where listing_id = $1", [listing]);
-    await owner.query("update app.listing_versions set status = 'published' where listing_id = $1", [listing]);
+    // F014: `published` solo se alcanza desde `pending` y con `decided_by` de un administrador activo (disparador de la migración f014).
+    await owner.query("insert into app.role_grants (telegram_user_id, role) values (900012501, 'admin')");
+    await owner.query("update app.listing_versions set status = 'published', decided_by = $2 where listing_id = $1", [listing, accountId]);
     const { rows } = await owner.query("select from_status, to_status, actor_account_id, actor_role from app.listing_status_events order by id");
     expect(rows.map((r) => [r.from_status, r.to_status])).toEqual([[null, "draft"], ["draft", "pending"], ["pending", "published"]]);
     expect(rows.every((r) => r.actor_account_id === accountId && r.actor_role === "system")).toBe(true);

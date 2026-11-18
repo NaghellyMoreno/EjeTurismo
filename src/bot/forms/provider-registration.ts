@@ -26,6 +26,7 @@ import type { AccountContext, Db } from "@/server/services";
 import { adminKeyboard, handleAdminCallback, isAdminCallback } from "../admin";
 import { handleAuthorizeUpdate, isAuthCallback, isAuthorizeAdminSession } from "./authorize-admin";
 import { isCancelCommand, SessionConflictError } from "../common";
+import { handleReviewCallback, handleReviewUpdate, isMyListingsCallback, isReviewCallback, isReviewSession, MY_LISTINGS, showMyListings } from "../review";
 import { addSelfRevokeButton, handleSelfRevokeCallback, isSelfRevokeCallback, withSelfRevoke } from "../self-revoke";
 import { send } from "../send";
 import { es } from "../texts/es";
@@ -99,7 +100,7 @@ async function showMenu(ctx: Context, info: AccountContext) {
   if (isAdmin(info)) return send(ctx, withSelfRevoke(es.menu.welcome), addSelfRevokeButton(adminKeyboard()));
   // Mínimo de B02 para el prestador (D-090, D-091); el menú completo es de F005.
   if (info.roles.includes("provider")) {
-    await send(ctx, withSelfRevoke(es.menu.welcome), addSelfRevokeButton());
+    await send(ctx, withSelfRevoke(es.menu.welcome), addSelfRevokeButton(new InlineKeyboard().text(es.menu.myListings, MY_LISTINGS).row()));
     return send(ctx, es.menu.providerAvailable);
   }
   // B05: con el registro pendiente, el estado ocupa el lugar del menú. Se ofrece revocar la autorización (F034 y F035).
@@ -128,11 +129,23 @@ export async function handleAccountUpdate(ctx: Context, deps: FormDeps, actor: A
     if (!isAdmin(info)) return void (await send(ctx, es.admin.forbidden));
     return handleAdminCallback(ctx, deps, actor, callback);
   }
+  // B10 (F014): fichas por revisar. Mismo guardián que los botones de B07; los servicios vuelven a verificar el rol.
+  if (isReviewCallback(callback)) {
+    if (!isAdmin(info)) return void (await send(ctx, es.admin.forbidden));
+    return handleReviewCallback(ctx, deps, actor, accountId, callback);
+  }
+  // B12 (F014): mis fichas, solo para quien tiene el permiso de prestador.
+  if (isMyListingsCallback(callback)) {
+    if (!info.roles.includes("provider")) return void (await send(ctx, es.admin.forbidden));
+    return showMyListings(ctx, deps, actor);
+  }
   // B03: revocar mi autorización. El rol se lee de la base en cada pulsación; el backend aplica la regla por rol (F035).
   if (isSelfRevokeCallback(callback)) return handleSelfRevokeCallback(ctx, deps, actor, info, callback, () => showMenu(ctx, info));
   // B08: botones y mensajes de la autorización de administradores.
   if (isAuthCallback(callback) && !isAdmin(info)) return void (await send(ctx, es.admin.forbidden));
   if (isAdmin(info) && (await handleAuthorizeUpdate(ctx, deps, actor, accountId))) return;
+  // B10: el motivo del rechazo y `/cancelar` de una revisión en curso (B08 no reclama una sesión de otro formulario).
+  if (isAdmin(info) && callback === undefined && (await handleReviewUpdate(ctx, deps, actor, accountId))) return;
   const cancelling = callback === CANCEL || (callback === undefined && isCancelCommand(ctx));
   if (!canRegister(info)) {
     // Sin formulario posible, cancelar no hace nada y se muestra el menú que le corresponde (D-087).
@@ -143,7 +156,7 @@ export async function handleAccountUpdate(ctx: Context, deps: FormDeps, actor: A
   const stored = await loadBotSession(db, accountId);
   const session = parseSession(stored?.data);
   // Un administrador revocado con una sesión de B08 abierta: no se crea ningún permiso y se descarta el borrador (F006, criterio 24).
-  if (callback !== REGISTER && isAuthorizeAdminSession(stored?.data)) {
+  if (callback !== REGISTER && (isAuthorizeAdminSession(stored?.data) || isReviewSession(stored?.data))) {
     await clearBotSession(db, accountId, now);
     return void (await send(ctx, es.admin.forbidden));
   }

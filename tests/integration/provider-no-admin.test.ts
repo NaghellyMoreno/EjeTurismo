@@ -20,6 +20,7 @@ import {
   operationOf,
   PENDING_OWNER,
   ADMIN_OPERATION_IDS,
+  REVIEW_OPERATION_IDS,
   ROLE_CASES,
   roleCaseOf,
   roleRequest,
@@ -203,8 +204,8 @@ describe("paso 3: aprobar su propia ficha pendiente, a nivel de guardián (crite
   });
 });
 
-describe("matriz de las 14 operaciones (criterios 7 a 10)", () => {
-  it("7 a 9: A6 con cuerpo válido y vacío da 403 forbidden, sin cambios y sin filtrar datos (28 casos)", async () => {
+describe("matriz de las 18 operaciones (14 de F003 a F011 y las 4 de revisión de F014; criterios 7 a 10)", () => {
+  it("7 a 9: A6 con cuerpo válido y vacío da 403 forbidden, sin cambios y sin filtrar datos (36 casos)", async () => {
     const table: Array<{ operacion: string; variante: string; obtenido: string }> = [];
     const secrets = [
       SECRET_REGISTRATION_NAME, SECRET_MUNICIPALITY_NAME, SECRET_IDENTITY_NUMBER, A6_IDENTITY_NUMBER,
@@ -227,11 +228,11 @@ describe("matriz de las 14 operaciones (criterios 7 a 10)", () => {
       }
     }
     console.table(table);
-    expect(table).toHaveLength(28);
+    expect(table).toHaveLength(36);
     expect(table.filter((r) => r.obtenido !== "403 forbidden")).toEqual([]);
   });
 
-  it("10: A6b (aviso anterior) da 403 consent_required en las 14 operaciones x 2 variantes y no cambia nada", async () => {
+  it("10: A6b (aviso anterior) da 403 consent_required en las 18 operaciones x 2 variantes y no cambia nada", async () => {
     const table: Array<{ operacion: string; variante: string; obtenido: string }> = [];
     const a6b = initFor(PROVIDER_A6B);
     for (const entry of adminOnly) {
@@ -244,7 +245,7 @@ describe("matriz de las 14 operaciones (criterios 7 a 10)", () => {
       }
     }
     console.table(table);
-    expect(table).toHaveLength(28);
+    expect(table).toHaveLength(36);
     expect(table.filter((r) => r.obtenido !== "403 consent_required")).toEqual([]);
   });
 
@@ -261,11 +262,11 @@ describe("matriz de las 14 operaciones (criterios 7 a 10)", () => {
     }
   });
 
-  it("12: la matriz ejecutó exactamente las 14 operaciones de solo administrador, con caso en ROLE_CASES", () => {
+  it("12: la matriz ejecutó exactamente las 18 operaciones de solo administrador, con caso en ROLE_CASES", () => {
     const derived = adminOnly.map((e) => e.operationId).sort();
-    expect(derived).toHaveLength(14);
-    expect(derived, "operaciones de solo administrador vs ADMIN_OPERATION_IDS").toEqual([...ADMIN_OPERATION_IDS].sort());
-    // F012 y F013: ROLE_CASES suma `createListing` (dos casos) y las 4 operaciones de fichas gestionadas (20 elementos).
+    expect(derived).toHaveLength(18);
+    expect(derived, "operaciones de solo administrador vs ADMIN_OPERATION_IDS y las 4 de F014").toEqual([...ADMIN_OPERATION_IDS, ...REVIEW_OPERATION_IDS].sort());
+    // F012, F013 y F014: ROLE_CASES suma `createListing` (dos casos), las 4 operaciones de fichas gestionadas y las 4 de revisión (24 elementos).
     const expected = [...derived, "createListing", "createListing", "listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview"];
     expect(ROLE_CASES.map((c) => c.operationId).sort(), "ROLE_CASES").toEqual(expected.sort());
     const missing = derived.filter((id) => !executed.has(id));

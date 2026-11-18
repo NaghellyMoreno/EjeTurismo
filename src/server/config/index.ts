@@ -38,6 +38,8 @@ const schema = z.object({
   BOT_SENSITIVE_DRAFT_TTL_SECONDS: z.coerce.number().int().positive().default(600),
   RATE_LIMITS: rateLimits.optional(),
   PRINCIPAL_ADMIN_TELEGRAM_ID: z.string().regex(/^[1-9][0-9]{0,18}$/).optional(),
+  // Dirección pública de la Mini App; el bot la usa para el botón "Abrir la Mini App" (F014). Sin ella, el botón no se ofrece.
+  APP_BASE_URL: z.url().optional(),
 });
 
 export interface Config {
@@ -50,12 +52,13 @@ export interface Config {
   sensitiveDraftTtlSeconds: number;
   rateLimits: Record<string, RateLimitRule>;
   principalAdminTelegramId: string | null;
+  appBaseUrl: string | null;
 }
 
 // Falla al arrancar si falta una variable obligatoria (fail closed, ADR 0003 y 0006). Nunca repite los valores.
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
   const input = { ...env };
-  for (const name of ["TELEGRAM_INIT_DATA_MAX_AGE_SECONDS", "BOT_SENSITIVE_DRAFT_TTL_SECONDS", "RATE_LIMITS", "PRINCIPAL_ADMIN_TELEGRAM_ID"]) {
+  for (const name of ["TELEGRAM_INIT_DATA_MAX_AGE_SECONDS", "BOT_SENSITIVE_DRAFT_TTL_SECONDS", "RATE_LIMITS", "PRINCIPAL_ADMIN_TELEGRAM_ID", "APP_BASE_URL"]) {
     if (input[name] === "") delete input[name];
   }
   const parsed = schema.safeParse(input);
@@ -74,6 +77,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     sensitiveDraftTtlSeconds: v.BOT_SENSITIVE_DRAFT_TTL_SECONDS,
     rateLimits: { ...DEFAULT_RATE_LIMITS, ...(v.RATE_LIMITS ?? {}) },
     principalAdminTelegramId: v.PRINCIPAL_ADMIN_TELEGRAM_ID ?? null,
+    appBaseUrl: v.APP_BASE_URL ? v.APP_BASE_URL.replace(/\/+$/, "") : null,
   };
 }
 

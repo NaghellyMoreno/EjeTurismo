@@ -33,10 +33,10 @@ afterEach(() => vi.restoreAllMocks());
 
 const label = (callback: string) => callback.replace(/[0-9a-f-]{36}/, "<uuid>");
 
-describe("criterios 13, 14 y 17: 14 callbacks de administrador x A6 y A6b (28 casos)", () => {
+describe("criterios 13, 14 y 17: 21 callbacks de administrador (14 de F003 a F008 y 7 de revisión de F014) x A6 y A6b (42 casos)", () => {
   it("13, 14 y 17: A6 recibe es.admin.forbidden; A6b recibe el aviso B01; sin datos en el registro técnico", async () => {
     const data = adminCallbacks(fx);
-    expect(data).toHaveLength(14);
+    expect(data).toHaveLength(21);
     const logs: string[] = [];
     for (const level of ["log", "info", "warn", "error", "debug"] as const) {
       vi.spyOn(console, level).mockImplementation((...args: unknown[]) => void logs.push(args.map(String).join(" ")));
@@ -72,7 +72,7 @@ describe("criterios 13, 14 y 17: 14 callbacks de administrador x A6 y A6b (28 ca
       expect(changedTables(before, after), `A6b / ${label(callback)}: tablas que cambiaron`).toEqual([]);
       cases++;
     }
-    expect(cases).toBe(28);
+    expect(cases).toBe(42);
 
     const joined = logs.join("\n");
     for (const secret of [...data, String(PROVIDER_A6), String(PROVIDER_A6B), fx.ids.registrationId, fx.ids.grantId]) {
@@ -97,7 +97,7 @@ describe("criterio 15: A6 no se autoriza administrador desde el bot", () => {
 });
 
 describe("criterio 16: menú del prestador", () => {
-  it("/start antes y después de las 14 pulsaciones: solo welcome y providerAvailable, sin teclado ni opciones de administrador", async () => {
+  it("/start antes y después de las 21 pulsaciones: solo welcome y providerAvailable, sin opciones de administrador", async () => {
     const outgoing: Array<Record<string, unknown>> = [];
     const start = async () => {
       t.clear();
@@ -108,12 +108,12 @@ describe("criterio 16: menú del prestador", () => {
     await start();
     for (const callback of adminCallbacks(fx)) await t.send(callbackUpdate(callback, { fromId: PROVIDER_A6 }));
     await start();
-    const forbidden = [es.admin.pendingButton, es.admin.authorizeButton, es.revoke.button];
+    const forbidden = [es.admin.pendingButton, es.menu.reviews, es.admin.authorizeButton, es.revoke.button];
     for (const payload of outgoing) {
       // F035: el prestador ve solo "Revocar mi autorización" (en el mensaje de bienvenida); ninguna opción de administrador.
       const text = JSON.stringify(payload);
       for (const word of forbidden) expect(text).not.toContain(word);
-      expect(text).not.toMatch(/"(adm|auth):/);
+      expect(text).not.toMatch(/"(adm|auth|rev):/);
     }
     expect(BOT_COMMANDS.map((c) => c.command)).toEqual(["start"]);
   });

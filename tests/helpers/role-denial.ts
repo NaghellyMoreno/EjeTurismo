@@ -58,21 +58,26 @@ export const ADMIN_OPERATION_IDS = [
   "updateExperienceType", "createEstablishmentType", "updateEstablishmentType",
 ];
 
-// Operaciones de rol con ruta: las 14 de solo administrador, `createListing` (F012) y las 4 de F013 (D-136 y D-137).
-// `ADMIN_OPERATION_IDS` no cambia: F008 y la autorrevocación la usan.
-export const ROUTED_OPERATION_IDS = [...ADMIN_OPERATION_IDS, "createListing", "listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview"];
+// Las 4 operaciones de revisión de F014 (solo administrador).
+export const REVIEW_OPERATION_IDS = ["listPendingReviews", "getReview", "approveListingVersion", "rejectListingVersion"];
 
-// Las 12 operaciones de rol sin `route.ts` todavía (criterio 15 de F007; cobertura diferida a F014 en adelante).
+// Operaciones de rol con ruta: las 14 de solo administrador, `createListing` (F012), las 4 de F013 y las 4 de F014 (D-136 y D-137).
+// `ADMIN_OPERATION_IDS` no cambia: F008 y la autorrevocación la usan.
+export const ROUTED_OPERATION_IDS = [
+  ...ADMIN_OPERATION_IDS, "createListing", "listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview", ...REVIEW_OPERATION_IDS,
+];
+
+// Las 8 operaciones de rol sin `route.ts` todavía (criterio 15 de F007; cobertura diferida a las funcionalidades siguientes).
 export const UNROUTED_OPERATION_IDS = [
   "getListingStatusHistory",
-  "createPhotoUpload", "registerPhoto", "removePhoto", "listPendingReviews", "getReview", "approveListingVersion", "rejectListingVersion",
+  "createPhotoUpload", "registerPhoto", "removePhoto",
   "listMyBusinessInformationRequests", "getInformationRequest", "replyToInformationRequest", "changeInformationRequestStatus",
 ];
 
 export const ROLE_DENIAL_OPERATIONS: RoleDenialOperation[] = [
   ...ADMIN_OPERATION_IDS.map((id) => entry(id, ["admin"], true)),
   entry("createListing", ["provider", "admin"], true),
-  ...["listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview"].map((id) => entry(id, specRoles(id), true)),
+  ...["listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview", ...REVIEW_OPERATION_IDS].map((id) => entry(id, specRoles(id), true)),
   ...UNROUTED_OPERATION_IDS.map((id) => entry(id, specRoles(id), false)),
 ];
 
@@ -108,7 +113,7 @@ export const roleOperations = () => specOperations.filter((o) => o.roles.some((r
 // ---- Casos de la matriz HTTP -------------------------------------------------------------------------------------
 export type ResourceKey =
   | "registrationId" | "secondRegistrationId" | "grantId" | "municipalityId" | "categoryId" | "experienceTypeId" | "establishmentTypeId"
-  | "draftListingId" | "submitListingId" | "pendingListingId";
+  | "draftListingId" | "submitListingId" | "pendingListingId" | "reviewVersionId" | "approveVersionId" | "rejectVersionId";
 
 export interface RoleCase {
   operationId: string;
@@ -191,6 +196,11 @@ export const ROLE_CASES: RoleCase[] = [
     positive: 200,
     positiveActor: PROVIDER_CONTROL,
   },
+  // F014 (D-136, D-137): las 4 operaciones de revisión; cada decisión usa su propia versión pendiente sembrada.
+  { operationId: "listPendingReviews", positive: 200 },
+  { operationId: "getReview", resource: "reviewVersionId", positive: 200 },
+  { operationId: "approveListingVersion", resource: "approveVersionId", body: { confirmed: true }, positive: 200 },
+  { operationId: "rejectListingVersion", resource: "rejectVersionId", body: { confirmed: true, reason: "Motivo ficticio." }, positive: 200 },
 ];
 
 // `roleCaseOf("createListing")` devuelve el de atractivo; el de establecimiento se pide con `kind`.
@@ -245,9 +255,17 @@ export async function seedRoleDenial(owner: Pool): Promise<RoleFixtures> {
   const own = { accountId: providerControlAccountId, municipalityId, categoryId };
   const draftListingId = (await seedListing(owner, { ...own, name: "Ficha Sembrada Borrador" })).listingId;
   const submitListingId = (await seedListing(owner, { ...own, name: "Ficha Sembrada Completa", complete: true })).listingId;
-  const pendingListingId = (await seedListing(owner, { ...own, name: "Ficha Sembrada Pendiente", status: "pending" })).listingId;
+  const pending = await seedListing(owner, { ...own, name: "Ficha Sembrada Pendiente", status: "pending" });
+  const pendingListingId = pending.listingId;
+  // F014: tres versiones pendientes de A6 para los controles positivos de las operaciones de revisión.
+  const reviewVersionId = pending.versionId;
+  const approveVersionId = (await seedListing(owner, { ...own, name: "Ficha Sembrada Revisión Uno", status: "pending" })).versionId;
+  const rejectVersionId = (await seedListing(owner, { ...own, name: "Ficha Sembrada Revisión Dos", status: "pending" })).versionId;
   return {
-    ids: { registrationId, secondRegistrationId, grantId, municipalityId, categoryId, experienceTypeId, establishmentTypeId, draftListingId, submitListingId, pendingListingId },
+    ids: {
+      registrationId, secondRegistrationId, grantId, municipalityId, categoryId, experienceTypeId, establishmentTypeId, draftListingId, submitListingId,
+      pendingListingId, reviewVersionId, approveVersionId, rejectVersionId,
+    },
     a4RegistrationId,
     providerControlAccountId,
   };
@@ -266,7 +284,7 @@ export function roleRequest(fixtures: RoleFixtures, rc: RoleCase, headers: Recor
 // Los manejadores leen su propio parámetro; se entregan todos con el mismo ID.
 export const roleContext = (id: string) => ({
   params: Promise.resolve({
-    registrationId: id, grantId: id, municipalityId: id, categoryId: id, experienceTypeId: id, establishmentTypeId: id, listingId: id,
+    registrationId: id, grantId: id, municipalityId: id, categoryId: id, experienceTypeId: id, establishmentTypeId: id, listingId: id, versionId: id,
   }),
 });
 export const contextFor = (fixtures: RoleFixtures, rc: RoleCase, variant: "valid" | "empty" = "valid") =>

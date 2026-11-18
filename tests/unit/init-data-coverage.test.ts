@@ -24,8 +24,8 @@ const routes = routeFiles.flatMap((file) => {
 const matrixKeys = new Set(PROTECTED_OPERATIONS.map((o) => `${o.method} ${o.path}`));
 
 describe("F009 criterio 18: cobertura estructural de rutas", () => {
-  it("el conjunto de operaciones protegidas es exactamente el de las 29 del contrato (23 de F009, 2 de F012 y 4 de F013)", () => {
-    expect(PROTECTED_OPERATIONS).toHaveLength(29);
+  it("el conjunto de operaciones protegidas es exactamente el de las 33 del contrato (23 de F009, 2 de F012, 4 de F013 y 4 de F014)", () => {
+    expect(PROTECTED_OPERATIONS).toHaveLength(33);
     expect(PROTECTED_OPERATIONS.map((o) => o.operationId).sort()).toEqual([...EXPECTED_OPERATION_IDS].sort());
   });
 

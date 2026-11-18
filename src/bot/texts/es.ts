@@ -17,6 +17,9 @@ export const es = {
     registerButton: "Registrarme como prestador",
     // Mínimo de B02 para quien ya tiene el permiso de prestador (D-090, D-091); el menú completo es de F005.
     providerAvailable: "Ya tienes el rol de prestador. Las opciones de prestador estarán disponibles pronto.",
+    // F014: botón B06 del administrador y botón B12 del prestador.
+    reviews: "Fichas por revisar",
+    myListings: "Mis fichas",
   },
   // B04, B05 y B21 mínimo del registro de prestador. Textos aprobados en D-079; ninguno incluye el número ni lo escrito por la persona.
   provider: {
@@ -45,6 +48,59 @@ export const es = {
     // B20: avisos al usuario tras la decisión (D-090). Nunca incluyen el tipo, el número ni el motivo.
     approved: "Tu registro como prestador fue autorizado. Escribe /start para continuar.",
     rejected: "Tu registro como prestador no fue autorizado. Si crees que es un error, comunícate con el administrador.",
+    // B20 (F014): avisos al prestador tras revisar una ficha. El rechazo lleva el motivo escrito por el administrador (P1).
+    listingApproved: (name: string) => `Tu ficha «${name}» fue aprobada y ya es visible para los visitantes.`,
+    listingRejected: (name: string, reason: string) =>
+      `Tu ficha «${name}» fue rechazada. Motivo: ${reason}. Puedes corregirla y volver a enviarla desde la Mini App.`,
+  },
+  // B10 (F014): revisión de fichas pendientes por el administrador. Los avisos de esta pantalla no llevan datos personales.
+  review: {
+    empty: "No hay fichas por revisar.",
+    listTitle: "Fichas por revisar",
+    morePending: "Hay más fichas por revisar. Decide algunas y vuelve a pulsar «Fichas por revisar».",
+    changed: (fields: string) => `Cambios: ${fields}`,
+    firstReview: "Es la primera revisión de esta ficha.",
+    approve: "Aprobar",
+    reject: "Rechazar",
+    confirmApprove: (name: string) => `Vas a aprobar «${name}». Quedará publicada y visible para los visitantes. ¿Confirmas?`,
+    yesApprove: "Sí, aprobar",
+    yesReject: "Sí, rechazar",
+    cancel: "Cancelar",
+    askReason: "Escribe el motivo del rechazo. El prestador lo verá. Máximo 4096 caracteres.",
+    reasonInvalid: "El motivo es obligatorio y debe ser un texto de hasta 4096 caracteres.",
+    confirmReject: (name: string, reason: string) => `Vas a rechazar «${name}» con este motivo: ${reason}. ¿Confirmas?`,
+    approved: "Ficha aprobada y publicada.",
+    rejected: "Ficha rechazada. El prestador recibirá el motivo.",
+    cancelled: "Revisión cancelada. No se hizo ningún cambio.",
+    alreadyDecided: "Esa ficha ya fue decidida. Vuelve a abrir «Fichas por revisar».",
+    notFound: "No encontramos esa ficha. Vuelve a abrir «Fichas por revisar».",
+    ownerRevoked: "El prestador ya no tiene el permiso, así que esta ficha no se puede aprobar.",
+    sessionExpired: "La revisión venció. Vuelve a abrir «Fichas por revisar».",
+    genericError: "No pudimos completar la revisión. Inténtalo de nuevo en unos minutos.",
+    // Etiquetas de B10: las de los campos repiten las ya aprobadas de la Mini App (D-147).
+    kinds: { attraction: "Atractivo", establishment: "Establecimiento", route_experience: "Ruta o experiencia" },
+    fields: {
+      name: "Nombre",
+      municipality: "Municipio",
+      category: "Categoría",
+      establishmentType: "Tipo de establecimiento",
+      experienceType: "Tipo de experiencia",
+      description: "Descripción",
+      schedule: "Horarios",
+      contact: "Contacto",
+      mapsUrl: "Enlace de Google Maps",
+      guidesInfo: "Información de guías",
+      photos: "Fotografías",
+    },
+  },
+  // B12 (F014): mis fichas del prestador, solo lectura; crear y editar es de la Mini App (D-002).
+  myListings: {
+    title: "Tus fichas",
+    empty: "Todavía no tienes fichas. Crea una desde la Mini App.",
+    line: (name: string, status: string) => `«${name}»: ${status}`,
+    reason: (reason: string) => `Motivo del rechazo: ${reason}`,
+    open: "Abrir la Mini App",
+    statuses: { draft: "Borrador", pending: "Pendiente de revisión", published: "Publicada", rejected: "Rechazada" },
   },
   // B06, B07: revisión de registros de prestadores por el administrador (D-090, D-096).
   admin: {

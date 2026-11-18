@@ -14,6 +14,7 @@ import {
 import type { AdminProviderRegistration, Db, Decision } from "@/server/services";
 import { formatBogotaShort } from "@/lib/time";
 import { AUTH_START } from "./forms/authorize-admin";
+import { REVIEW_LIST } from "./review";
 import { handleRevokeCallback, isRevokeCallback, REVOKE_LIST } from "./revoke";
 import { send } from "./send";
 import { es } from "./texts/es";
@@ -151,6 +152,8 @@ export async function handleAdminCallback(ctx: Context, deps: AdminDeps, actor: 
 export const adminKeyboard = () =>
   new InlineKeyboard()
     .text(es.admin.pendingButton, LIST_PENDING)
+    .row()
+    .text(es.menu.reviews, REVIEW_LIST)
     .row()
     .text(es.admin.authorizeButton, AUTH_START)
     .row()

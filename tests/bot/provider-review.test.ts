@@ -93,7 +93,7 @@ describe("B06 y B02 mínimos (criterios 1, 15 y 22)", () => {
       t.clear();
       await t.send(start(id));
       expect(t.texts()).toEqual([adminMenu]);
-      expect(buttonsOf(t.messages()[0].payload)).toEqual([...ADMIN_MENU_BUTTONS.slice(0, 2), "Revocar rol", es.selfRevoke.button]);
+      expect(buttonsOf(t.messages()[0].payload)).toEqual([...ADMIN_MENU_BUTTONS.slice(0, 3), "Revocar rol", es.selfRevoke.button]);
       expect(callbacksOf(t.messages()[0])[0].callback_data).toBe("adm:list");
     }
   });
@@ -103,7 +103,7 @@ describe("B06 y B02 mínimos (criterios 1, 15 y 22)", () => {
     await t.send(start(USER_APPROVE));
     expect(t.texts()).toEqual(providerMenu);
     expect(es.menu.providerAvailable).toBe("Ya tienes el rol de prestador. Las opciones de prestador estarán disponibles pronto.");
-    expect(t.messages().flatMap((m) => buttonsOf(m.payload))).toEqual([es.selfRevoke.button]);
+    expect(t.messages().flatMap((m) => buttonsOf(m.payload))).toEqual([es.menu.myListings, es.selfRevoke.button]);
     expect(t.texts()).not.toContain(es.provider.pending);
   });
 

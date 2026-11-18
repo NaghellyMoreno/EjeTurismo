@@ -5,6 +5,7 @@ import {
   PERSON_KEYS,
   ROLE_CASES,
   ROLE_DENIAL_OPERATIONS,
+  REVIEW_OPERATION_IDS,
   ROUTED_OPERATION_IDS,
   UNROUTED_OPERATION_IDS,
   operationIdsWithRoute,
@@ -16,15 +17,15 @@ const withRoute = operationIdsWithRoute();
 const roleOps = roleOperations();
 
 describe("F007 criterio 15: cobertura estructural de rutas de rol", () => {
-  it("las operaciones de rol sin route.ts son exactamente las 12 del contrato", () => {
+  it("las operaciones de rol sin route.ts son exactamente las 8 del contrato", () => {
     const without = roleOps.filter((o) => !withRoute.has(o.operationId)).map((o) => o.operationId);
-    expect(without).toHaveLength(12);
+    expect(without).toHaveLength(8);
     expect(without.sort()).toEqual([...UNROUTED_OPERATION_IDS].sort());
   });
 
-  it("las operaciones de rol con route.ts son exactamente las 19 (14 de administrador, createListing y las 4 de F013)", () => {
+  it("las operaciones de rol con route.ts son exactamente las 23 (14 de administrador, createListing, las 4 de F013 y las 4 de F014)", () => {
     const withRoutes = roleOps.filter((o) => withRoute.has(o.operationId)).map((o) => o.operationId);
-    expect(withRoutes).toHaveLength(19);
+    expect(withRoutes).toHaveLength(23);
     expect(withRoutes.sort()).toEqual([...ROUTED_OPERATION_IDS].sort());
   });
 
@@ -41,9 +42,10 @@ describe("F007 criterio 15: cobertura estructural de rutas de rol", () => {
     const fromMatrix = PROTECTED_OPERATIONS.filter((o) => o.role === "admin").map((o) => o.operationId);
     const fromSpec = roleOps.filter((o) => o.roles.length === 1 && o.roles[0] === "admin" && withRoute.has(o.operationId)).map((o) => o.operationId);
     // F012: `createListing` entra a la matriz de F009 con role admin, pero su x-roles es provider y admin. F013: lo mismo con
-    // `listManagedListings` (x-roles provider y admin). `fromSpec` no cambia: sigue igual a ADMIN_OPERATION_IDS.
-    expect(fromMatrix.sort()).toEqual([...ADMIN_OPERATION_IDS, "createListing", "listManagedListings"].sort());
-    expect(fromSpec.sort()).toEqual([...ADMIN_OPERATION_IDS].sort());
+    // `listManagedListings` (x-roles provider y admin). F014: las 4 de revisión son solo de administrador y entran a la matriz. `fromSpec`
+    // suma las 4 de revisión (x-roles exactamente admin).
+    expect(fromMatrix.sort()).toEqual([...ADMIN_OPERATION_IDS, "createListing", "listManagedListings", ...REVIEW_OPERATION_IDS].sort());
+    expect(fromSpec.sort()).toEqual([...ADMIN_OPERATION_IDS, ...REVIEW_OPERATION_IDS].sort());
   });
 });
 
@@ -63,7 +65,7 @@ describe("F007 criterio 16: forma de ROLE_DENIAL_OPERATIONS", () => {
     expect([e.A1.code, e.A2.code, e.A3.code, e.A4.code, e.A5.code]).toEqual(["consent_required", "forbidden", "consent_required", "forbidden", "forbidden"]);
   });
 
-  it("las 19 con ruta declaran hasRoute true y las 12 sin ruta hasRoute false", () => {
+  it("las 23 con ruta declaran hasRoute true y las 8 sin ruta hasRoute false", () => {
     expect(ROLE_DENIAL_OPERATIONS).toHaveLength(31);
     expect(ROLE_DENIAL_OPERATIONS.filter((e) => e.hasRoute).map((e) => e.operationId).sort()).toEqual([...ROUTED_OPERATION_IDS].sort());
     expect(ROLE_DENIAL_OPERATIONS.filter((e) => !e.hasRoute).map((e) => e.operationId).sort()).toEqual([...UNROUTED_OPERATION_IDS].sort());
@@ -76,8 +78,8 @@ describe("F007 criterio 16: forma de ROLE_DENIAL_OPERATIONS", () => {
     }
   });
 
-  it("los casos de ROLE_CASES son los 20 (14 de administrador, createListing dos veces y las 4 de F013)", () => {
-    expect(ROLE_CASES).toHaveLength(20);
+  it("los casos de ROLE_CASES son los 24 (14 de administrador, createListing dos veces, las 4 de F013 y las 4 de F014)", () => {
+    expect(ROLE_CASES).toHaveLength(24);
     expect(ROLE_CASES.map((c) => c.operationId).sort()).toEqual([...ROUTED_OPERATION_IDS, "createListing"].sort());
   });
 });

@@ -48,11 +48,11 @@ afterEach(async () => {
 });
 
 describe("paso 1: la opción Revocar rol (criterios 1 a 4)", () => {
-  it("1: el administrador ve tres botones en orden, con el texto exacto Revocar rol", async () => {
+  it("1: el administrador ve los botones en orden, con el texto exacto Revocar rol", async () => {
     await admin(owner, ADMIN_A);
     await t.send(start(ADMIN_A));
     expect(buttonsOf(t.messages()[0].payload)).toEqual(ADMIN_MENU_BUTTONS);
-    expect(buttonsOf(t.messages()[0].payload)[2]).toBe("Revocar rol");
+    expect(buttonsOf(t.messages()[0].payload)[3]).toBe("Revocar rol");
   });
 
   it("2: F035: Revocar mi autorización es otro botón, con otro callback, y no se confunde con Revocar rol", async () => {

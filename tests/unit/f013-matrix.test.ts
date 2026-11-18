@@ -6,10 +6,10 @@ import { ADMIN_OPERATION_IDS, ROLE_CASES, ROLE_DENIAL_OPERATIONS, ROUTED_OPERATI
 const F013 = ["listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview"];
 
 describe("criterio 31: PROTECTED_OPERATIONS y ROLE_DENIAL_OPERATIONS", () => {
-  it("la matriz de F009 tiene 29 operaciones y las 4 de F013 entran con su rol", () => {
+  it("la matriz de F009 tiene 33 operaciones (las 4 de F013 y las 4 de F014 entran con su rol)", () => {
     const ids = PROTECTED_OPERATIONS.map((o) => o.operationId);
     process.stdout.write(`PROTECTED_OPERATIONS (${ids.length}): ${ids.join(", ")}\n`);
-    expect(PROTECTED_OPERATIONS).toHaveLength(29);
+    expect(PROTECTED_OPERATIONS).toHaveLength(33);
     expect(ids.filter((id) => !EXPECTED_OPERATION_IDS.includes(id)), "sobran").toEqual([]);
     expect(EXPECTED_OPERATION_IDS.filter((id) => !ids.includes(id)), "faltan").toEqual([]);
     for (const id of F013) expect(ids, id).toContain(id);
@@ -18,20 +18,20 @@ describe("criterio 31: PROTECTED_OPERATIONS y ROLE_DENIAL_OPERATIONS", () => {
     expect(PROTECTED_OPERATIONS.find((o) => o.operationId === "listManagedListings")!.role).toBe("admin");
   });
 
-  it("ROLE_DENIAL_OPERATIONS tiene 31 entradas: 19 con ruta y 12 sin ruta; ADMIN_OPERATION_IDS sigue en 14", () => {
+  it("ROLE_DENIAL_OPERATIONS tiene 31 entradas: 23 con ruta y 8 sin ruta; ADMIN_OPERATION_IDS sigue en 14", () => {
     expect(ROLE_DENIAL_OPERATIONS).toHaveLength(31);
-    expect(ROLE_DENIAL_OPERATIONS.filter((e) => e.hasRoute)).toHaveLength(19);
-    expect(ROLE_DENIAL_OPERATIONS.filter((e) => !e.hasRoute)).toHaveLength(12);
+    expect(ROLE_DENIAL_OPERATIONS.filter((e) => e.hasRoute)).toHaveLength(23);
+    expect(ROLE_DENIAL_OPERATIONS.filter((e) => !e.hasRoute)).toHaveLength(8);
     expect(ADMIN_OPERATION_IDS).toHaveLength(14);
-    expect(ROUTED_OPERATION_IDS).toHaveLength(19);
-    expect(UNROUTED_OPERATION_IDS).toHaveLength(12);
+    expect(ROUTED_OPERATION_IDS).toHaveLength(23);
+    expect(UNROUTED_OPERATION_IDS).toHaveLength(8);
     for (const id of F013) expect(ROUTED_OPERATION_IDS, id).toContain(id);
     for (const id of F013) expect(UNROUTED_OPERATION_IDS, id).not.toContain(id);
   });
 
-  it("las operaciones de rol con route.ts del repositorio son las 19 de la matriz", () => {
+  it("las operaciones de rol con route.ts del repositorio son las 23 de la matriz", () => {
     const withRoute = operationIdsWithRoute();
     expect(roleOperations().filter((o) => withRoute.has(o.operationId)).map((o) => o.operationId).sort()).toEqual([...ROUTED_OPERATION_IDS].sort());
-    expect(ROLE_CASES).toHaveLength(20);
+    expect(ROLE_CASES).toHaveLength(24);
   });
 });

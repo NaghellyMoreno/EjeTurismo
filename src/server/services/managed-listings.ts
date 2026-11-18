@@ -114,11 +114,13 @@ export async function loadManagedListing(db: Db, listingId: string): Promise<{ m
     id: listing.id,
     kind: listing.kind,
     businessId: listing.business_id,
-    displayStatus: working ? (working.status as "draft" | "pending" | "rejected") : "published",
+    // Una edición rechazada de una ficha publicada no cambia lo que se ve: sigue `published` y el motivo va en `lastRejection` (P6).
+    displayStatus: !working || (working === lastRejected && published) ? "published" : (working.status as "draft" | "pending" | "rejected"),
     hasPublishedVersion: Boolean(published),
     published: published ? view(published) : null,
     working: working ? view(working) : null,
-    ...(lastRejected && working === lastRejected && lastRejected.rejection_reason
+    // El motivo se conserva mientras el prestador corrige (borrador nuevo) y deja de mostrarse al volver a `pending` (P6).
+    ...(lastRejected && (working === lastRejected || working?.status === "draft") && lastRejected.rejection_reason
       ? { lastRejection: { reason: lastRejected.rejection_reason, rejectedAt: (lastRejected.decided_at ?? lastRejected.updated_at).toISOString() } }
       : {}),
     acceptsRequests: false,
@@ -233,22 +235,36 @@ export async function saveListingDraft(db: Db, config: Config, actor: Actor, lis
   try {
     return await db.transaction().execute(async (trx) => {
       await sql`select set_config('app.actor_role', 'provider', true), set_config('app.actor_account_id', ${caller.accountId}, true)`.execute(trx);
-      const version = await trx
+      // Una ficha rechazada que nunca se publicó se corrige con una versión nueva en borrador (P4). Con sus versiones bloqueadas,
+      // dos correcciones simultáneas se atienden una tras otra; si la segunda no ve el borrador nuevo, el único parcial de una
+      // versión abierta la rechaza y se responde 409 (más abajo).
+      const versions = await trx
         .selectFrom("listing_versions")
-        .select(["id", "status"])
+        .select(["id", "status", "version_number"])
         .where("listing_id", "=", listingId)
-        .where("status", "in", ["draft", "pending"])
+        .where("status", "in", ["draft", "pending", "published", "rejected"])
+        .orderBy("version_number", "desc")
         .forUpdate()
-        .executeTakeFirst();
-      if (!version || version.status !== "draft") throw stateError();
+        .execute();
+      const open = versions.find((v) => v.status === "draft" || v.status === "pending");
+      const reopen = !open && versions[0]?.status === "rejected" && !versions.some((v) => v.status === "published") ? versions[0] : undefined;
+      if (!reopen && (!open || open.status !== "draft")) throw stateError();
       const parsed = parseDraftSave(rawBody);
       if (!parsed.ok) throw validationFailed(parsed.errors);
       await checkReferences(trx, parsed.content);
-      await trx.updateTable("listing_versions").set({ ...contentColumns(parsed.content), updated_at: now }).where("id", "=", version.id).execute();
+      if (reopen) {
+        await trx
+          .insertInto("listing_versions")
+          .values({ listing_id: listingId, version_number: reopen.version_number + 1, status: "draft", ...contentColumns(parsed.content), created_at: now, updated_at: now })
+          .execute();
+      } else {
+        await trx.updateTable("listing_versions").set({ ...contentColumns(parsed.content), updated_at: now }).where("id", "=", open!.id).execute();
+      }
       return await reload(trx, listingId);
     });
   } catch (error) {
     if (isDuplicateName(error)) throw duplicateError();
+    if ((error as { code?: unknown } | null)?.code === "23505") throw stateError();
     throw error;
   }
 }
@@ -321,12 +337,15 @@ export async function listManagedListings(db: Db, config: Config, actor: Actor, 
 
   const conditions = [caller.isProvider ? sql`b.provider_account_id = ${caller.accountId}` : sql`w.status <> 'draft'`];
   if (kind) conditions.push(sql`l.kind = ${kind}`);
-  if (displayStatus) conditions.push(sql`w.status = ${displayStatus}`);
+  if (displayStatus) conditions.push(sql`w.shown = ${displayStatus}`);
   const from = sql`
     from app.listings l
     left join app.businesses b on b.id = l.business_id
     cross join lateral (
-      select v.* from app.listing_versions v
+      select v.*,
+        case when v.status = 'rejected' and exists (select 1 from app.listing_versions p where p.listing_id = l.id and p.status = 'published')
+          then 'published' else v.status end as shown
+      from app.listing_versions v
       where v.listing_id = l.id and v.status in ('draft', 'pending', 'published', 'rejected')
         and (v.status <> 'rejected' or v.version_number > coalesce(
           (select max(p.version_number) from app.listing_versions p where p.listing_id = l.id and p.status = 'published'), 0))
@@ -339,9 +358,9 @@ export async function listManagedListings(db: Db, config: Config, actor: Actor, 
   const total = await sql<{ count: string }>`select count(*)::text as count ${from}`.execute(db);
   const rows = await sql<{
     id: string; kind: components["schemas"]["ListingKind"]; name: string; municipality_id: string; municipality_name: string;
-    status: "draft" | "pending" | "published" | "rejected"; updated_at: Date; has_published: boolean;
+    shown: "draft" | "pending" | "published" | "rejected"; updated_at: Date; has_published: boolean;
   }>`
-    select l.id, l.kind, w.name, m.id as municipality_id, m.name as municipality_name, w.status, w.updated_at,
+    select l.id, l.kind, w.name, m.id as municipality_id, m.name as municipality_name, w.shown, w.updated_at,
       exists (select 1 from app.listing_versions p where p.listing_id = l.id and p.status = 'published') as has_published
     ${from}
     order by w.updated_at desc, l.id
@@ -356,7 +375,7 @@ export async function listManagedListings(db: Db, config: Config, actor: Actor, 
       kind: row.kind,
       name: row.name,
       municipality: { id: row.municipality_id, name: row.municipality_name },
-      displayStatus: row.status,
+      displayStatus: row.shown,
       hasPublishedVersion: row.has_published,
       updatedAt: new Date(row.updated_at).toISOString(),
     })),

@@ -152,3 +152,11 @@ export const listingTexts = {
   required: attractionTexts.required,
   declarationRequired: "Debes declarar que tienes la autorización de los guías y contactos.",
 } as const;
+
+// M08 (F014): ficha rechazada y pendiente. Textos de la tabla "Textos nuevos" del contrato F014 (`detail.*`); `detail.edit` es el de F013.
+export const listingReviewTexts = {
+  rejectionReason: "Motivo del rechazo",
+  correct: "Corregir y reenviar",
+  pendingNote: "Tu ficha está pendiente de revisión.",
+  rejectedNote: "El administrador rechazó esta ficha. Corrige lo señalado y envíala de nuevo.",
+} as const;

@@ -71,7 +71,8 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
       if (found.response.status === 401) return setSession({ kind: "session-error" });
       if (!found.data) return setStep(found.response.status === 403 ? "forbidden" : "locked");
       const working = found.data.working;
-      if (found.data.displayStatus !== "draft" || !working) return setStep("locked");
+      // F014: una ficha rechazada se corrige desde su contenido; al guardar, el servidor crea la versión nueva en borrador.
+      if ((found.data.displayStatus !== "draft" && found.data.displayStatus !== "rejected") || !working) return setStep("locked");
       const content = working.content;
       setDraft({
         name: content.name,

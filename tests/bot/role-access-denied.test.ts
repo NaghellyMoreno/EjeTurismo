@@ -48,10 +48,10 @@ function expectNotice(calls = t.messages(), oldVersionAccount = false) {
   for (const text of texts) expect(text).not.toBe(es.admin.forbidden);
 }
 
-describe("criterio 18: 14 callbacks de administrador x A1 a A4 (56 casos)", () => {
+describe("criterio 18: 21 callbacks de administrador (14 de F003 a F008 y 7 de revisión de F014) x A1 a A4 (84 casos)", () => {
   it("A1 y A3 reciben el aviso B01 y no cambia nada; A2 y A4 reciben es.admin.forbidden y solo processed_updates gana 1 fila", async () => {
     const data = callbacks();
-    expect(data).toHaveLength(14);
+    expect(data).toHaveLength(21);
     const logs: string[] = [];
     for (const level of ["log", "info", "warn", "error", "debug"] as const) {
       vi.spyOn(console, level).mockImplementation((...args: unknown[]) => void logs.push(args.map(String).join(" ")));
@@ -77,7 +77,7 @@ describe("criterio 18: 14 callbacks de administrador x A1 a A4 (56 casos)", () =
         cases++;
       }
     }
-    expect(cases).toBe(56);
+    expect(cases).toBe(84);
 
     // Criterio 20: el registro técnico no lleva callback_data, ID de Telegram ni UUID del recurso.
     const joined = logs.join("\n");

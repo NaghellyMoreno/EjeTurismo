@@ -8,6 +8,7 @@ import { logError } from "@/server/observability/logger";
 import { AppError } from "@/server/errors";
 import {
   acceptPrivacyNotice,
+  approveListingVersion,
   approveProviderRegistration,
   authorizeAdministrator,
   createListing,
@@ -20,12 +21,15 @@ import {
   getManagedListing,
   getMe,
   getMyProviderRegistration,
+  getReview,
   listManagedListings,
   listMunicipalities,
+  listPendingReviews,
   listPublishedListings,
   listCatalog,
   listProviderRegistrations,
   listRoleGrants,
+  rejectListingVersion,
   rejectProviderRegistration,
   revokeMyAuthorization,
   revokeRole,
@@ -393,3 +397,43 @@ export function submitListingForReviewHandler(deps: Deps) {
       return json(await submitListingForReview(deps.db(), deps.config(), actor, listingId, body, deps.now()));
     });
 }
+
+// ---- Revisión de fichas (F014) ---------------------------------------------------------------------------------
+// Solo administradores. Orden: 401, 403 `consent_required`, 403 `forbidden`, 404, 422 y 409; lo aplica el servicio.
+export function listPendingReviewsHandler(deps: Deps) {
+  return (request: Request) =>
+    guarded("review.list_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      return json(await listPendingReviews(deps.db(), deps.config(), actor, new URL(request.url).searchParams));
+    });
+}
+
+type VersionRoute = { params: Promise<{ versionId: string }> };
+
+export function getReviewHandler(deps: Deps) {
+  return (request: Request, context: VersionRoute) =>
+    guarded("review.get_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const { versionId } = await context.params;
+      return json(await getReview(deps.db(), deps.config(), actor, versionId));
+    });
+}
+
+// POST .../{versionId}/approval y .../rejection. Después de responder, `after()` envía el aviso al prestador (ADR 0007).
+function reviewDecisionHandler(deps: Deps, event: string, decide: typeof approveListingVersion) {
+  return (request: Request, context: VersionRoute) =>
+    guarded(event, async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const { versionId } = await context.params;
+      const body: unknown = await request.json().catch(() => undefined);
+      const result = await decide(deps.db(), deps.config(), actor, versionId, body, deps.now());
+      scheduleDelivery(result.notificationIds, { db: deps.db, now: deps.now, send: deps.send ?? telegramSender(deps.config()) });
+      return json(result.listing);
+    });
+}
+
+export const approveListingVersionHandler = (deps: Deps) => reviewDecisionHandler(deps, "review.approve_failed", approveListingVersion);
+export const rejectListingVersionHandler = (deps: Deps) => reviewDecisionHandler(deps, "review.reject_failed", rejectListingVersion);
