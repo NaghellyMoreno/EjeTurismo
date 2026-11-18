@@ -151,3 +151,5 @@ Solo se agregan filas al final, con `>>`. Ninguna fila se edita, se borra ni se 
 | D-145 | 5 | 1 | Se conserva has_active_role en el enum ErrorCode (D-139, P7); el developer regenera los tipos de api/openapi.yaml en un commit chore aparte, aunque toque schema.d.ts | 2026-11-17 |
 | D-146 | 5 | 1 | F012 P1 a P9 en la opción recomendada: la migración crea también businesses vacía; M09 en /atractivos con enlace Registrar atractivo; municipio o categoría inexistentes dan 422 not_found; crear un atractivo escribe listing.created en audit_events; listPublishedListings ordena por nombre normalizado y luego ID; para el duplicado cuentan draft, pending, published y rejected de fichas distintas; validador de Maps en F012; normalización de D-118; F013 prueba establishment | 2026-11-17 |
 | D-147 | 5 | 1 | F012: aprobados los textos nuevos (tabla Textos nuevos de contracts/F012.md) | 2026-11-17 |
+| D-148 | 5 | 1 | F013: P1 a P10 en la opción recomendada de contracts/F013.md | 2026-11-18 |
+| D-149 | 5 | 1 | F013: aprobados los textos nuevos (tabla Textos nuevos de contracts/F013.md) | 2026-11-18 |
