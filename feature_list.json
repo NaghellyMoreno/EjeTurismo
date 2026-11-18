@@ -288,7 +288,7 @@
       "En la Mini App, empezar una ficha nueva, cancelar antes de guardar y verificar que no se crea ninguna ficha (sección 3.12)",
       "En el entorno de pruebas, provocar un error del backend al guardar y verificar que la Mini App muestra un mensaje claro en español sin detalles técnicos ni datos personales; abrir la Mini App con datos de inicio vencidos y verificar que pide reabrirla desde el bot (pantalla M12)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F014",
