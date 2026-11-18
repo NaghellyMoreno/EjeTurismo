@@ -349,8 +349,8 @@ test.describe("paso 5: el botón y la frase en M02", () => {
       await open(page, as(v.id));
       const note = (await rows("select revocation_note from app.privacy_notice_versions where is_current"))[0].revocation_note as string;
       await expect(page.getByTestId("self-revoke-note")).toHaveText(es.selfRevoke.note);
-      // La semilla del aviso lleva punto final (como en F034); la Mini App y el bot muestran la frase de D-023 sin él.
-      expect(note).toBe(`${es.selfRevoke.note}.`);
+      // D-143: la frase de D-023 se muestra con punto final, igual que revocation_note del aviso vigente.
+      expect(note).toBe(es.selfRevoke.note);
       await expect(revokeButton(page)).toBeVisible();
       await expect(accept(page)).toHaveCount(0);
       if ("view" in v) {
