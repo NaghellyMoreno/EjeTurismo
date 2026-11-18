@@ -57,15 +57,20 @@ export const ADMIN_OPERATION_IDS = [
   "updateExperienceType", "createEstablishmentType", "updateEstablishmentType",
 ];
 
-// Las 17 operaciones de rol sin `route.ts` todavía (criterio 15 de F007; cobertura diferida a F012 y F013).
+// Operaciones de rol con ruta: las 14 de solo administrador más `createListing` (F012, criterios 15 y 18; D-136 y D-137).
+// `ADMIN_OPERATION_IDS` no cambia: F008 y la autorrevocación la usan.
+export const ROUTED_OPERATION_IDS = [...ADMIN_OPERATION_IDS, "createListing"];
+
+// Las 16 operaciones de rol sin `route.ts` todavía (criterio 15 de F007; cobertura diferida a F013 en adelante).
 export const UNROUTED_OPERATION_IDS = [
-  "listManagedListings", "createListing", "getManagedListing", "saveListingDraft", "submitListingForReview", "getListingStatusHistory",
+  "listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview", "getListingStatusHistory",
   "createPhotoUpload", "registerPhoto", "removePhoto", "listPendingReviews", "getReview", "approveListingVersion", "rejectListingVersion",
   "listMyBusinessInformationRequests", "getInformationRequest", "replyToInformationRequest", "changeInformationRequestStatus",
 ];
 
 export const ROLE_DENIAL_OPERATIONS: RoleDenialOperation[] = [
   ...ADMIN_OPERATION_IDS.map((id) => entry(id, ["admin"], true)),
+  entry("createListing", ["provider", "admin"], true),
   ...UNROUTED_OPERATION_IDS.map((id) => entry(id, specRoles(id), false)),
 ];
 
@@ -105,6 +110,7 @@ export interface RoleCase {
   operationId: string;
   resource?: ResourceKey; // el ID real que reemplaza al de la ruta
   body?: Record<string, unknown>; // cuerpo válido (columna "Cuerpo" del criterio 10); sin él, la operación no lleva cuerpo
+  bodyFor?: (fixtures: RoleFixtures) => Record<string, unknown>; // cuerpo válido que usa datos reales de `seedRoleDenial`
   positive: number; // código exacto del control positivo
 }
 
@@ -124,6 +130,24 @@ export const ROLE_CASES: RoleCase[] = [
   { operationId: "approveProviderRegistration", resource: "registrationId", body: { confirmed: true }, positive: 200 },
   { operationId: "rejectProviderRegistration", resource: "secondRegistrationId", body: { confirmed: true, reason: VALID_REASON }, positive: 200 },
   { operationId: "revokeRole", resource: "grantId", body: { confirmed: true }, positive: 200 },
+  // F012 (D-137): atractivo con el municipio y la categoría reales de `seedRoleDenial`.
+  {
+    operationId: "createListing",
+    bodyFor: (fixtures) => ({
+      kind: "attraction",
+      content: {
+        name: "Atractivo Ficticio Uno",
+        municipalityId: fixtures.ids.municipalityId,
+        categoryId: fixtures.ids.categoryId,
+        description: "Descripción ficticia.",
+        schedule: "Todos los días de 8:00 a 17:00",
+        contact: "contacto@ejemplo.invalid",
+        mapsUrl: "https://maps.app.goo.gl/AbCdEf123",
+      },
+      confirmed: true,
+    }),
+    positive: 201,
+  },
 ];
 
 export const roleCaseOf = (operationId: string): RoleCase => {
@@ -186,7 +210,7 @@ export function roleRequest(fixtures: RoleFixtures, rc: RoleCase, headers: Recor
   const id = rc.resource ? (variant === "valid" ? fixtures.ids[rc.resource] : UNKNOWN_ID) : UNKNOWN_ID;
   const url = `http://localhost${op.path.replace(UNKNOWN_ID, id)}`;
   if (!op.hasBody) return new Request(url, { method: op.method, headers });
-  const body = variant === "valid" ? rc.body : {};
+  const body = variant === "valid" ? (rc.bodyFor ? rc.bodyFor(fixtures) : rc.body) : {};
   return new Request(url, { method: op.method, headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify(body) });
 }
 

@@ -10,6 +10,7 @@ import {
   acceptPrivacyNotice,
   approveProviderRegistration,
   authorizeAdministrator,
+  createAttractionListing,
   createMunicipality,
   createCatalogItem,
   createProviderRegistration,
@@ -19,6 +20,7 @@ import {
   getMe,
   getMyProviderRegistration,
   listMunicipalities,
+  listPublishedListings,
   listCatalog,
   listProviderRegistrations,
   listRoleGrants,
@@ -315,5 +317,28 @@ export function renameCatalogItemHandler<P extends string>(deps: Deps, kind: Cat
       const id = (await context.params)[idParam];
       const body: unknown = await request.json().catch(() => undefined);
       return json(await renameCatalogItem(deps.db(), deps.config(), actor, kind, id, body, deps.now()));
+    });
+}
+
+// ---- Fichas (F012) ---------------------------------------------------------------------------------------------
+// POST /api/v1/managed-listings (createListing): en esta entrega solo el atractivo del administrador. Orden: 401, 403
+// `consent_required`, 403 `forbidden`, 422, 409 `duplicate`; los aplica el servicio.
+export function createListingHandler(deps: Deps) {
+  return (request: Request) =>
+    guarded("listing.create_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const body: unknown = await request.json().catch(() => undefined);
+      return json(await createAttractionListing(deps.db(), deps.config(), actor, body, deps.now()), 201);
+    });
+}
+
+// GET /api/v1/public/listings (listPublishedListings): cualquier cuenta con el aviso vigente (D-039).
+export function listPublishedListingsHandler(deps: Deps) {
+  return (request: Request) =>
+    guarded("listing.list_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      return json(await listPublishedListings(deps.db(), actor, new URL(request.url).searchParams));
     });
 }

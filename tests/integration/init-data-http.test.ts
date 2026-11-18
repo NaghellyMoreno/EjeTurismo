@@ -78,7 +78,7 @@ async function expect401(res: Response, label: string) {
   return body;
 }
 
-describe("F009 criterios 1, 2, 5, 6 y 14: las 23 operaciones rechazan con 401 sin consultar la base", () => {
+describe("F009 criterios 1, 2, 5, 6 y 14: las 25 operaciones rechazan con 401 sin consultar la base", () => {
   for (const [cause, headers] of Object.entries({ ...REJECTIONS, ...MALFORMED })) {
     describe(cause, () => {
       for (const op of PROTECTED_OPERATIONS) {

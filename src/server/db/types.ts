@@ -131,6 +131,63 @@ export interface TypeCatalogTable extends CatalogColumns {
   is_gastronomic: ColumnType<boolean, never, never>;
 }
 
+export type ListingKindValue = "attraction" | "establishment" | "route_experience";
+export type ListingVersionStatusValue = "draft" | "pending" | "published" | "rejected" | "superseded";
+
+export interface BusinessesTable {
+  id: Generated<string>;
+  provider_account_id: string | null;
+  owner_removed_at: Timestamp | null;
+  created_at: DefaultedTimestamp;
+}
+
+export interface ListingsTable {
+  id: Generated<string>;
+  kind: ListingKindValue;
+  business_id: string | null;
+  created_by_account_id: string | null;
+  created_at: DefaultedTimestamp;
+}
+
+export interface ListingVersionsTable {
+  id: Generated<string>;
+  listing_id: string;
+  version_number: number;
+  status: ListingVersionStatusValue;
+  name: string;
+  name_normalized: string;
+  municipality_id: string;
+  category_id: string | null;
+  establishment_type_id: string | null;
+  experience_type_id: string | null;
+  description: string | null;
+  schedule: string | null;
+  contact: string | null;
+  maps_url: string | null;
+  guides_info: string | null;
+  third_party_declared_at: Timestamp | null;
+  submitted_at: Timestamp | null;
+  submitted_by: string | null;
+  decided_at: Timestamp | null;
+  decided_by: string | null;
+  rejection_reason: string | null;
+  created_at: DefaultedTimestamp;
+  updated_at: DefaultedTimestamp;
+}
+
+// Solo la escribe el disparador de `listing_versions`; la aplicación la lee.
+export interface ListingStatusEventsTable {
+  id: Generated<number>;
+  listing_id: string;
+  version_id: string;
+  from_status: string | null;
+  to_status: string;
+  actor_account_id: string | null;
+  actor_role: "provider" | "admin" | "system";
+  reason: string | null;
+  occurred_at: DefaultedTimestamp;
+}
+
 export interface Database {
   privacy_notice_versions: PrivacyNoticeVersionsTable;
   accounts: AccountsTable;
@@ -146,4 +203,8 @@ export interface Database {
   categories: CategoriesTable;
   experience_types: TypeCatalogTable;
   establishment_types: TypeCatalogTable;
+  businesses: BusinessesTable;
+  listings: ListingsTable;
+  listing_versions: ListingVersionsTable;
+  listing_status_events: ListingStatusEventsTable;
 }

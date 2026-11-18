@@ -12,7 +12,6 @@ import { failingDb } from "../helpers/failing-db";
 import { validateSchema } from "../helpers/openapi";
 import { responseSchemaName } from "../helpers/protected-operations";
 import {
-  ADMIN_OPERATION_IDS,
   ADMIN_TEST,
   changedTables,
   contextFor,
@@ -24,6 +23,7 @@ import {
   PERSON_KEYS,
   PROVIDER_CONTROL,
   ROLE_CASES,
+  ROUTED_OPERATION_IDS,
   ROLE_DENIAL_OPERATIONS,
   roleCaseOf,
   roleContext,
@@ -80,8 +80,8 @@ const hasRoute = ROLE_DENIAL_OPERATIONS.filter((e) => e.hasRoute);
 const executed = new Set<string>();
 
 describe("paso 1: sin identidad válida (criterios 1 a 3)", () => {
-  it("1 y 2: 14 operaciones x 3 variantes dan 401 unauthenticated y no cambian ninguna tabla (42 casos)", async () => {
-    expect(hasRoute.map((e) => e.operationId).sort()).toEqual([...ADMIN_OPERATION_IDS].sort());
+  it("1 y 2: 15 operaciones x 3 variantes dan 401 unauthenticated y no cambian ninguna tabla (45 casos)", async () => {
+    expect(hasRoute.map((e) => e.operationId).sort()).toEqual([...ROUTED_OPERATION_IDS].sort());
     let cases = 0;
     for (const entry of hasRoute) {
       const rc = roleCaseOf(entry.operationId);
@@ -96,7 +96,7 @@ describe("paso 1: sin identidad válida (criterios 1 a 3)", () => {
         cases++;
       }
     }
-    expect(cases).toBe(42);
+    expect(cases).toBe(45);
   });
 
   it("3: aprobar o rechazar sin cabecera da 401; el registro sigue pending y no hay filas nuevas", async () => {
@@ -113,7 +113,7 @@ describe("paso 1: sin identidad válida (criterios 1 a 3)", () => {
 });
 
 describe("paso 2: visitante y registro pendiente (criterios 4 a 10)", () => {
-  it("4 a 6 y 8: 14 operaciones x A1 a A5, con cuerpo válido y vacío; mismo código, sin cambios y sin filtrar datos", async () => {
+  it("4 a 6 y 8: 15 operaciones x A1 a A5, con cuerpo válido y vacío; mismo código, sin cambios y sin filtrar datos", async () => {
     const table: Array<{ operacion: string; persona: string; esperado: string; obtenido: string }> = [];
     const secrets = [
       SECRET_REGISTRATION_NAME, SECRET_MUNICIPALITY_NAME, SECRET_IDENTITY_NUMBER,
@@ -143,7 +143,7 @@ describe("paso 2: visitante y registro pendiente (criterios 4 a 10)", () => {
       }
     }
     console.table(table);
-    expect(table).toHaveLength(70);
+    expect(table).toHaveLength(75);
     expect(table.filter((r) => r.esperado !== r.obtenido)).toEqual([]);
   });
 
@@ -182,7 +182,7 @@ describe("paso 2: visitante y registro pendiente (criterios 4 a 10)", () => {
     }
   });
 
-  it("10: control positivo con el administrador de prueba, 14 filas con el código exacto de la tabla", async () => {
+  it("10: control positivo con el administrador de prueba, 15 filas con el código exacto de la tabla", async () => {
     const table: Array<{ orden: number; operacion: string; esperado: number; obtenido: number }> = [];
     const headers = initFor(ADMIN_TEST);
     for (const [i, rc] of ROLE_CASES.entries()) {
@@ -190,7 +190,7 @@ describe("paso 2: visitante y registro pendiente (criterios 4 a 10)", () => {
       table.push({ orden: i + 1, operacion: rc.operationId, esperado: rc.positive, obtenido: res.status });
     }
     console.table(table);
-    expect(table).toHaveLength(14);
+    expect(table).toHaveLength(15);
     expect(table.filter((r) => r.esperado !== r.obtenido)).toEqual([]);
   });
 });
@@ -201,7 +201,7 @@ describe("paso 3: registro pendiente (criterios 11 y 12)", () => {
     return { status: res.status, json: await body(res) };
   };
 
-  it("11: A4 no obtiene permisos por tener un registro pendiente, antes ni después de los 140 casos", async () => {
+  it("11: A4 no obtiene permisos por tener un registro pendiente, antes ni después de los 150 casos", async () => {
     const schema = responseSchemaName("getMe", 200)!.name;
     const before = await getMe(PERSON_IDS.A4);
     expect(before.status).toBe(200);

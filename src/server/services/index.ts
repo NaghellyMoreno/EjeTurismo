@@ -36,3 +36,5 @@ export { createCatalogItem, listCatalog, renameCatalogItem } from "./catalogs";
 export type { CatalogItem, CatalogKind } from "./catalogs";
 export { getSelfRevocationBlock, revokeMyAuthorization } from "./self-revocation";
 export type { RevocationResult } from "./self-revocation";
+export { createAttractionListing, listPublishedListings, LISTING_CREATED_ACTION } from "./listings";
+export type { ManagedListing, PublicListingSummaryPage } from "./listings";

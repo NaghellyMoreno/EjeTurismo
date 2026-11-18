@@ -6,12 +6,14 @@ import {
   approveProviderRegistrationHandler,
   authorizeAdministratorHandler,
   createCatalogItemHandler,
+  createListingHandler,
   createMunicipalityHandler,
   createProviderRegistrationHandler,
   getMeHandler,
   getMyProviderRegistrationHandler,
   listCatalogHandler,
   listMunicipalitiesHandler,
+  listPublishedListingsHandler,
   listProviderRegistrationsHandler,
   listRoleGrantsHandler,
   rejectProviderRegistrationHandler,
@@ -66,15 +68,17 @@ export const PROTECTED_OPERATIONS: ProtectedOperation[] = [
   ...catalog("categories", "category", "categoryId", ["listCategories", "createCategory", "updateCategory"]),
   ...catalog("experience-types", "experience_type", "experienceTypeId", ["listExperienceTypes", "createExperienceType", "updateExperienceType"]),
   ...catalog("establishment-types", "establishment_type", "establishmentTypeId", ["listEstablishmentTypes", "createEstablishmentType", "updateEstablishmentType"]),
+  { operationId: "createListing", method: "POST", path: "/api/v1/managed-listings", handler: h(createListingHandler), role: "admin", hasBody: true },
+  { operationId: "listPublishedListings", method: "GET", path: "/api/v1/public/listings", handler: h(listPublishedListingsHandler), role: "consented", hasBody: false },
 ];
 
-// Los 23 operationId que fija el contrato de F009 (criterio 1).
+// Los 25 operationId: los 23 de F009 (criterio 1) más `createListing` y `listPublishedListings` de F012 (criterio 17, D-136).
 export const EXPECTED_OPERATION_IDS = [
   "getMe", "acceptPrivacyNotice", "revokeMyAuthorization", "createProviderRegistration", "listProviderRegistrations",
   "getMyProviderRegistration", "approveProviderRegistration", "rejectProviderRegistration", "listRoleGrants",
   "authorizeAdministrator", "revokeRole", "listMunicipalities", "createMunicipality", "updateMunicipality",
   "listCategories", "createCategory", "updateCategory", "listExperienceTypes", "createExperienceType", "updateExperienceType",
-  "listEstablishmentTypes", "createEstablishmentType", "updateEstablishmentType",
+  "listEstablishmentTypes", "createEstablishmentType", "updateEstablishmentType", "createListing", "listPublishedListings",
 ];
 
 // Parámetros de ruta de cualquier operación (los manejadores leen solo el suyo).
