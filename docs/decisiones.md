@@ -153,3 +153,5 @@ Solo se agregan filas al final, con `>>`. Ninguna fila se edita, se borra ni se 
 | D-147 | 5 | 1 | F012: aprobados los textos nuevos (tabla Textos nuevos de contracts/F012.md) | 2026-11-17 |
 | D-148 | 5 | 1 | F013: P1 a P10 en la opción recomendada de contracts/F013.md | 2026-11-18 |
 | D-149 | 5 | 1 | F013: aprobados los textos nuevos (tabla Textos nuevos de contracts/F013.md) | 2026-11-18 |
+| D-150 | 5 | 1 | F014: P1 a P12 en la opción recomendada de contracts/F014.md | 2026-11-18 |
+| D-151 | 5 | 1 | F014: aprobados los textos nuevos (tabla Textos nuevos de contracts/F014.md) | 2026-11-18 |
