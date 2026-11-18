@@ -61,3 +61,37 @@ export const catalogTexts = {
   forbidden: "No tienes permiso para administrar estas listas.",
   genericError: "No pudimos guardar el cambio. Inténtalo de nuevo.",
 } as const;
+
+// M09 (F012): formulario del atractivo del administrador. Textos aprobados en D-147; el texto de los errores de campo
+// que devuelve el servidor es el de `errors[].message` (los de cliente repiten los de `error.<campo>.required`).
+export const attractionTexts = {
+  link: "Registrar atractivo",
+  title: "Registrar atractivo",
+  nameLabel: "Nombre",
+  municipalityLabel: "Municipio",
+  categoryLabel: "Categoría",
+  selectPlaceholder: "Elige una opción",
+  descriptionLabel: "Descripción",
+  scheduleLabel: "Horarios",
+  contactLabel: "Contacto",
+  mapsUrlLabel: "Enlace de Google Maps",
+  save: "Guardar",
+  confirmCreate: (name: string) => `Vas a publicar «${name}». Será visible para los visitantes de inmediato, sin revisión. ¿Confirmas?`,
+  confirm: "Confirmar",
+  cancel: "Cancelar",
+  created: "Atractivo registrado y publicado.",
+  duplicate: "Ya existe un atractivo con ese nombre en ese municipio.",
+  invalid: "Revisa los campos marcados.",
+  genericError: "No pudimos registrar el atractivo. Inténtalo de nuevo en unos minutos.",
+  forbidden: "No tienes permiso para registrar atractivos.",
+  listsError: "No pudimos cargar las listas. Inténtalo de nuevo.",
+  required: {
+    name: "El nombre es obligatorio.",
+    municipalityId: "Elige un municipio.",
+    categoryId: "Elige una categoría.",
+    description: "La descripción es obligatoria.",
+    schedule: "Los horarios son obligatorios.",
+    contact: "El contacto es obligatorio.",
+    mapsUrl: "El enlace de Google Maps es obligatorio.",
+  },
+} as const;

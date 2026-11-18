@@ -7,7 +7,7 @@ import { createApiClient } from "@/shared/api/client";
 import type { components } from "@/shared/api/schema";
 import { homeTitle, homeView, homeViewText, protectedText, revokeConfirmText } from "./home";
 import { noticeText } from "./notice";
-import { catalogTexts, miniappTexts } from "./texts";
+import { attractionTexts, catalogTexts, miniappTexts } from "./texts";
 
 type Me = components["schemas"]["Me"];
 type Api = ReturnType<typeof createApiClient>;
@@ -190,6 +190,11 @@ export function HomeScreen() {
                 <p>
                   <Link href="/catalogos" data-testid="catalog-link">
                     {catalogTexts.link}
+                  </Link>
+                </p>
+                <p>
+                  <Link href="/atractivos" data-testid="attractions-link">
+                    {attractionTexts.link}
                   </Link>
                 </p>
               </>

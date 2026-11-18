@@ -156,3 +156,67 @@ body {
   outline: 3px solid var(--color-text);
   outline-offset: 2px;
 }
+
+/* M09: formulario del atractivo (F012). Solo colores de la paleta; botones con texto blanco sobre el primario oscuro. */
+.screen .attraction-form .field {
+  margin-bottom: 0.75rem;
+}
+
+.screen .attraction-form label {
+  display: block;
+}
+
+.screen .attraction-form input,
+.screen .attraction-form select,
+.screen .attraction-form textarea {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  background: #fff;
+  border: 1px solid var(--color-primary);
+  border-radius: 0.5rem;
+  color: var(--color-text);
+  font: inherit;
+}
+
+.screen .attraction-form input[aria-invalid="true"] {
+  border-color: var(--color-primary-dark);
+  border-width: 2px;
+}
+
+.screen .attraction-form button.primary,
+.screen .attraction-form button.secondary {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font: inherit;
+}
+
+.screen .attraction-form button.primary {
+  background: var(--color-primary-dark);
+  color: #fff;
+  border: 1px solid var(--color-primary-dark);
+}
+
+.screen .attraction-form button.secondary {
+  background: var(--color-background);
+  color: var(--color-text);
+  border: 1px solid var(--color-primary);
+}
+
+.screen .attraction-form button:focus-visible,
+.screen .attraction-form input:focus-visible,
+.screen .attraction-form select:focus-visible,
+.screen .attraction-form textarea:focus-visible {
+  outline: 3px solid var(--color-text);
+  outline-offset: 2px;
+}
+
+.screen .attraction-form [role="alertdialog"] {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: var(--color-background);
+  border: 1px solid var(--color-primary);
+  border-radius: 0.5rem;
+}
