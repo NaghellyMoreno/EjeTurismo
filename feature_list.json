@@ -266,7 +266,7 @@
       "Intentar registrar otro atractivo con el mismo nombre en el mismo municipio y verificar que se rechaza como duplicado (D-003)",
       "Registrar un atractivo con el mismo nombre en otro municipio y verificar que se acepta (D-003)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F013",
