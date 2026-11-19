@@ -159,3 +159,6 @@ Solo se agregan filas al final, con `>>`. Ninguna fila se edita, se borra ni se 
 | D-153 | 5 | 1 | F015: P1 a P8 en la opción recomendada de contracts/F015.md; la cobertura del paso 2 (horario visible al visitante) se difiere a F023 como en D-137 | 2026-11-19 |
 | D-154 | 5 | 1 | F015: aprobados los textos nuevos (tabla Textos nuevos de contracts/F015.md) | 2026-11-19 |
 | D-155 | 5 | 2 | F015 P7: se agrega migración aditiva con un disparador que rechaza sacar una versión de published salvo a superseded (criterio 12); se activa la prueba omitida | 2026-11-19 |
+| D-156 | 5 | 1 | F016: P1 a P5 en la opción recomendada de contracts/F016.md | 2026-11-19 |
+| D-157 | 5 | 1 | F029: P1 a P6 en la opción recomendada de contracts/F029.md | 2026-11-19 |
+| D-158 | 5 | 1 | F029: el developer aplica los 4 cambios menores de la Revisión QA (3) sin cuarta revisión de QA; el orquestador lo comprueba con Grep | 2026-11-19 |
