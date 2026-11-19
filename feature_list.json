@@ -371,7 +371,7 @@
       "Agregar una foto a una ficha publicada que tenga menos de 10 y verificar que el visitante no la ve hasta aprobar la nueva versión",
       "Con una cuenta de administrador, intentar agregar una foto número 11 a un atractivo y verificar que se rechaza (mismo límite para atractivos, Inferido)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F021",
