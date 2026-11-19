@@ -384,14 +384,13 @@ describe("criterio 12: sin despublicar, eliminar ni archivar", () => {
     expect((await versions(fp)).map((v) => v.status)).toEqual(["published"]);
   });
 
-  // P7 (D-153): hoy `eje_app` PUEDE ejecutar este UPDATE (la base solo restringe llegar a published o rejected). El criterio 12 es FALLA
-  // para esta sentencia y se informa; no se escribe migración en esta entrega. Cuando la usuaria decida la migración, se activa.
-  it.skip("con eje_app, UPDATE de la versión publicada a draft falla (42501 o 23514)", async () => {
+  // P7 (D-155): la migración 20261119100000_f015_published_guard.sql rechaza sacar una versión de published salvo hacia superseded.
+  it("con eje_app, UPDATE de la versión publicada a draft falla con 23514", async () => {
     const fp = await publish();
     const app = new Pool({ connectionString: process.env.TEST_APP_URL, max: 1 });
     try {
       const error = await app.query("update app.listing_versions set status = 'draft' where listing_id = $1 and status = 'published'", [fp]).then(() => null, (e) => e);
-      expect(["42501", "23514"]).toContain(error?.code);
+      expect(error).toMatchObject({ code: "23514", constraint: "listing_versions_published_transition" });
     } finally {
       await app.end();
     }
