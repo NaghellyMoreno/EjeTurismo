@@ -352,7 +352,7 @@
       "Verificar que lista en orden los cambios borrador, pendiente, rechazada, pendiente y publicada",
       "Verificar que cada cambio muestra fecha y hora en America/Bogota y el responsable, y que el rechazo muestra su motivo"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F020",
