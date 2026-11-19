@@ -206,6 +206,10 @@ export const es = {
     useButtons: "Para continuar, usa los botones del mensaje anterior. Si prefieres salir, envía /cancelar.",
     sessionConflict: "Tu mensaje anterior todavía se estaba procesando. Repite el paso, por favor.",
   },
+  // Botón de ubicación de la ficha (F021); lo usa la pantalla de detalle B16 de F023.
+  location: {
+    button: "Ver ubicación",
+  },
   errors: {
     generic: "Ocurrió un error. Intenta de nuevo en unos minutos.",
   },
