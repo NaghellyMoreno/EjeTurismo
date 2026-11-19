@@ -20,6 +20,8 @@ export default defineConfig({
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   test: {
     environment: "node",
+    // F020: las pruebas usan el doble en memoria del almacén de fotos (nunca Vercel Blob).
+    env: { STORAGE_DRIVER: "memory" },
     projects: [
       { extends: true, test: { name: "unit", include: ["tests/unit/**/*.test.ts"] } },
       dbProject("integration"),

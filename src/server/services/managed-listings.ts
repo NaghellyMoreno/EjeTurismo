@@ -16,6 +16,7 @@ import { normalizeName } from "@/server/domain/normalize-name";
 import { AppError, type FieldError } from "@/server/errors";
 import { getConsentState } from "./consent";
 import { createAttractionListing, LISTING_CREATED_ACTION, validationFailed, type ManagedListing } from "./listings";
+import { loadPhotos } from "./photo-views";
 import { getActiveRoles } from "./provider-registration";
 import type { Db } from "./types";
 
@@ -25,12 +26,12 @@ type ListingVersionView = components["schemas"]["ListingVersion"];
 export const LISTING_SUBMITTED_ACTION = "listing.submitted";
 const PENDING_DETAIL = "La ficha está pendiente de revisión y no se puede editar.";
 
-const forbidden = (detail = "Sin permiso para esta ficha") => new AppError("forbidden", 403, detail);
+export const forbidden = (detail = "Sin permiso para esta ficha") => new AppError("forbidden", 403, detail);
 const isDuplicateName = (error: unknown): boolean => (error as { code?: unknown } | null)?.code === "23P01";
 const duplicateError = () => new AppError("duplicate", 409, "Ficha duplicada", undefined, { detail: "Ya existe una ficha con ese nombre en ese municipio." });
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-interface Caller {
+export interface Caller {
   accountId: string;
   displayName: string | null;
   isAdmin: boolean;
@@ -38,7 +39,7 @@ interface Caller {
 }
 
 // Consentimiento vigente (403 `consent_required`) y rol leído de la base en cada llamada (D-108): 403 `forbidden` sin rol.
-async function loadCaller(db: Db, config: Config, actor: Actor): Promise<Caller> {
+export async function loadCaller(db: Db, config: Config, actor: Actor): Promise<Caller> {
   const state = await getConsentState(db, actor.telegramUserId);
   assertConsented(state);
   const roles = await getActiveRoles(db, actor.telegramUserId);
@@ -52,7 +53,7 @@ async function loadCaller(db: Db, config: Config, actor: Actor): Promise<Caller>
 
 const iso = (value: Date | null): string | null => (value ? value.toISOString() : null);
 
-export async function loadManagedListing(db: Db, listingId: string): Promise<{ managed: ManagedListing; ownerAccountId: string | null } | null> {
+export async function loadManagedListing(db: Db, listingId: string, now: Date = new Date()): Promise<{ managed: ManagedListing; ownerAccountId: string | null } | null> {
   const listing = await db
     .selectFrom("listings as l")
     .leftJoin("businesses as b", "b.id", "l.business_id")
@@ -78,6 +79,7 @@ export async function loadManagedListing(db: Db, listingId: string): Promise<{ m
     .orderBy("v.version_number", "desc")
     .execute();
 
+  const photosByVersion = await loadPhotos(db, rows.map((row) => row.id), undefined, now);
   const view = (row: (typeof rows)[number]): ListingVersionView => ({
     id: row.id,
     versionNumber: row.version_number,
@@ -95,8 +97,8 @@ export async function loadManagedListing(db: Db, listingId: string): Promise<{ m
       contact: row.contact,
       mapsUrl: row.maps_url,
     },
-    photos: [],
-    photosTotalBytes: 0,
+    photos: photosByVersion.get(row.id)?.photos ?? [],
+    photosTotalBytes: photosByVersion.get(row.id)?.totalBytes ?? 0,
     thirdPartyDeclaredAt: iso(row.third_party_declared_at),
     submittedAt: iso(row.submitted_at),
     decidedAt: iso(row.decided_at),
@@ -254,10 +256,16 @@ export async function saveListingDraft(db: Db, config: Config, actor: Actor, lis
       if (!parsed.ok) throw validationFailed(parsed.errors);
       await checkReferences(trx, parsed.content);
       if (reopen) {
-        await trx
+        const created = await trx
           .insertInto("listing_versions")
           .values({ listing_id: listingId, version_number: reopen.version_number + 1, status: "draft", ...contentColumns(parsed.content), created_at: now, updated_at: now })
-          .execute();
+          .returning("id")
+          .executeTakeFirstOrThrow();
+        // F020 (ADR 0009): el borrador nace con las fotos de la versión de partida, apuntando a los mismos archivos y en el mismo orden.
+        await sql`
+          insert into app.listing_photos (version_id, blob_pathname, content_type, size_bytes, position, telegram_file_id, uploaded_by)
+          select ${created.id}, blob_pathname, content_type, size_bytes, position, telegram_file_id, uploaded_by
+          from app.listing_photos where version_id = ${reopen.id} order by position`.execute(trx);
       } else {
         await trx.updateTable("listing_versions").set({ ...contentColumns(parsed.content), updated_at: now }).where("id", "=", open!.id).execute();
       }

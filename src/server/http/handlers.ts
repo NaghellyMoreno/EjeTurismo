@@ -14,6 +14,7 @@ import {
   createListing,
   createMunicipality,
   createCatalogItem,
+  createPhotoUpload,
   createProviderRegistration,
   getActiveRoles,
   getConsentState,
@@ -21,6 +22,7 @@ import {
   getManagedListing,
   getMe,
   getMyProviderRegistration,
+  getPublishedListing,
   getListingStatusHistory,
   getReview,
   listManagedListings,
@@ -31,7 +33,9 @@ import {
   listProviderRegistrations,
   listRoleGrants,
   rejectListingVersion,
+  registerPhoto,
   rejectProviderRegistration,
+  removePhoto,
   revokeMyAuthorization,
   revokeRole,
   saveListingDraft,
@@ -449,3 +453,53 @@ function reviewDecisionHandler(deps: Deps, event: string, decide: typeof approve
 
 export const approveListingVersionHandler = (deps: Deps) => reviewDecisionHandler(deps, "review.approve_failed", approveListingVersion);
 export const rejectListingVersionHandler = (deps: Deps) => reviewDecisionHandler(deps, "review.reject_failed", rejectListingVersion);
+
+// ---- Fotografías (F020) -----------------------------------------------------------------------------------------
+// Prestador (su borrador) y administrador (atractivos). Orden: 401, 403 `consent_required`, 403 `forbidden`, 409
+// `invalid_state_transition`, 422 y 409 de límites; lo aplica el servicio. El almacén sale de `deps.storage` o del entorno.
+type VersionPhotoRoute = { params: Promise<{ listingId: string; versionId: string }> };
+type PhotoRoute = { params: Promise<{ listingId: string; versionId: string; photoId: string }> };
+
+export function createPhotoUploadHandler(deps: Deps) {
+  return (request: Request, context: VersionPhotoRoute) =>
+    guarded("photo.upload_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const { listingId, versionId } = await context.params;
+      const body: unknown = await request.json().catch(() => undefined);
+      return json(await createPhotoUpload(deps.db(), deps.config(), actor, listingId, versionId, body, deps.now(), deps.storage?.()), 201);
+    });
+}
+
+export function registerPhotoHandler(deps: Deps) {
+  return (request: Request, context: VersionPhotoRoute) =>
+    guarded("photo.register_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const { listingId, versionId } = await context.params;
+      const body: unknown = await request.json().catch(() => undefined);
+      return json(await registerPhoto(deps.db(), deps.config(), actor, listingId, versionId, body, deps.now(), deps.storage?.()), 201);
+    });
+}
+
+export function removePhotoHandler(deps: Deps) {
+  return (request: Request, context: PhotoRoute) =>
+    guarded("photo.remove_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const { listingId, versionId, photoId } = await context.params;
+      await removePhoto(deps.db(), deps.config(), actor, listingId, versionId, photoId, new URL(request.url).searchParams, deps.now(), deps.storage?.());
+      return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
+    });
+}
+
+// GET /api/v1/public/listings/{listingId} (getPublishedListing): cualquier cuenta con el aviso vigente (D-039). 404 sin versión publicada.
+export function getPublishedListingHandler(deps: Deps) {
+  return (request: Request, context: ListingRoute) =>
+    guarded("listing.get_published_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const { listingId } = await context.params;
+      return json(await getPublishedListing(deps.db(), actor, listingId, deps.now(), deps.storage?.()));
+    });
+}

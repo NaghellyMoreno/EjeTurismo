@@ -188,6 +188,33 @@ export interface ListingStatusEventsTable {
   occurred_at: DefaultedTimestamp;
 }
 
+export type PhotoContentType = "image/jpeg" | "image/png";
+
+// F020: la versión se bloquea y se validan sus límites en el disparador (migración f020_photos).
+export interface ListingPhotosTable {
+  id: Generated<string>;
+  version_id: string;
+  blob_pathname: string;
+  content_type: PhotoContentType;
+  size_bytes: number;
+  position: number;
+  telegram_file_id: ColumnType<string | null, string | null | undefined, string | null>;
+  uploaded_by: string | null;
+  created_at: DefaultedTimestamp;
+}
+
+export interface PhotoUploadsTable {
+  id: Generated<string>;
+  version_id: string;
+  requested_by_account_id: string;
+  pathname: string;
+  declared_size: number;
+  content_type: PhotoContentType;
+  expires_at: Timestamp;
+  registered_at: ColumnType<Date | null, Date | string | null | undefined, Date | string | null>;
+  created_at: DefaultedTimestamp;
+}
+
 export interface Database {
   privacy_notice_versions: PrivacyNoticeVersionsTable;
   accounts: AccountsTable;
@@ -207,4 +234,6 @@ export interface Database {
   listings: ListingsTable;
   listing_versions: ListingVersionsTable;
   listing_status_events: ListingStatusEventsTable;
+  listing_photos: ListingPhotosTable;
+  photo_uploads: PhotoUploadsTable;
 }

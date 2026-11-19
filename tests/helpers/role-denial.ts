@@ -1,9 +1,12 @@
+import { randomUUID } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import type { Pool } from "pg";
+import { memoryStorage } from "@/server/storage";
 import { createAccount, createOldVersionAccount, grantAdmin } from "../factories/accounts";
 import { createRegistration, makeProvider } from "../factories/review";
 import { seedListing } from "./listing-data";
+import { jpegBytes } from "./photo-data";
 import { PROTECTED_OPERATIONS, specOperations, UNKNOWN_ID, type ProtectedOperation } from "./protected-operations";
 
 // Matriz de F007: acceso denegado por rol (visitante y registro pendiente). Las funcionalidades siguientes (F012 en adelante)
@@ -64,22 +67,24 @@ export const REVIEW_OPERATION_IDS = ["listPendingReviews", "getReview", "approve
 // F029: el historial de estados de una ficha (solo administrador).
 export const HISTORY_OPERATION_ID = "getListingStatusHistory";
 
-// Operaciones de rol con ruta: las 14 de solo administrador, `createListing` (F012), las 4 de F013, las 4 de F014 y la de F029 (D-136 y D-137).
+// F020: las 3 operaciones de fotos (prestador y administrador).
+export const PHOTO_OPERATION_IDS = ["createPhotoUpload", "registerPhoto", "removePhoto"];
+
+// Operaciones de rol con ruta: las 14 de solo administrador, `createListing` (F012), las 4 de F013, las 4 de F014, la de F029 y las 3 de F020 (D-136 y D-137).
 // `ADMIN_OPERATION_IDS` no cambia: F008 y la autorrevocación la usan.
 export const ROUTED_OPERATION_IDS = [
-  ...ADMIN_OPERATION_IDS, "createListing", "listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview", ...REVIEW_OPERATION_IDS, HISTORY_OPERATION_ID,
+  ...ADMIN_OPERATION_IDS, "createListing", "listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview", ...REVIEW_OPERATION_IDS, HISTORY_OPERATION_ID, ...PHOTO_OPERATION_IDS,
 ];
 
-// Las 7 operaciones de rol sin `route.ts` todavía (criterio 15 de F007; cobertura diferida a las funcionalidades siguientes).
+// Las 4 operaciones de rol sin `route.ts` todavía (criterio 15 de F007; cobertura diferida a las funcionalidades siguientes).
 export const UNROUTED_OPERATION_IDS = [
-  "createPhotoUpload", "registerPhoto", "removePhoto",
   "listMyBusinessInformationRequests", "getInformationRequest", "replyToInformationRequest", "changeInformationRequestStatus",
 ];
 
 export const ROLE_DENIAL_OPERATIONS: RoleDenialOperation[] = [
   ...ADMIN_OPERATION_IDS.map((id) => entry(id, ["admin"], true)),
   entry("createListing", ["provider", "admin"], true),
-  ...["listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview", ...REVIEW_OPERATION_IDS, HISTORY_OPERATION_ID].map((id) => entry(id, specRoles(id), true)),
+  ...["listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview", ...REVIEW_OPERATION_IDS, HISTORY_OPERATION_ID, ...PHOTO_OPERATION_IDS].map((id) => entry(id, specRoles(id), true)),
   ...UNROUTED_OPERATION_IDS.map((id) => entry(id, specRoles(id), false)),
 ];
 
@@ -115,11 +120,14 @@ export const roleOperations = () => specOperations.filter((o) => o.roles.some((r
 // ---- Casos de la matriz HTTP -------------------------------------------------------------------------------------
 export type ResourceKey =
   | "registrationId" | "secondRegistrationId" | "grantId" | "municipalityId" | "categoryId" | "experienceTypeId" | "establishmentTypeId"
-  | "draftListingId" | "submitListingId" | "pendingListingId" | "reviewVersionId" | "approveVersionId" | "rejectVersionId";
+  | "draftListingId" | "submitListingId" | "pendingListingId" | "reviewVersionId" | "approveVersionId" | "rejectVersionId"
+  | "draftVersionId" | "photoId" | "uploadId";
 
 export interface RoleCase {
   operationId: string;
   resource?: ResourceKey; // el ID real que reemplaza al de la ruta
+  resources?: ResourceKey[]; // F020: rutas con varios IDs (ficha, versión y foto), en el orden de la ruta
+  query?: string; // consulta de la petición válida (por ejemplo `confirmed=true`)
   body?: Record<string, unknown>; // cuerpo válido (columna "Cuerpo" del criterio 10); sin él, la operación no lleva cuerpo
   bodyFor?: (fixtures: RoleFixtures) => Record<string, unknown>; // cuerpo válido que usa datos reales de `seedRoleDenial`
   positive: number; // código exacto del control positivo
@@ -205,6 +213,28 @@ export const ROLE_CASES: RoleCase[] = [
   { operationId: "rejectListingVersion", resource: "rejectVersionId", body: { confirmed: true, reason: "Motivo ficticio." }, positive: 200 },
   // F029 (D-136, D-137): historial de estados de una ficha (la pendiente sembrada).
   { operationId: "getListingStatusHistory", resource: "pendingListingId", positive: 200 },
+  // F020 (D-136, D-137): las 3 operaciones de fotos sobre el borrador sembrado de A6 (la foto y la subida sembradas son suyas).
+  {
+    operationId: "createPhotoUpload",
+    resources: ["draftListingId", "draftVersionId"],
+    body: { fileName: "foto-ficticia.jpg", contentType: "image/jpeg", sizeBytes: 1000 },
+    positive: 201,
+    positiveActor: PROVIDER_CONTROL,
+  },
+  {
+    operationId: "registerPhoto",
+    resources: ["draftListingId", "draftVersionId"],
+    bodyFor: (fixtures) => ({ uploadId: fixtures.ids.uploadId }),
+    positive: 201,
+    positiveActor: PROVIDER_CONTROL,
+  },
+  {
+    operationId: "removePhoto",
+    resources: ["draftListingId", "draftVersionId", "photoId"],
+    query: "confirmed=true",
+    positive: 204,
+    positiveActor: PROVIDER_CONTROL,
+  },
 ];
 
 // `roleCaseOf("createListing")` devuelve el de atractivo; el de establecimiento se pide con `kind`.
@@ -265,10 +295,23 @@ export async function seedRoleDenial(owner: Pool): Promise<RoleFixtures> {
   const reviewVersionId = pending.versionId;
   const approveVersionId = (await seedListing(owner, { ...own, name: "Ficha Sembrada Revisión Uno", status: "pending" })).versionId;
   const rejectVersionId = (await seedListing(owner, { ...own, name: "Ficha Sembrada Revisión Dos", status: "pending" })).versionId;
+  // F020: una foto y una subida emitida (con su archivo en el doble) sobre la versión borrador sembrada, para los controles positivos.
+  const draftVersionId = await one("select id from app.listing_versions where listing_id = $1", [draftListingId]);
+  const photoId = await one(
+    "insert into app.listing_photos (version_id, blob_pathname, content_type, size_bytes, position, uploaded_by) values ($1, $2, 'image/jpeg', 1000, 1, $3) returning id",
+    [draftVersionId, `listings/${draftListingId}/sembrada.jpg`, providerControlAccountId],
+  );
+  const uploadId = randomUUID();
+  const uploadPathname = `listings/${draftListingId}/${uploadId}.jpg`;
+  await owner.query(
+    "insert into app.photo_uploads (id, version_id, requested_by_account_id, pathname, declared_size, content_type, expires_at) values ($1, $2, $3, $4, 1000, 'image/jpeg', now() + interval '1 hour')",
+    [uploadId, draftVersionId, providerControlAccountId, uploadPathname],
+  );
+  memoryStorage().put(uploadPathname, jpegBytes(1000), "image/jpeg");
   return {
     ids: {
       registrationId, secondRegistrationId, grantId, municipalityId, categoryId, experienceTypeId, establishmentTypeId, draftListingId, submitListingId,
-      pendingListingId, reviewVersionId, approveVersionId, rejectVersionId,
+      pendingListingId, reviewVersionId, approveVersionId, rejectVersionId, draftVersionId, photoId, uploadId,
     },
     a4RegistrationId,
     providerControlAccountId,
@@ -278,8 +321,13 @@ export async function seedRoleDenial(owner: Pool): Promise<RoleFixtures> {
 // ---- Peticiones --------------------------------------------------------------------------------------------------
 export function roleRequest(fixtures: RoleFixtures, rc: RoleCase, headers: Record<string, string>, variant: "valid" | "empty" = "valid"): Request {
   const op = operationOf(rc.operationId);
-  const id = rc.resource ? (variant === "valid" ? fixtures.ids[rc.resource] : UNKNOWN_ID) : UNKNOWN_ID;
-  const url = `http://localhost${op.path.replace(UNKNOWN_ID, id)}`;
+  const keys = rc.resources ?? [rc.resource];
+  let placeholder = 0;
+  const path = op.path.replace(new RegExp(UNKNOWN_ID, "g"), () => {
+    const key = keys[placeholder++];
+    return key && variant === "valid" ? fixtures.ids[key] : UNKNOWN_ID;
+  });
+  const url = `http://localhost${path}${rc.query && variant === "valid" ? `?${rc.query}` : ""}`;
   if (!op.hasBody) return new Request(url, { method: op.method, headers });
   const body = variant === "valid" ? (rc.bodyFor ? rc.bodyFor(fixtures) : rc.body) : {};
   return new Request(url, { method: op.method, headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify(body) });
@@ -288,11 +336,16 @@ export function roleRequest(fixtures: RoleFixtures, rc: RoleCase, headers: Recor
 // Los manejadores leen su propio parámetro; se entregan todos con el mismo ID.
 export const roleContext = (id: string) => ({
   params: Promise.resolve({
-    registrationId: id, grantId: id, municipalityId: id, categoryId: id, experienceTypeId: id, establishmentTypeId: id, listingId: id, versionId: id,
+    registrationId: id, grantId: id, municipalityId: id, categoryId: id, experienceTypeId: id, establishmentTypeId: id, listingId: id, versionId: id, photoId: id,
   }),
 });
-export const contextFor = (fixtures: RoleFixtures, rc: RoleCase, variant: "valid" | "empty" = "valid") =>
-  roleContext(rc.resource && variant === "valid" ? fixtures.ids[rc.resource] : UNKNOWN_ID);
+export const contextFor = (fixtures: RoleFixtures, rc: RoleCase, variant: "valid" | "empty" = "valid") => {
+  if (rc.resources) {
+    const [listingId, versionId, photoId] = rc.resources.map((key) => (variant === "valid" ? fixtures.ids[key] : UNKNOWN_ID));
+    return { params: Promise.resolve({ listingId: listingId!, versionId: versionId!, photoId: photoId ?? UNKNOWN_ID }) };
+  }
+  return roleContext(rc.resource && variant === "valid" ? fixtures.ids[rc.resource] : UNKNOWN_ID);
+};
 
 // ---- Instantánea -------------------------------------------------------------------------------------------------
 export type Snapshot = Record<string, { count: number; md5: string }>;

@@ -134,10 +134,11 @@ describe("criterio 27: migración 20261118120000_f014_review.sql", () => {
     return url.toString();
   };
 
-  it("existe y es posterior a 20261118100000 (F015 agrega después 20261119100000, D-155)", () => {
+  it("existe y es posterior a 20261118100000 (F015 y F020 agregan después 20261119100000 y 20261119110000, D-155)", () => {
     expect(files).toContain(NAME);
-    expect(files.indexOf(NAME)).toBe(files.length - 2);
-    expect(files[files.length - 1]).toBe("20261119100000_f015_published_guard.sql");
+    expect(files.indexOf(NAME)).toBe(files.length - 3);
+    expect(files[files.length - 2]).toBe("20261119100000_f015_published_guard.sql");
+    expect(files[files.length - 1]).toBe("20261119110000_f020_photos.sql");
     expect(files[files.indexOf(NAME) - 1]).toBe("20261118100000_f013_establishments.sql");
   });
 

@@ -640,6 +640,7 @@ export interface paths {
          * Quitar una fotografía de una versión editable
          * @description Solo en versiones editables: borrador del prestador, o versión publicada de un atractivo en el caso del administrador (ADR 0009).
          *     Exige `confirmed=true` en la consulta (invariante 8). En fichas de prestador no afecta la versión publicada.
+         *     Responde 403 si la ficha o la versión son ajenas y 404 `not_found` si la foto no existe en esa versión (D-162).
          */
         delete: operations["removePhoto"];
         options?: never;
@@ -2720,6 +2721,7 @@ export interface operations {
             };
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
             500: components["responses"]["InternalError"];

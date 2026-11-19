@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { components } from "@/shared/api/schema";
 import { listingEditTexts as edit, listingReviewTexts as review, listingTexts as t, miniappTexts } from "./texts";
+import { photoTexts } from "@/lib/photo-texts";
 import { useProviderSession } from "./use-provider-session";
 
 type Listing = components["schemas"]["ManagedListing"];
@@ -88,7 +89,20 @@ export function ListingDetailScreen({ id }: { id: string }) {
                 </dl>
               </div>
             ))}
+            {(working ?? published) && (
+              <ul data-testid="listing-photos">
+                {(working ?? published)!.photos.map((photo) => (
+                  <li key={photo.id}>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- URL firmada de corta vigencia de otro origen; no se optimiza */}
+                    <img src={photo.url} alt={photoTexts.alt(photo.position)} width={160} />
+                  </li>
+                ))}
+              </ul>
+            )}
             <p className="actions">
+              {working && (
+                <Link href={`/fichas/${loaded.listing.id}/fotos`} data-testid="listing-photos-link">{photoTexts.title}</Link>
+              )}
               {loaded.listing.displayStatus === "draft" && (
                 <Link href={`/fichas/${loaded.listing.id}/editar`} className="primary" data-testid="listing-edit">{t.detail.edit}</Link>
               )}

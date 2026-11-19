@@ -27,7 +27,8 @@ export default defineConfig({
   reporter: [["list"]],
   use: { baseURL: `http://localhost:${PORT}`, locale: "es-CO", timezoneId: "America/Bogota" },
   webServer: {
-    command: `pnpm exec next build && pnpm exec next start -p ${PORT}`,
+    // F020: el servidor corre con NODE_ENV=test porque el doble en memoria del almacén de fotos nunca se activa con NODE_ENV=production.
+    command: `pnpm exec next build && NODE_ENV=test pnpm exec next start -p ${PORT}`,
     url: `http://localhost:${PORT}/api/health`,
     reuseExistingServer: false,
     timeout: 300_000,
@@ -39,6 +40,9 @@ export default defineConfig({
       IDENTITY_HASH_KEY: Buffer.alloc(32, 9).toString("base64"),
       PRINCIPAL_ADMIN_TELEGRAM_ID: "900000099",
       APP_BASE_URL: "http://localhost:" + PORT,
+      // F020: almacén de fotos en memoria y cuota global baja (100 000 bytes) para llegar a ella con pocas fotos de prueba.
+      STORAGE_DRIVER: "memory",
+      BLOB_STORAGE_QUOTA_BYTES: "100000",
     },
   },
 });

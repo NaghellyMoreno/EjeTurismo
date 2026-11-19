@@ -13,6 +13,8 @@ export interface RateLimitRule {
 // Valores por defecto de docs/03-arquitectura.md; D-077: registro de prestador, 5 por hora. RATE_LIMITS (JSON) los reemplaza por acción.
 const DEFAULT_RATE_LIMITS: Record<string, RateLimitRule> = {
   provider_registration: { limit: 5, windowSeconds: 3600 },
+  // F020: 30 intentos de subida por cuenta y hora (ADR 0006).
+  photo_upload: { limit: 30, windowSeconds: 3600 },
 };
 
 const rateLimits = z
@@ -40,6 +42,9 @@ const schema = z.object({
   PRINCIPAL_ADMIN_TELEGRAM_ID: z.string().regex(/^[1-9][0-9]{0,18}$/).optional(),
   // Dirección pública de la Mini App; el bot la usa para el botón "Abrir la Mini App" (F014). Sin ella, el botón no se ofrece.
   APP_BASE_URL: z.url().optional(),
+  // F020 (D-042): 5 MB por foto y 900 MB de cuota global del almacén; ambos configurables por entorno.
+  PHOTO_MAX_BYTES: z.coerce.number().int().positive().default(5_000_000),
+  BLOB_STORAGE_QUOTA_BYTES: z.coerce.number().int().positive().default(900_000_000),
 });
 
 export interface Config {
@@ -53,12 +58,14 @@ export interface Config {
   rateLimits: Record<string, RateLimitRule>;
   principalAdminTelegramId: string | null;
   appBaseUrl: string | null;
+  photoMaxBytes: number;
+  blobStorageQuotaBytes: number;
 }
 
 // Falla al arrancar si falta una variable obligatoria (fail closed, ADR 0003 y 0006). Nunca repite los valores.
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
   const input = { ...env };
-  for (const name of ["TELEGRAM_INIT_DATA_MAX_AGE_SECONDS", "BOT_SENSITIVE_DRAFT_TTL_SECONDS", "RATE_LIMITS", "PRINCIPAL_ADMIN_TELEGRAM_ID", "APP_BASE_URL"]) {
+  for (const name of ["TELEGRAM_INIT_DATA_MAX_AGE_SECONDS", "BOT_SENSITIVE_DRAFT_TTL_SECONDS", "RATE_LIMITS", "PRINCIPAL_ADMIN_TELEGRAM_ID", "APP_BASE_URL", "PHOTO_MAX_BYTES", "BLOB_STORAGE_QUOTA_BYTES"]) {
     if (input[name] === "") delete input[name];
   }
   const parsed = schema.safeParse(input);
@@ -78,6 +85,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     rateLimits: { ...DEFAULT_RATE_LIMITS, ...(v.RATE_LIMITS ?? {}) },
     principalAdminTelegramId: v.PRINCIPAL_ADMIN_TELEGRAM_ID ?? null,
     appBaseUrl: v.APP_BASE_URL ? v.APP_BASE_URL.replace(/\/+$/, "") : null,
+    photoMaxBytes: v.PHOTO_MAX_BYTES,
+    blobStorageQuotaBytes: v.BLOB_STORAGE_QUOTA_BYTES,
   };
 }
 

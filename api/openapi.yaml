@@ -981,6 +981,7 @@ paths:
       description: |
         Solo en versiones editables: borrador del prestador, o versión publicada de un atractivo en el caso del administrador (ADR 0009).
         Exige `confirmed=true` en la consulta (invariante 8). En fichas de prestador no afecta la versión publicada.
+        Responde 403 si la ficha o la versión son ajenas y 404 `not_found` si la foto no existe en esa versión (D-162).
       x-roles: [provider, admin]
       x-ownership: "prestador: dueño del negocio; administrador: solo atractivos"
       x-bot-equivalent: false
@@ -1000,6 +1001,7 @@ paths:
           description: Foto quitada
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '500': { $ref: '#/components/responses/InternalError' }

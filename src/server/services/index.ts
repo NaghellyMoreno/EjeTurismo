@@ -43,3 +43,5 @@ export { getHistoryListingName, getListingStatusHistory, listListingsForHistory 
 export type { HistoryListItem } from "./listing-history";
 export { approveListingVersion, getReview, listPendingReviews, OwnerRevokedError, rejectListingVersion } from "./listing-review";
 export type { ReviewDecision } from "./listing-review";
+export { createPhotoUpload, PHOTO_ADDED_ACTION, PHOTO_REMOVED_ACTION, registerPhoto, removePhoto } from "./photos";
+export { getPublishedListing } from "./public-listing";

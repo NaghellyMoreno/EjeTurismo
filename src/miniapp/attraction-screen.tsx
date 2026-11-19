@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { createApiClient } from "@/shared/api/client";
 import type { components } from "@/shared/api/schema";
 import { attractionTexts as t, miniappTexts } from "./texts";
+import { photoTexts } from "@/lib/photo-texts";
 
 type Municipality = components["schemas"]["Municipality"];
 type CatalogItem = components["schemas"]["CatalogItem"];
@@ -36,6 +38,8 @@ export function AttractionScreen() {
   const [errors, setErrors] = useState<Errors>({});
   const [summary, setSummary] = useState<string | null>(null);
   const [created, setCreated] = useState(false);
+  // F020: el atractivo recién creado enlaza a M06 para agregarle fotos.
+  const [createdId, setCreatedId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
@@ -95,7 +99,7 @@ export function AttractionScreen() {
     busyRef.current = true;
     setBusy(true);
     try {
-      const { response, error } = await client.POST("/api/v1/managed-listings", { body: { kind: "attraction", content: draft, confirmed: true } });
+      const { data, response, error } = await client.POST("/api/v1/managed-listings", { body: { kind: "attraction", content: draft, confirmed: true } });
       if (response.status === 401) return setScreen({ kind: "session-error" });
       if (response.status === 403) return setScreen({ kind: "forbidden" });
       setConfirming(false);
@@ -103,6 +107,7 @@ export function AttractionScreen() {
         setDraft(EMPTY);
         setErrors({});
         setSummary(null);
+        setCreatedId(data?.id ?? null);
         return setCreated(true);
       }
       if (response.status === 409) return setErrors({ name: t.duplicate });
@@ -163,6 +168,7 @@ export function AttractionScreen() {
           <section className="attraction-form">
             {screen.loadFailed && <p data-testid="attraction-lists-error" role="alert">{t.listsError}</p>}
             {created && <p data-testid="attraction-created">{t.created}</p>}
+            {created && createdId && <Link href={`/fichas/${createdId}/fotos`} data-testid="attraction-photos-link">{photoTexts.title}</Link>}
             <form onSubmit={submit} noValidate>
               {text("name", t.nameLabel, "attraction-name")}
               {list("municipalityId", t.municipalityLabel, "attraction-municipality", screen.municipalities)}

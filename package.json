@@ -33,6 +33,7 @@
     "bot:set-webhook": "node scripts/bot-set-webhook.ts"
   },
   "dependencies": {
+    "@vercel/blob": "^2.9.0",
     "grammy": "^1.46.0",
     "kysely": "~0.29.9",
     "next": "^16.4.6",

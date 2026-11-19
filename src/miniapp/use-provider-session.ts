@@ -13,7 +13,7 @@ interface TelegramWebApp {
 
 // Sesión de las pantallas del prestador (F013). Sin `initData` o con `getMe` rechazado: M12 sin más llamadas. El rol se lee
 // de `getMe` solo para decidir qué mostrar; el backend vuelve a decidir en cada petición (invariante 1).
-export function useProviderSession(): { session: Session; setSession: (next: Session) => void; client: () => Api | null } {
+export function useProviderSession(options: { allowAdmin?: boolean } = {}): { session: Session; setSession: (next: Session) => void; client: () => Api | null } {
   const [session, setSession] = useState<Session>({ kind: "loading" });
   const clientRef = useRef<Api | null>(null);
 
@@ -29,7 +29,10 @@ export function useProviderSession(): { session: Session; setSession: (next: Ses
       const me = await client.GET("/api/v1/me");
       if (cancelled) return;
       if (!me.data) return setSession({ kind: "session-error" });
-      if (me.data.consent.required || !me.data.roles.includes("provider") || me.data.roles.includes("admin")) return setSession({ kind: "forbidden" });
+      const { roles } = me.data;
+      // M06 (F020) la usan también los administradores (atractivos); las demás pantallas de fichas, solo prestadores.
+      const allowed = options.allowAdmin ? roles.includes("provider") || roles.includes("admin") : roles.includes("provider") && !roles.includes("admin");
+      if (me.data.consent.required || !allowed) return setSession({ kind: "forbidden" });
       setSession({ kind: "ready" });
     })().catch(() => {
       if (!cancelled) setSession({ kind: "session-error" });
@@ -37,7 +40,7 @@ export function useProviderSession(): { session: Session; setSession: (next: Ses
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [options.allowAdmin]);
 
   const client = useCallback(() => clientRef.current, []);
   return { session, setSession, client };
