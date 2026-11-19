@@ -202,7 +202,7 @@ describe("cancelar y confirmar (criterios 9 a 12)", () => {
     t.clear();
     await t.send(start(PROVIDER_A));
     expect(t.texts()).toEqual([noRoleMenu]);
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.selfRevoke.button]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.exploreButton, es.selfRevoke.button]);
     expect(t.texts()).not.toContain(es.menu.providerAvailable);
   });
 });
@@ -220,7 +220,7 @@ describe("revocar a un administrador (criterios 21, 22, 24 y 25)", () => {
     expect((await rows("select details from app.audit_events"))[0].details).toEqual({ role: "admin" });
     t.clear();
     await t.send(start(ADMIN_B));
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.registerButton, es.selfRevoke.button]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.exploreButton, es.menu.registerButton, es.selfRevoke.button]);
   });
 
   it("24: los botones antiguos y el paso siguiente de B08 del administrador revocado responden admin.forbidden", async () => {

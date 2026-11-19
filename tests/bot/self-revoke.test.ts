@@ -74,6 +74,7 @@ describe("paso 1 y 2: la opción y la frase en el inicio (criterios 1 a 5)", () 
     expect(t.texts()).toEqual([noRoleMenu]);
     expect(t.texts()[0].endsWith(`\n\n${es.selfRevoke.note}`)).toBe(true);
     expect(keyboardOf(t.messages()[0])).toEqual([
+      { text: es.menu.exploreButton, callback_data: "exp:m" },
       { text: es.menu.registerButton, callback_data: REGISTER },
       { text: "Revocar mi autorización", callback_data: SELF_REVOKE_ASK },
     ]);
@@ -89,17 +90,17 @@ describe("paso 1 y 2: la opción y la frase en el inicio (criterios 1 a 5)", () 
     await approvedWithoutRole(PROVIDER_A);
     await t.send(start(PROVIDER_A));
     expect(t.texts()).toEqual([noRoleMenu]);
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.selfRevoke.button]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.exploreButton, es.selfRevoke.button]);
 
     t.clear();
     await createRegistration(owner, await person(owner, NO_ROLE), { status: "rejected" });
     await t.send(start(NO_ROLE));
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.registerButton, es.selfRevoke.button]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.exploreButton, es.menu.registerButton, es.selfRevoke.button]);
 
     t.clear();
     await revokedAdmin(owner, REVOKED_ADMIN);
     await t.send(start(REVOKED_ADMIN));
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.registerButton, es.selfRevoke.button]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.exploreButton, es.menu.registerButton, es.selfRevoke.button]);
   });
 
   it.each([
@@ -226,7 +227,7 @@ describe("pasos 7 y 8: volver a usar el bot (criterios 20 a 25)", () => {
     t.clear();
     await t.send(start(PENDING));
     expect(t.texts()).toEqual([noRoleMenu]);
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.registerButton, es.selfRevoke.button]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.exploreButton, es.menu.registerButton, es.selfRevoke.button]);
   });
 
   it("24: el ciclo se puede repetir y deja dos eventos revoked", async () => {

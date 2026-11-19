@@ -60,7 +60,7 @@ describe("paso 1: elegir registrarse (criterios 1 y 3)", () => {
     await createAccount(owner, PERSON_1);
     await t.send(start(PERSON_1));
     expect(t.texts()).toEqual([noRoleMenu]);
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.registerButton, es.selfRevoke.button]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.exploreButton, es.menu.registerButton, es.selfRevoke.button]);
     expect(es.menu.registerButton).toBe("Registrarme como prestador");
     t.clear();
     await t.send(press(PERSON_1, REGISTER));
@@ -224,7 +224,7 @@ describe("paso 3: confirmación (criterios 11, 12, 13, 15)", () => {
     t.clear();
     await t.send(press(PERSON_1, CANCEL));
     expect(t.texts()).toEqual([es.provider.cancelled, noRoleMenu]);
-    expect(buttonsOf(t.messages()[1].payload)).toEqual([es.menu.registerButton, es.selfRevoke.button]);
+    expect(buttonsOf(t.messages()[1].payload)).toEqual([es.menu.exploreButton, es.menu.registerButton, es.selfRevoke.button]);
     expect((await session(id)).data).toEqual({});
     expect(await sessionText()).not.toContain("sealed");
     expect(await count("provider_registrations")).toBe(0);

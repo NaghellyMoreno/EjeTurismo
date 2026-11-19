@@ -25,6 +25,7 @@ import {
 import type { AccountContext, Db } from "@/server/services";
 import { adminKeyboard, handleAdminCallback, isAdminCallback } from "../admin";
 import { handleAuthorizeUpdate, isAuthCallback, isAuthorizeAdminSession } from "./authorize-admin";
+import { EXPLORE_START, handleExploreCallback, isExploreCallback } from "../explore";
 import { isCancelCommand, SessionConflictError } from "../common";
 import { handleHistoryCallback, isHistoryCallback } from "../history";
 import { handleReviewCallback, handleReviewUpdate, isMyListingsCallback, isReviewCallback, isReviewSession, MY_LISTINGS, showMyListings } from "../review";
@@ -94,19 +95,21 @@ const confirmKeyboard = () => new InlineKeyboard().text(es.provider.confirmButto
 const canRegister = (info: AccountContext) =>
   info.roles.length === 0 && !info.isPrincipalAdmin && (info.registrationStatus === null || info.registrationStatus === "rejected");
 
+const exploreRow = (keyboard = new InlineKeyboard()) => keyboard.text(es.menu.exploreButton, EXPLORE_START).row();
+
 const isAdmin = (info: AccountContext) => info.isPrincipalAdmin || info.roles.includes("admin");
 
 async function showMenu(ctx: Context, info: AccountContext) {
   // B06 mínimo (D-091, D-102): el administrador ve "Registros pendientes" y "Autorizar administrador"; el menú completo es de F005 y siguientes.
-  if (isAdmin(info)) return send(ctx, withSelfRevoke(es.menu.welcome), addSelfRevokeButton(adminKeyboard()));
+  if (isAdmin(info)) return send(ctx, withSelfRevoke(es.menu.welcome), addSelfRevokeButton(exploreRow(adminKeyboard())));
   // Mínimo de B02 para el prestador (D-090, D-091); el menú completo es de F005.
   if (info.roles.includes("provider")) {
-    await send(ctx, withSelfRevoke(es.menu.welcome), addSelfRevokeButton(new InlineKeyboard().text(es.menu.myListings, MY_LISTINGS).row()));
+    await send(ctx, withSelfRevoke(es.menu.welcome), addSelfRevokeButton(exploreRow(new InlineKeyboard().text(es.menu.myListings, MY_LISTINGS).row())));
     return send(ctx, es.menu.providerAvailable);
   }
   // B05: con el registro pendiente, el estado ocupa el lugar del menú. Se ofrece revocar la autorización (F034 y F035).
   if (info.registrationStatus === "pending") return send(ctx, withSelfRevoke(es.provider.pending), addSelfRevokeButton());
-  const keyboard = new InlineKeyboard();
+  const keyboard = exploreRow();
   if (canRegister(info)) keyboard.text(es.menu.registerButton, REGISTER).row();
   return send(ctx, withSelfRevoke(es.menu.welcome), addSelfRevokeButton(keyboard));
 }
@@ -145,6 +148,8 @@ export async function handleAccountUpdate(ctx: Context, deps: FormDeps, actor: A
     if (!info.roles.includes("provider")) return void (await send(ctx, es.admin.forbidden));
     return showMyListings(ctx, deps, actor);
   }
+  // B15 (F022): explorar fichas publicadas. Cualquier cuenta con el aviso vigente; los servicios verifican el aviso con el actor.
+  if (isExploreCallback(callback)) return handleExploreCallback(ctx, deps, actor, callback);
   // B03: revocar mi autorización. El rol se lee de la base en cada pulsación; el backend aplica la regla por rol (F035).
   if (isSelfRevokeCallback(callback)) return handleSelfRevokeCallback(ctx, deps, actor, info, callback, () => showMenu(ctx, info));
   // B08: botones y mensajes de la autorización de administradores.

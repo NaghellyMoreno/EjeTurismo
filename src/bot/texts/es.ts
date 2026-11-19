@@ -21,6 +21,20 @@ export const es = {
     reviews: "Fichas por revisar",
     history: "Historial de fichas",
     myListings: "Mis fichas",
+    // F022: opción de visitante de B02 (D-114); la ven todas las cuentas con el aviso vigente.
+    exploreButton: "Explorar",
+  },
+  // B15 (F022): explorar por municipio y categoría. Solo nombres de municipios, categorías y fichas publicadas.
+  explore: {
+    chooseMunicipality: "Elige un municipio para explorar.",
+    chooseCategory: (municipality: string) => `Elige una categoría en ${municipality}.`,
+    listHeader: (municipality: string, category: string) => `Fichas publicadas en ${municipality}, categoría ${category}:`,
+    empty: (municipality: string, category: string) => `Todavía no hay fichas publicadas en ${municipality} para la categoría ${category}.`,
+    noMunicipalities: "Todavía no hay municipios disponibles para explorar.",
+    more: "Ver más",
+    back: "Volver",
+    stale: "Esa opción ya no está disponible. Empieza a explorar de nuevo.",
+    startOver: "Empezar de nuevo",
   },
   // B04, B05 y B21 mínimo del registro de prestador. Textos aprobados en D-079; ninguno incluye el número ni lo escrito por la persona.
   provider: {

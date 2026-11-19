@@ -101,7 +101,7 @@ describe("paso 1: el principal entra sin registro (criterios 1, 2, 4 y 5)", () =
 
   it("otro ID no obtiene fila ni botón de administrador", async () => {
     await t.send(press(NO_ROLE, `consent:accept:${NOTICE_VERSION}`));
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.registerButton, es.selfRevoke.button]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.exploreButton, es.menu.registerButton, es.selfRevoke.button]);
     expect(await count("role_grants")).toBe(0);
   });
 

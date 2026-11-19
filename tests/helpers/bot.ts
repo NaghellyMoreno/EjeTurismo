@@ -57,8 +57,8 @@ export function buttonsOf(payload: Record<string, unknown>): string[] {
 export const noRoleMenu = `${es.menu.welcome}\n\n${es.selfRevoke.note}`;
 // F035: el menú de administrador y el de prestador también llevan la frase y el botón de revocar la autorización.
 export const adminMenu = noRoleMenu;
-export const ADMIN_MENU_BUTTONS = [es.admin.pendingButton, es.menu.reviews, es.menu.history, es.admin.authorizeButton, es.revoke.button, es.selfRevoke.button];
+export const ADMIN_MENU_BUTTONS = [es.admin.pendingButton, es.menu.reviews, es.menu.history, es.admin.authorizeButton, es.revoke.button, es.menu.exploreButton, es.selfRevoke.button];
 // F014: el menú del prestador agrega "Mis fichas" antes de "Revocar mi autorización".
-export const PROVIDER_MENU_BUTTONS = [es.menu.myListings, es.selfRevoke.button];
+export const PROVIDER_MENU_BUTTONS = [es.menu.myListings, es.menu.exploreButton, es.selfRevoke.button];
 export const providerMenu = [noRoleMenu, es.menu.providerAvailable];
 export const pendingMenu = `${es.provider.pending}\n\n${es.selfRevoke.note}`;

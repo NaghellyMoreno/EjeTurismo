@@ -79,7 +79,7 @@ describe("prestador (criterios 1 a 5 y 35)", () => {
     await addProvider(PROV);
     await t.send(start(PROV));
     expect(t.texts()).toEqual([WELCOME, es.menu.providerAvailable]);
-    expect(keyboardOf(t.messages()[0])).toEqual([{ text: es.menu.myListings, callback_data: "ml:l" }, { text: "Revocar mi autorización", callback_data: SELF_REVOKE_ASK }]);
+    expect(keyboardOf(t.messages()[0])).toEqual([{ text: es.menu.myListings, callback_data: "ml:l" }, { text: es.menu.exploreButton, callback_data: "exp:m" }, { text: "Revocar mi autorización", callback_data: SELF_REVOKE_ASK }]);
     expect(t.messages()[1].payload.reply_markup).toBeUndefined();
   });
 
@@ -98,7 +98,7 @@ describe("prestador (criterios 1 a 5 y 35)", () => {
     t.clear();
     await t.send(press(PROV, SELF_REVOKE_CANCEL));
     expect(t.texts()).toEqual([es.selfRevoke.cancelled, WELCOME, es.menu.providerAvailable]);
-    expect(buttonsOf(t.messages()[1].payload)).toEqual([es.menu.myListings, es.selfRevoke.button]);
+    expect(buttonsOf(t.messages()[1].payload)).toEqual([es.menu.myListings, es.menu.exploreButton, es.selfRevoke.button]);
     expect(await state()).toEqual(before);
   });
 
@@ -127,7 +127,7 @@ describe("prestador (criterios 1 a 5 y 35)", () => {
     t.clear();
     await t.send(press(PROV, ACCEPT));
     expect(t.texts()).toEqual([WELCOME]);
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.registerButton, es.selfRevoke.button]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.exploreButton, es.menu.registerButton, es.selfRevoke.button]);
     expect(await count("role_grants")).toBe(0);
   });
 
@@ -149,7 +149,7 @@ describe("administrador que no es principal ni único (criterios 15 a 18)", () =
     await addAdmin(ADM_Y);
     await t.send(start(ADM_X));
     expect(t.texts()).toEqual([WELCOME]);
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.menu.reviews, es.menu.history, es.admin.authorizeButton, es.revoke.button, es.selfRevoke.button]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.menu.reviews, es.menu.history, es.admin.authorizeButton, es.revoke.button, es.menu.exploreButton, es.selfRevoke.button]);
     const before = await state();
     t.clear();
     await t.send(press(ADM_X, SELF_REVOKE_ASK));
@@ -185,7 +185,7 @@ describe("administrador que no es principal ni único (criterios 15 a 18)", () =
     t.clear();
     await t.send(press(X, ACCEPT));
     expect(t.texts()).toEqual([WELCOME]);
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.registerButton, es.selfRevoke.button]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.exploreButton, es.menu.registerButton, es.selfRevoke.button]);
   });
 
   // F036 (criterio 40): con el aviso anterior el flujo `srv:` se atiende (D-133); cualquier otro botón recibe el aviso (D-039).

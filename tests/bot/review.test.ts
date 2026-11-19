@@ -63,7 +63,7 @@ describe("criterio 24: botones de menú", () => {
     }
     t.clear();
     await say(A6, "/start");
-    expect(buttonsOf(t.messages()[0]!.payload)).toEqual([es.menu.myListings, es.selfRevoke.button]);
+    expect(buttonsOf(t.messages()[0]!.payload)).toEqual([es.menu.myListings, es.menu.exploreButton, es.selfRevoke.button]);
     for (const user of [900007012, 900007013, 900007014, 900007015, 900008002]) {
       t.clear();
       await say(user, "/start");

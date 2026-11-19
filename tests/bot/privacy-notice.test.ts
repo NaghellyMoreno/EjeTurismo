@@ -137,7 +137,7 @@ describe("paso 4: aceptar y menú (criterios 10, 11, 12, 13, 14)", () => {
     expect(menu.payload.text).toBe("Te damos la bienvenida a Eje Turismo.\n\nComandos disponibles:\n/start: mostrar este menú\n\nEl número de identidad se usa solo para verificar tu identidad y atender tu solicitud de registro como prestador.");
     expect(menu.payload.text).toBe(noRoleMenu);
     // D-074: un único botón en línea para la cuenta recién aceptada (sin rol y sin registro).
-    expect(buttonsOf(menu.payload)).toEqual(["Registrarme como prestador", "Revocar mi autorización"]);
+    expect(buttonsOf(menu.payload)).toEqual(["Explorar", "Registrarme como prestador", "Revocar mi autorización"]);
     expect(t.texts().join("")).not.toContain("Aviso de privacidad");
     // La única otra llamada es el acuse del botón (answerCallbackQuery), que no es un mensaje.
     expect(t.calls.map((c) => c.method).sort()).toEqual(["answerCallbackQuery", "sendMessage"]);
@@ -186,7 +186,7 @@ describe("el bot no ofrece consultar ni corregir datos (criterio 14; HU-001, cri
     t.clear();
     await t.send(accept());
     // D-074 y D-071: B02 solo trae el botón de registro (cuenta sin rol y sin registro); los comandos siguen siendo solo /start.
-    expect(buttonsOf(t.messages()[0].payload)).toEqual(["Registrarme como prestador", "Revocar mi autorización"]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual(["Explorar", "Registrarme como prestador", "Revocar mi autorización"]);
     expect(es.menu.welcome.match(/\/\w+/g)).toEqual(["/start"]);
   });
 

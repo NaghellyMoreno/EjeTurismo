@@ -158,7 +158,7 @@ describe("paso 4: sin rol solo se ve el registro (criterios 16 a 19)", () => {
     await createAccount(owner, NO_ROLE);
     await t.send(start(NO_ROLE));
     expect(t.texts()).toEqual([noRoleMenu]);
-    expect(allButtons()).toEqual([es.menu.registerButton, es.selfRevoke.button]);
+    expect(allButtons()).toEqual([es.menu.exploreButton, es.menu.registerButton, es.selfRevoke.button]);
   });
 
   it("17: con registro pendiente, solo provider.pending y ningún botón", async () => {
@@ -172,7 +172,7 @@ describe("paso 4: sin rol solo se ve el registro (criterios 16 a 19)", () => {
     await pendingFor(owner, REJECTED, { status: "rejected" });
     await t.send(start(REJECTED));
     expect(t.texts()).toEqual([noRoleMenu]);
-    expect(allButtons()).toEqual([es.menu.registerButton, es.selfRevoke.button]);
+    expect(allButtons()).toEqual([es.menu.exploreButton, es.menu.registerButton, es.selfRevoke.button]);
     t.clear();
     await t.send(press(REJECTED, REGISTER));
     expect(t.texts()).toEqual([es.provider.askType]);
@@ -197,7 +197,7 @@ describe("paso 4: sin rol solo se ve el registro (criterios 16 a 19)", () => {
     }
     t.clear();
     await t.send(textUpdate("Registros pendientes", { fromId: NO_ROLE }));
-    expect(allButtons()).toEqual([es.menu.registerButton, es.selfRevoke.button]);
+    expect(allButtons()).toEqual([es.menu.exploreButton, es.menu.registerButton, es.selfRevoke.button]);
     expect(await count("provider_registrations")).toBe(0);
     expect(await count("role_grants")).toBe(0);
   });

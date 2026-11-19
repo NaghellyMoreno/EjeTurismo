@@ -82,7 +82,7 @@ describe("paso 1: cancelar (criterios 1 a 10, 32)", () => {
     const before = await count("rate_limit_counters");
     await t.send(press(PERSON_1, CANCEL));
     expect(t.texts()).toEqual([es.provider.cancelled, noRoleMenu]);
-    expect(buttonsOf(t.messages()[1].payload)).toEqual([es.menu.registerButton, es.selfRevoke.button]);
+    expect(buttonsOf(t.messages()[1].payload)).toEqual([es.menu.exploreButton, es.menu.registerButton, es.selfRevoke.button]);
     expect(await business()).toEqual({ pr: 0, audit: 0 });
     expect((await session(id)).data).toEqual({});
     expect(await count("rate_limit_counters")).toBe(before);
