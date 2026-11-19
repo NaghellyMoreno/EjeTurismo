@@ -400,7 +400,7 @@
       "Verificar que no aparecen las fichas en borrador, pendiente ni rechazada creadas en pruebas anteriores",
       "Elegir un municipio y una categoría sin fichas publicadas y verificar que el bot lo informa y ofrece volver"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F023",
