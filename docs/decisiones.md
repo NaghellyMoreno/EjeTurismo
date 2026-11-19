@@ -166,3 +166,4 @@ Solo se agregan filas al final, con `>>`. Ninguna fila se edita, se borra ni se 
 | D-160 | 5 | 2 | F029: aprobados los textos nuevos history.statuses.superseded ("Reemplazada"), history.createdAs e history.genericError | 2026-11-19 |
 | D-161 | 5 | 1 | F020: P1 a P6 en la opción recomendada de contracts/F020.md | 2026-11-19 |
 | D-162 | 5 | 2 | F020: aprobados los textos photos.* del contrato; removePhoto responde 403 si la versión es ajena y 404 si la foto no existe; aprobadas las 5 decisiones del developer sobre tamaño, firma, almacenamiento, límite de intentos y photos.uploadFailed | 2026-11-19 |
+| D-163 | 5 | 1 | F021: P1 a P3 en la opción recomendada de contracts/F021.md | 2026-11-19 |
