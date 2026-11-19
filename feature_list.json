@@ -385,7 +385,7 @@
       "Ingresar un enlace válido de Google Maps, guardar y llevar la ficha hasta publicada",
       "Como visitante, abrir la ficha, pulsar el botón de ubicación y verificar que se abre Google Maps en el lugar indicado"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F022",
