@@ -26,6 +26,7 @@ import type { AccountContext, Db } from "@/server/services";
 import { adminKeyboard, handleAdminCallback, isAdminCallback } from "../admin";
 import { handleAuthorizeUpdate, isAuthCallback, isAuthorizeAdminSession } from "./authorize-admin";
 import { isCancelCommand, SessionConflictError } from "../common";
+import { handleHistoryCallback, isHistoryCallback } from "../history";
 import { handleReviewCallback, handleReviewUpdate, isMyListingsCallback, isReviewCallback, isReviewSession, MY_LISTINGS, showMyListings } from "../review";
 import { addSelfRevokeButton, handleSelfRevokeCallback, isSelfRevokeCallback, withSelfRevoke } from "../self-revoke";
 import { send } from "../send";
@@ -133,6 +134,11 @@ export async function handleAccountUpdate(ctx: Context, deps: FormDeps, actor: A
   if (isReviewCallback(callback)) {
     if (!isAdmin(info)) return void (await send(ctx, es.admin.forbidden));
     return handleReviewCallback(ctx, deps, actor, accountId, callback);
+  }
+  // B11 (F029): historial de estados de una ficha. Mismo guardián que B10; los servicios vuelven a verificar el rol.
+  if (isHistoryCallback(callback)) {
+    if (!isAdmin(info)) return void (await send(ctx, es.admin.forbidden));
+    return handleHistoryCallback(ctx, deps, actor, callback);
   }
   // B12 (F014): mis fichas, solo para quien tiene el permiso de prestador.
   if (isMyListingsCallback(callback)) {

@@ -21,6 +21,7 @@ import {
   getManagedListing,
   getMe,
   getMyProviderRegistration,
+  getListingStatusHistory,
   getReview,
   listManagedListings,
   listMunicipalities,
@@ -409,7 +410,18 @@ export function listPendingReviewsHandler(deps: Deps) {
     });
 }
 
-type VersionRoute = { params: Promise<{ versionId: string }> };
+// GET .../status-history (F029): solo administrador y solo lectura. Orden: 401, 403 `consent_required`, 403 `forbidden`, 404.
+export function getListingStatusHistoryHandler(deps: Deps) {
+  return (request: Request, context: ListingRoute) =>
+    guarded("listing_history.get_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const { listingId } = await context.params;
+      return json(await getListingStatusHistory(deps.db(), deps.config(), actor, listingId));
+    });
+}
+
+type VersionRoute ={ params: Promise<{ versionId: string }> };
 
 export function getReviewHandler(deps: Deps) {
   return (request: Request, context: VersionRoute) =>

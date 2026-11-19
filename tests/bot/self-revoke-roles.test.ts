@@ -149,7 +149,7 @@ describe("administrador que no es principal ni único (criterios 15 a 18)", () =
     await addAdmin(ADM_Y);
     await t.send(start(ADM_X));
     expect(t.texts()).toEqual([WELCOME]);
-    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.menu.reviews, es.admin.authorizeButton, es.revoke.button, es.selfRevoke.button]);
+    expect(buttonsOf(t.messages()[0].payload)).toEqual([es.admin.pendingButton, es.menu.reviews, es.menu.history, es.admin.authorizeButton, es.revoke.button, es.selfRevoke.button]);
     const before = await state();
     t.clear();
     await t.send(press(ADM_X, SELF_REVOKE_ASK));
@@ -175,7 +175,7 @@ describe("administrador que no es principal ni único (criterios 15 a 18)", () =
     expect(await rows("select channel from app.consent_events where event = 'revoked'")).toEqual([{ channel: "bot" }]);
     const before = await state();
     const callbacks = adminCallbacks(fx);
-    expect(callbacks).toHaveLength(21);
+    expect(callbacks).toHaveLength(23);
     for (const data of callbacks) {
       t.clear();
       await t.send(press(X, data));

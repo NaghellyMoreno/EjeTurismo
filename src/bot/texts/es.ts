@@ -19,6 +19,7 @@ export const es = {
     providerAvailable: "Ya tienes el rol de prestador. Las opciones de prestador estarán disponibles pronto.",
     // F014: botón B06 del administrador y botón B12 del prestador.
     reviews: "Fichas por revisar",
+    history: "Historial de fichas",
     myListings: "Mis fichas",
   },
   // B04, B05 y B21 mínimo del registro de prestador. Textos aprobados en D-079; ninguno incluye el número ni lo escrito por la persona.
@@ -96,6 +97,21 @@ export const es = {
       guidesInfo: "Información de guías",
       photos: "Fotografías",
     },
+  },
+  // B11 (F029): historial de estados de una ficha para el administrador. Sin número de identidad ni ID de Telegram.
+  history: {
+    listTitle: "Historial de fichas",
+    empty: "Todavía no hay fichas.",
+    moreListings: "Hay más fichas. Muestro las 10 más recientes.",
+    notFound: "No encontramos esa ficha. Vuelve a abrir «Historial de fichas».",
+    title: (name: string) => `Historial de «${name}»`,
+    created: "Creada como borrador",
+    createdAs: (status: string) => `Creada como ${status.toLowerCase()}`,
+    reasonLabel: "Motivo",
+    actorRemoved: "Usuario eliminado",
+    genericError: "No pudimos mostrar el historial. Intenta de nuevo.",
+    // "Reemplazada" es la etiqueta de `superseded` (versión publicada sustituida, F015), que `status.*` no trae.
+    statuses: { draft: "Borrador", pending: "Pendiente de revisión", published: "Publicada", rejected: "Rechazada", superseded: "Reemplazada" },
   },
   // B12 (F014): mis fichas del prestador, solo lectura; crear y editar es de la Mini App (D-002).
   myListings: {

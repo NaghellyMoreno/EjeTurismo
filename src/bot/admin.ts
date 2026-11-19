@@ -14,6 +14,7 @@ import {
 import type { AdminProviderRegistration, Db, Decision } from "@/server/services";
 import { formatBogotaShort } from "@/lib/time";
 import { AUTH_START } from "./forms/authorize-admin";
+import { HISTORY_LIST } from "./history";
 import { REVIEW_LIST } from "./review";
 import { handleRevokeCallback, isRevokeCallback, REVOKE_LIST } from "./revoke";
 import { send } from "./send";
@@ -154,6 +155,8 @@ export const adminKeyboard = () =>
     .text(es.admin.pendingButton, LIST_PENDING)
     .row()
     .text(es.menu.reviews, REVIEW_LIST)
+    .row()
+    .text(es.menu.history, HISTORY_LIST)
     .row()
     .text(es.admin.authorizeButton, AUTH_START)
     .row()

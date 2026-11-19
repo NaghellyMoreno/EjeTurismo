@@ -39,5 +39,7 @@ export type { RevocationResult } from "./self-revocation";
 export { createAttractionListing, listPublishedListings, LISTING_CREATED_ACTION } from "./listings";
 export type { ManagedListing, PublicListingSummaryPage } from "./listings";
 export { createListing, getManagedListing, listManagedListings, LISTING_SUBMITTED_ACTION, saveListingDraft, submitListingForReview } from "./managed-listings";
+export { getHistoryListingName, getListingStatusHistory, listListingsForHistory } from "./listing-history";
+export type { HistoryListItem } from "./listing-history";
 export { approveListingVersion, getReview, listPendingReviews, OwnerRevokedError, rejectListingVersion } from "./listing-review";
 export type { ReviewDecision } from "./listing-review";

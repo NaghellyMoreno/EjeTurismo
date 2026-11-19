@@ -33,10 +33,10 @@ afterEach(() => vi.restoreAllMocks());
 
 const label = (callback: string) => callback.replace(/[0-9a-f-]{36}/, "<uuid>");
 
-describe("criterios 13, 14 y 17: 21 callbacks de administrador (14 de F003 a F008 y 7 de revisión de F014) x A6 y A6b (42 casos)", () => {
+describe("criterios 13, 14 y 17: 23 callbacks de administrador (14 de F003 a F008, 7 de revisión de F014 y 2 de historial de F029) x A6 y A6b (46 casos)", () => {
   it("13, 14 y 17: A6 recibe es.admin.forbidden; A6b recibe el aviso B01; sin datos en el registro técnico", async () => {
     const data = adminCallbacks(fx);
-    expect(data).toHaveLength(21);
+    expect(data).toHaveLength(23);
     const logs: string[] = [];
     for (const level of ["log", "info", "warn", "error", "debug"] as const) {
       vi.spyOn(console, level).mockImplementation((...args: unknown[]) => void logs.push(args.map(String).join(" ")));
@@ -72,7 +72,7 @@ describe("criterios 13, 14 y 17: 21 callbacks de administrador (14 de F003 a F00
       expect(changedTables(before, after), `A6b / ${label(callback)}: tablas que cambiaron`).toEqual([]);
       cases++;
     }
-    expect(cases).toBe(42);
+    expect(cases).toBe(46);
 
     const joined = logs.join("\n");
     for (const secret of [...data, String(PROVIDER_A6), String(PROVIDER_A6B), fx.ids.registrationId, fx.ids.grantId]) {
@@ -97,7 +97,7 @@ describe("criterio 15: A6 no se autoriza administrador desde el bot", () => {
 });
 
 describe("criterio 16: menú del prestador", () => {
-  it("/start antes y después de las 21 pulsaciones: solo welcome y providerAvailable, sin opciones de administrador", async () => {
+  it("/start antes y después de las 23 pulsaciones: solo welcome y providerAvailable, sin opciones de administrador", async () => {
     const outgoing: Array<Record<string, unknown>> = [];
     const start = async () => {
       t.clear();

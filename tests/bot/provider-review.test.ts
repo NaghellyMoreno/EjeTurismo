@@ -93,7 +93,7 @@ describe("B06 y B02 mínimos (criterios 1, 15 y 22)", () => {
       t.clear();
       await t.send(start(id));
       expect(t.texts()).toEqual([adminMenu]);
-      expect(buttonsOf(t.messages()[0].payload)).toEqual([...ADMIN_MENU_BUTTONS.slice(0, 3), "Revocar rol", es.selfRevoke.button]);
+      expect(buttonsOf(t.messages()[0].payload)).toEqual([...ADMIN_MENU_BUTTONS.slice(0, 4), "Revocar rol", es.selfRevoke.button]);
       expect(callbacksOf(t.messages()[0])[0].callback_data).toBe("adm:list");
     }
   });
