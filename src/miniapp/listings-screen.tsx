@@ -39,7 +39,7 @@ export function ListingsScreen() {
       <section className="listing-list" aria-live="polite">
         {session.kind === "loading" && <p>{miniappTexts.loading}</p>}
         {session.kind === "session-error" && <p data-testid="session-error">{miniappTexts.sessionExpired}</p>}
-        {session.kind === "forbidden" && <p data-testid="listing-forbidden">{t.forbidden}</p>}
+        {session.kind === "forbidden" && <p data-testid="listing-forbidden" role="alert">{t.forbidden}</p>}
         {session.kind === "ready" && (
           <>
             {loaded.kind === "loading" && <p>{miniappTexts.loading}</p>}

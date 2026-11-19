@@ -238,7 +238,7 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
       <div aria-live="polite">
         {(session.kind === "loading" || (session.kind === "ready" && step === "loading")) && <p>{miniappTexts.loading}</p>}
         {session.kind === "session-error" && <p data-testid="session-error">{miniappTexts.sessionExpired}</p>}
-        {(session.kind === "forbidden" || (session.kind === "ready" && step === "forbidden")) && <p data-testid="listing-forbidden">{t.forbidden}</p>}
+        {(session.kind === "forbidden" || (session.kind === "ready" && step === "forbidden")) && <p data-testid="listing-forbidden" role="alert">{t.forbidden}</p>}
         {session.kind === "ready" && step === "locked" && <p data-testid="listing-locked">{t.locked}</p>}
         {session.kind === "ready" && step === "submitted" && (
           <section>

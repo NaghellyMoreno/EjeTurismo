@@ -57,10 +57,10 @@ export function ListingDetailScreen({ id }: { id: string }) {
       <section className="listing-list" aria-live="polite">
         {session.kind === "loading" && <p>{miniappTexts.loading}</p>}
         {session.kind === "session-error" && <p data-testid="session-error">{miniappTexts.sessionExpired}</p>}
-        {session.kind === "forbidden" && <p data-testid="listing-forbidden">{t.forbidden}</p>}
+        {session.kind === "forbidden" && <p data-testid="listing-forbidden" role="alert">{t.forbidden}</p>}
         {session.kind === "ready" && loaded.kind === "loading" && <p>{miniappTexts.loading}</p>}
         {session.kind === "ready" && loaded.kind === "error" && <p data-testid="listing-load-error" role="alert">{t.listError}</p>}
-        {session.kind === "ready" && loaded.kind === "forbidden" && <p data-testid="listing-forbidden">{t.forbidden}</p>}
+        {session.kind === "ready" && loaded.kind === "forbidden" && <p data-testid="listing-forbidden" role="alert">{t.forbidden}</p>}
         {session.kind === "ready" && loaded.kind === "ready" && (
           <>
             <p data-testid="listing-status">{t.status[loaded.listing.displayStatus]}</p>
