@@ -155,3 +155,6 @@ Solo se agregan filas al final, con `>>`. Ninguna fila se edita, se borra ni se 
 | D-149 | 5 | 1 | F013: aprobados los textos nuevos (tabla Textos nuevos de contracts/F013.md) | 2026-11-18 |
 | D-150 | 5 | 1 | F014: P1 a P12 en la opción recomendada de contracts/F014.md | 2026-11-18 |
 | D-151 | 5 | 1 | F014: aprobados los textos nuevos (tabla Textos nuevos de contracts/F014.md) | 2026-11-18 |
+| D-152 | 5 | 1 | No se precisa en api/openapi.yaml la regla de la fila is_principal en /consents/revocations; se deja como está por ahora | 2026-11-19 |
+| D-153 | 5 | 1 | F015: P1 a P8 en la opción recomendada de contracts/F015.md; la cobertura del paso 2 (horario visible al visitante) se difiere a F023 como en D-137 | 2026-11-19 |
+| D-154 | 5 | 1 | F015: aprobados los textos nuevos (tabla Textos nuevos de contracts/F015.md) | 2026-11-19 |

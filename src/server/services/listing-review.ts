@@ -161,6 +161,8 @@ async function decide(db: Db, config: Config, actor: Actor, versionId: string, r
     const hasOwner = version.kind === "establishment";
     const ownerActive = !hasOwner || (version.owner_telegram_id !== null && (await getActiveRoles(trx, String(version.owner_telegram_id))).includes("provider"));
     if (approve && !ownerActive) throw new OwnerRevokedError();
+    // Edición de una ficha ya publicada (F015, P3): se consulta antes de reemplazar la publicada; solo cambia el texto del aviso.
+    const isEdit = Boolean(await trx.selectFrom("listing_versions").select("id").where("listing_id", "=", version.listing_id).where("status", "=", "published").executeTakeFirst());
 
     if (approve) {
       await trx.updateTable("listing_versions").set({ status: "superseded", updated_at: now }).where("listing_id", "=", version.listing_id).where("status", "=", "published").execute();
@@ -188,7 +190,7 @@ async function decide(db: Db, config: Config, actor: Actor, versionId: string, r
         .values({
           recipient_telegram_user_id: String(version.owner_telegram_id),
           template: approve ? TEMPLATE_LISTING_APPROVED : TEMPLATE_LISTING_REJECTED,
-          payload: JSON.stringify(approve ? { listingName: version.name } : { listingName: version.name, reason }),
+          payload: JSON.stringify({ listingName: version.name, ...(approve ? {} : { reason }), ...(isEdit ? { isEdit: true } : {}) }),
           created_at: now,
           next_attempt_at: null,
           sent_at: null,

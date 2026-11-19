@@ -4,7 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { listingErrorMessage } from "@/server/domain/listings";
 import { ownerPool, resetDb } from "../helpers/db";
 import {
-  A6, createBody, draftBody, ESTABLISHMENT_ONE, ESTABLISHMENT_TWO, makeListingApi, seedListing, seedWorld, SUBMIT_BODY, UNKNOWN_ID, type World,
+  A6, createBody, draftBody, ESTABLISHMENT_ONE, ESTABLISHMENT_TWO, makeListingApi, seedWorld, SUBMIT_BODY, UNKNOWN_ID, type World,
 } from "../helpers/listing-http";
 import { validateSchema } from "../helpers/openapi";
 import { changedTables, snapshotAll } from "../helpers/role-denial";
@@ -90,11 +90,5 @@ describe("criterio 16: la ficha pendiente no se edita", () => {
     expect(json.detail).toBe("La ficha está pendiente de revisión y no se puede editar.");
     expect(changedTables(before, await snapshotAll(owner))).toEqual([]);
     expect((await rows("select status, name from app.listing_versions"))[0]).toMatchObject({ status: "pending", name: ESTABLISHMENT_ONE });
-  });
-
-  it("una ficha que no está en draft ni pending (sembrada publicada) también responde 409", async () => {
-    const other = await seedListing(owner, { accountId: world.a6Account, municipalityId: world.municipalityOne, categoryId: world.categoryOne, name: "Ficha Publicada Sembrada", status: "published" });
-    const res = await api.save(A6, other.listingId, draftBody(world, { name: "Otro nombre ficticio" }));
-    expect([res.status, (await body(res)).code]).toEqual([409, "invalid_state_transition"]);
   });
 });

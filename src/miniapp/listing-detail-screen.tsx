@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { components } from "@/shared/api/schema";
-import { listingReviewTexts as review, listingTexts as t, miniappTexts } from "./texts";
+import { listingEditTexts as edit, listingReviewTexts as review, listingTexts as t, miniappTexts } from "./texts";
 import { useProviderSession } from "./use-provider-session";
 
 type Listing = components["schemas"]["ManagedListing"];
@@ -33,21 +33,23 @@ export function ListingDetailScreen({ id }: { id: string }) {
     };
   }, [session.kind, id, client, setSession]);
 
-  // La versión de trabajo (borrador, pendiente o rechazada); sin ella, la publicada (F014).
+  // La versión de trabajo (borrador, pendiente o rechazada) y, aparte, la publicada (F015: ambas conviven en una edición).
   const working = loaded.kind === "ready" ? loaded.listing.working : null;
-  const shown = working ?? (loaded.kind === "ready" ? loaded.listing.published : null);
-  const fields: [string, string, string | null | undefined][] = shown
-    ? [
-        ["listing-name", t.form.nameLabel, shown.content.name],
-        ["listing-municipality", t.form.municipalityLabel, shown.content.municipality.name],
-        ["listing-category", t.form.categoryLabel, shown.content.category?.name],
-        ["listing-establishment-type", t.form.establishmentTypeLabel, shown.content.establishmentType?.name],
-        ["listing-description", t.form.descriptionLabel, shown.content.description],
-        ["listing-schedule", t.form.scheduleLabel, shown.content.schedule],
-        ["listing-contact", t.form.contactLabel, shown.content.contact],
-        ["listing-maps-url", t.form.mapsUrlLabel, shown.content.mapsUrl],
-      ]
-    : [];
+  const published = loaded.kind === "ready" ? loaded.listing.published : null;
+  const fieldsOf = (version: NonNullable<typeof working>, prefix: string): [string, string, string | null | undefined][] => [
+    [`${prefix}-name`, t.form.nameLabel, version.content.name],
+    [`${prefix}-municipality`, t.form.municipalityLabel, version.content.municipality.name],
+    [`${prefix}-category`, t.form.categoryLabel, version.content.category?.name],
+    [`${prefix}-establishment-type`, t.form.establishmentTypeLabel, version.content.establishmentType?.name],
+    [`${prefix}-description`, t.form.descriptionLabel, version.content.description],
+    [`${prefix}-schedule`, t.form.scheduleLabel, version.content.schedule],
+    [`${prefix}-contact`, t.form.contactLabel, version.content.contact],
+    [`${prefix}-maps-url`, t.form.mapsUrlLabel, version.content.mapsUrl],
+  ];
+  const blocks = [
+    working && { testId: "listing-working", title: t.detail.workingVersion, fields: fieldsOf(working, "listing") },
+    published && { testId: "listing-published", title: null, fields: fieldsOf(published, working ? "listing-published" : "listing") },
+  ].filter((block) => block !== null && block !== undefined);
 
   return (
     <main className="screen">
@@ -64,18 +66,20 @@ export function ListingDetailScreen({ id }: { id: string }) {
             <p data-testid="listing-status">{t.status[loaded.listing.displayStatus]}</p>
             {!loaded.listing.hasPublishedVersion && <p data-testid="listing-not-published">{t.detail.notPublished}</p>}
             {loaded.listing.displayStatus === "pending" && <p data-testid="listing-pending-note">{review.pendingNote}</p>}
+            {loaded.listing.hasPublishedVersion && working && <p data-testid="listing-still-visible">{edit.stillVisible}</p>}
             {loaded.listing.lastRejection && (
               <div data-testid="listing-rejection">
                 <h2>{review.rejectionReason}</h2>
                 <p data-testid="listing-rejection-reason">{loaded.listing.lastRejection.reason}</p>
                 {loaded.listing.displayStatus === "rejected" && <p data-testid="listing-rejected-note">{review.rejectedNote}</p>}
+                {loaded.listing.displayStatus === "published" && working?.status === "rejected" && <p data-testid="listing-rejected-edit-note">{edit.rejectedEditNote}</p>}
               </div>
             )}
-            {shown && (
-              <div data-testid={working ? "listing-working" : "listing-published"}>
-                {working && <h2>{t.detail.workingVersion}</h2>}
+            {blocks.map((block) => (
+              <div key={block.testId} data-testid={block.testId}>
+                {block.title && <h2>{block.title}</h2>}
                 <dl>
-                  {fields.map(([testId, label, value]) => (
+                  {block.fields.map(([testId, label, value]) => (
                     <div key={testId}>
                       <dt>{label}</dt>
                       <dd data-testid={testId}>{value ?? ""}</dd>
@@ -83,12 +87,15 @@ export function ListingDetailScreen({ id }: { id: string }) {
                   ))}
                 </dl>
               </div>
-            )}
+            ))}
             <p className="actions">
               {loaded.listing.displayStatus === "draft" && (
                 <Link href={`/fichas/${loaded.listing.id}/editar`} className="primary" data-testid="listing-edit">{t.detail.edit}</Link>
               )}
-              {loaded.listing.displayStatus === "rejected" && (
+              {loaded.listing.displayStatus === "published" && !working && (
+                <Link href={`/fichas/${loaded.listing.id}/editar`} className="primary" data-testid="listing-edit-published">{edit.editPublished}</Link>
+              )}
+              {working?.status === "rejected" && (
                 <Link href={`/fichas/${loaded.listing.id}/editar`} className="primary" data-testid="listing-correct">{review.correct}</Link>
               )}
               <Link href="/fichas" data-testid="listing-back">{t.detail.back}</Link>

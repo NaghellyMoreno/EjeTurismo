@@ -228,14 +228,14 @@ async function assertOwnListing(db: Db, caller: Caller, listingId: string): Prom
 
 const stateError = () => new AppError("invalid_state_transition", 409, "Estado no permitido", undefined, { detail: PENDING_DETAIL });
 
-// PUT .../draft: reemplaza el contenido completo del borrador propio. Una versión que no es borrador no se edita (409).
+// PUT .../draft: reemplaza el contenido completo del borrador propio o crea la versión nueva (ficha rechazada o publicada). Una versión pendiente no se edita (409).
 export async function saveListingDraft(db: Db, config: Config, actor: Actor, listingId: string, rawBody: unknown, now: Date = new Date()): Promise<ManagedListing> {
   const caller = await loadCaller(db, config, actor);
   await assertOwnListing(db, caller, listingId);
   try {
     return await db.transaction().execute(async (trx) => {
       await sql`select set_config('app.actor_role', 'provider', true), set_config('app.actor_account_id', ${caller.accountId}, true)`.execute(trx);
-      // Una ficha rechazada que nunca se publicó se corrige con una versión nueva en borrador (P4). Con sus versiones bloqueadas,
+      // Una ficha rechazada se corrige y una publicada se edita con una versión nueva en borrador (F014 P4, F015). Con sus versiones bloqueadas,
       // dos correcciones simultáneas se atienden una tras otra; si la segunda no ve el borrador nuevo, el único parcial de una
       // versión abierta la rechaza y se responde 409 (más abajo).
       const versions = await trx
@@ -247,7 +247,8 @@ export async function saveListingDraft(db: Db, config: Config, actor: Actor, lis
         .forUpdate()
         .execute();
       const open = versions.find((v) => v.status === "draft" || v.status === "pending");
-      const reopen = !open && versions[0]?.status === "rejected" && !versions.some((v) => v.status === "published") ? versions[0] : undefined;
+      // F015: con versión publicada, la edición parte de la más reciente: la publicada o una edición rechazada posterior (P2).
+      const reopen = !open && (versions[0]?.status === "rejected" || versions[0]?.status === "published") ? versions[0] : undefined;
       if (!reopen && (!open || open.status !== "draft")) throw stateError();
       const parsed = parseDraftSave(rawBody);
       if (!parsed.ok) throw validationFailed(parsed.errors);

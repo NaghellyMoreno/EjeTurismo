@@ -290,10 +290,13 @@ export async function showMyListings(ctx: Context, deps: ReviewDeps, actor: Acto
   await send(ctx, es.myListings.title, keyboard);
   for (const item of page.items) {
     const lines = [es.myListings.line(item.name, es.myListings.statuses[item.displayStatus])];
-    if (item.displayStatus === "rejected") {
+    // Con versión publicada (F015) el estado de la edición no oculta la ficha: la línea dice que la publicada sigue visible.
+    // Una edición rechazada se muestra como `published`; su motivo está en `lastRejection`.
+    if (item.displayStatus === "rejected" || (item.hasPublishedVersion && item.displayStatus === "published")) {
       const reason = (await getManagedListing(deps.db(), deps.config(), actor, item.id)).lastRejection?.reason;
       if (reason) lines.push(es.myListings.reason(reason));
-    }
+      if (reason && item.hasPublishedVersion) lines.push(es.myListings.stillVisible);
+    } else if (item.hasPublishedVersion) lines.push(es.myListings.stillVisible);
     await send(ctx, lines.join("\n"));
   }
 }

@@ -70,10 +70,13 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
       if (cancelled) return;
       if (found.response.status === 401) return setSession({ kind: "session-error" });
       if (!found.data) return setStep(found.response.status === 403 ? "forbidden" : "locked");
+      // F014: una ficha rechazada se corrige desde su contenido. F015: una ficha publicada se edita desde la versión de trabajo
+      // (borrador o edición rechazada) o, si no hay, desde la publicada; al guardar, el servidor crea la versión nueva en borrador.
       const working = found.data.working;
-      // F014: una ficha rechazada se corrige desde su contenido; al guardar, el servidor crea la versión nueva en borrador.
-      if ((found.data.displayStatus !== "draft" && found.data.displayStatus !== "rejected") || !working) return setStep("locked");
-      const content = working.content;
+      const editable = working ? working.status === "draft" || working.status === "rejected" : found.data.displayStatus === "published";
+      const source = working ?? found.data.published;
+      if (!editable || !source) return setStep("locked");
+      const content = source.content;
       setDraft({
         name: content.name,
         municipalityId: content.municipality.id,

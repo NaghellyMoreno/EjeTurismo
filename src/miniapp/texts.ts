@@ -160,3 +160,10 @@ export const listingReviewTexts = {
   pendingNote: "Tu ficha está pendiente de revisión.",
   rejectedNote: "El administrador rechazó esta ficha. Corrige lo señalado y envíala de nuevo.",
 } as const;
+
+// M08 (F015, D-154): edición de una ficha ya publicada. Textos de la tabla "Textos nuevos" del contrato F015 (`detail.*`).
+export const listingEditTexts = {
+  editPublished: "Editar ficha",
+  stillVisible: "Los visitantes siguen viendo la versión publicada hasta que el administrador apruebe tu cambio.",
+  rejectedEditNote: "El administrador rechazó tu último cambio. Se conserva la versión publicada. Corrígelo y envíalo de nuevo.",
+} as const;

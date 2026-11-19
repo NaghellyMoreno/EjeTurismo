@@ -52,6 +52,10 @@ export const es = {
     listingApproved: (name: string) => `Tu ficha «${name}» fue aprobada y ya es visible para los visitantes.`,
     listingRejected: (name: string, reason: string) =>
       `Tu ficha «${name}» fue rechazada. Motivo: ${reason}. Puedes corregirla y volver a enviarla desde la Mini App.`,
+    // B20 (F015, D-154): avisos tras revisar un cambio a una ficha ya publicada.
+    editApproved: (name: string) => `Tu cambio a la ficha «${name}» fue aprobado y ya es visible para los visitantes.`,
+    editRejected: (name: string, reason: string) =>
+      `Tu cambio a la ficha «${name}» fue rechazado. Motivo: ${reason}. La versión publicada sigue visible. Puedes corregirlo y volver a enviarlo desde la Mini App.`,
   },
   // B10 (F014): revisión de fichas pendientes por el administrador. Los avisos de esta pantalla no llevan datos personales.
   review: {
@@ -99,6 +103,7 @@ export const es = {
     empty: "Todavía no tienes fichas. Crea una desde la Mini App.",
     line: (name: string, status: string) => `«${name}»: ${status}`,
     reason: (reason: string) => `Motivo del rechazo: ${reason}`,
+    stillVisible: "La versión publicada sigue visible.",
     open: "Abrir la Mini App",
     statuses: { draft: "Borrador", pending: "Pendiente de revisión", published: "Publicada", rejected: "Rechazada" },
   },

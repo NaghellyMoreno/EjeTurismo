@@ -22,12 +22,12 @@ export interface NotifyDeps {
 // Inferido: ADR 0007 no fija el intervalo; un fallo de Telegram se vuelve a intentar una hora después (D-093: sin cron todavía).
 export const RETRY_DELAY_MS = 60 * 60 * 1000;
 
-type Payload = { listingName?: string; reason?: string } | null;
+type Payload = { listingName?: string; reason?: string; isEdit?: boolean } | null;
 const TEXTS: Record<string, (payload: Payload) => string> = {
   [TEMPLATE_APPROVED]: () => es.provider.approved,
   [TEMPLATE_REJECTED]: () => es.provider.rejected,
-  [TEMPLATE_LISTING_APPROVED]: (p) => es.provider.listingApproved(p?.listingName ?? ""),
-  [TEMPLATE_LISTING_REJECTED]: (p) => es.provider.listingRejected(p?.listingName ?? "", p?.reason ?? ""),
+  [TEMPLATE_LISTING_APPROVED]: (p) => (p?.isEdit ? es.provider.editApproved : es.provider.listingApproved)(p?.listingName ?? ""),
+  [TEMPLATE_LISTING_REJECTED]: (p) => (p?.isEdit ? es.provider.editRejected : es.provider.listingRejected)(p?.listingName ?? "", p?.reason ?? ""),
 };
 
 // Telegram responde 403 cuando la persona bloqueó el bot: no se reintenta.
