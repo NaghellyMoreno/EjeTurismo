@@ -20,12 +20,15 @@ export async function seedA6b(owner: Pool): Promise<void> {
   await owner.query("insert into app.role_grants (telegram_user_id, role, provider_registration_id) values ($1, 'provider', $2)", [PROVIDER_A6B, registrationId]);
 }
 
+// Las 2 formas de callback_data del historial de fichas (F029, prefijo `his:`), con el <uuid> de una ficha real.
+export const historyCallbacks = (listingId: string): string[] => ["his:l", `his:o:${listingId}`];
+
 // Las 7 formas de callback_data de revisión de fichas (F014, prefijo `rev:`), con el <uuid> de una versión pendiente real.
 export const reviewCallbacks = (versionId: string): string[] => [
   "rev:l", `rev:o:${versionId}`, `rev:a:${versionId}`, `rev:r:${versionId}`, `rev:ca:${versionId}`, `rev:cr:${versionId}`, `rev:x:${versionId}`,
 ];
 
-// Las 21 formas de callback_data de administrador (14 de F003, F006 y F008 y las 7 de revisión de F014), con <uuid> de un
+// Las 23 formas de callback_data de administrador (14 de F003, F006 y F008, las 7 de revisión de F014 y las 2 de historial de F029), con <uuid> de un
 // recurso real (movidas desde F007).
 export const adminCallbacks = (fx: RoleFixtures): string[] => {
   const registration = fx.ids.registrationId;
@@ -35,5 +38,6 @@ export const adminCallbacks = (fx: RoleFixtures): string[] => {
     "adm:vl", "adm:vp:1", `adm:vs:${grant}`, `adm:vc:${grant}`, `adm:vx:${grant}`,
     "auth:start", "auth:confirm:900007099", "auth:cancel",
     ...reviewCallbacks(fx.ids.reviewVersionId),
+    ...historyCallbacks(fx.ids.pendingListingId),
   ];
 };

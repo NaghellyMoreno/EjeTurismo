@@ -61,15 +61,17 @@ export const ADMIN_OPERATION_IDS = [
 // Las 4 operaciones de revisión de F014 (solo administrador).
 export const REVIEW_OPERATION_IDS = ["listPendingReviews", "getReview", "approveListingVersion", "rejectListingVersion"];
 
-// Operaciones de rol con ruta: las 14 de solo administrador, `createListing` (F012), las 4 de F013 y las 4 de F014 (D-136 y D-137).
+// F029: el historial de estados de una ficha (solo administrador).
+export const HISTORY_OPERATION_ID = "getListingStatusHistory";
+
+// Operaciones de rol con ruta: las 14 de solo administrador, `createListing` (F012), las 4 de F013, las 4 de F014 y la de F029 (D-136 y D-137).
 // `ADMIN_OPERATION_IDS` no cambia: F008 y la autorrevocación la usan.
 export const ROUTED_OPERATION_IDS = [
-  ...ADMIN_OPERATION_IDS, "createListing", "listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview", ...REVIEW_OPERATION_IDS,
+  ...ADMIN_OPERATION_IDS, "createListing", "listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview", ...REVIEW_OPERATION_IDS, HISTORY_OPERATION_ID,
 ];
 
-// Las 8 operaciones de rol sin `route.ts` todavía (criterio 15 de F007; cobertura diferida a las funcionalidades siguientes).
+// Las 7 operaciones de rol sin `route.ts` todavía (criterio 15 de F007; cobertura diferida a las funcionalidades siguientes).
 export const UNROUTED_OPERATION_IDS = [
-  "getListingStatusHistory",
   "createPhotoUpload", "registerPhoto", "removePhoto",
   "listMyBusinessInformationRequests", "getInformationRequest", "replyToInformationRequest", "changeInformationRequestStatus",
 ];
@@ -77,7 +79,7 @@ export const UNROUTED_OPERATION_IDS = [
 export const ROLE_DENIAL_OPERATIONS: RoleDenialOperation[] = [
   ...ADMIN_OPERATION_IDS.map((id) => entry(id, ["admin"], true)),
   entry("createListing", ["provider", "admin"], true),
-  ...["listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview", ...REVIEW_OPERATION_IDS].map((id) => entry(id, specRoles(id), true)),
+  ...["listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview", ...REVIEW_OPERATION_IDS, HISTORY_OPERATION_ID].map((id) => entry(id, specRoles(id), true)),
   ...UNROUTED_OPERATION_IDS.map((id) => entry(id, specRoles(id), false)),
 ];
 
@@ -201,6 +203,8 @@ export const ROLE_CASES: RoleCase[] = [
   { operationId: "getReview", resource: "reviewVersionId", positive: 200 },
   { operationId: "approveListingVersion", resource: "approveVersionId", body: { confirmed: true }, positive: 200 },
   { operationId: "rejectListingVersion", resource: "rejectVersionId", body: { confirmed: true, reason: "Motivo ficticio." }, positive: 200 },
+  // F029 (D-136, D-137): historial de estados de una ficha (la pendiente sembrada).
+  { operationId: "getListingStatusHistory", resource: "pendingListingId", positive: 200 },
 ];
 
 // `roleCaseOf("createListing")` devuelve el de atractivo; el de establecimiento se pide con `kind`.

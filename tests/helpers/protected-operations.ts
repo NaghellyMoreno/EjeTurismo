@@ -8,6 +8,7 @@ import {
   authorizeAdministratorHandler,
   createCatalogItemHandler,
   createListingHandler,
+  getListingStatusHistoryHandler,
   getManagedListingHandler,
   getReviewHandler,
   listManagedListingsHandler,
@@ -87,10 +88,12 @@ export const PROTECTED_OPERATIONS: ProtectedOperation[] = [
   { operationId: "getReview", method: "GET", path: `/api/v1/reviews/${ID}`, handler: h(getReviewHandler), role: "admin", hasBody: false, opening: 404 },
   { operationId: "approveListingVersion", method: "POST", path: `/api/v1/reviews/${ID}/approval`, handler: h(approveListingVersionHandler), role: "admin", hasBody: true, opening: 404 },
   { operationId: "rejectListingVersion", method: "POST", path: `/api/v1/reviews/${ID}/rejection`, handler: h(rejectListingVersionHandler), role: "admin", hasBody: true, opening: 404 },
+  // F029: historial de estados de una ficha (solo administrador). Con un ID inexistente la apertura normal es 404.
+  { operationId: "getListingStatusHistory", method: "GET", path: `/api/v1/managed-listings/${ID}/status-history`, handler: h(getListingStatusHistoryHandler), role: "admin", hasBody: false, opening: 404 },
   { operationId: "listPublishedListings", method: "GET", path: "/api/v1/public/listings", handler: h(listPublishedListingsHandler), role: "consented", hasBody: false },
 ];
 
-// Los 33 operationId: los 23 de F009 (criterio 1), `createListing` y `listPublishedListings` de F012 (criterio 17, D-136), las 4 de F013 (criterio 28) y las 4 de F014 (criterio 15).
+// Los 34 operationId: los 23 de F009 (criterio 1), `createListing` y `listPublishedListings` de F012 (criterio 17, D-136), las 4 de F013 (criterio 28) las 4 de F014 (criterio 15) y la de F029 (criterio 17).
 export const EXPECTED_OPERATION_IDS = [
   "getMe", "acceptPrivacyNotice", "revokeMyAuthorization", "createProviderRegistration", "listProviderRegistrations",
   "getMyProviderRegistration", "approveProviderRegistration", "rejectProviderRegistration", "listRoleGrants",
@@ -98,7 +101,7 @@ export const EXPECTED_OPERATION_IDS = [
   "listCategories", "createCategory", "updateCategory", "listExperienceTypes", "createExperienceType", "updateExperienceType",
   "listEstablishmentTypes", "createEstablishmentType", "updateEstablishmentType", "createListing", "listPublishedListings",
   "listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview",
-  "listPendingReviews", "getReview", "approveListingVersion", "rejectListingVersion",
+  "listPendingReviews", "getReview", "approveListingVersion", "rejectListingVersion", "getListingStatusHistory",
 ];
 
 // Parámetros de ruta de cualquier operación (los manejadores leen solo el suyo).
