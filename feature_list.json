@@ -323,7 +323,7 @@
       "Editar de nuevo, enviar a revisión y aprobar; verificar que el visitante ahora ve el nuevo horario",
       "Verificar que el prestador no tiene opción para despublicar ni eliminar la ficha (D-014)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F016",
