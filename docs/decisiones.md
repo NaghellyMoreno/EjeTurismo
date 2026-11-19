@@ -162,3 +162,4 @@ Solo se agregan filas al final, con `>>`. Ninguna fila se edita, se borra ni se 
 | D-156 | 5 | 1 | F016: P1 a P5 en la opción recomendada de contracts/F016.md | 2026-11-19 |
 | D-157 | 5 | 1 | F029: P1 a P6 en la opción recomendada de contracts/F029.md | 2026-11-19 |
 | D-158 | 5 | 1 | F029: el developer aplica los 4 cambios menores de la Revisión QA (3) sin cuarta revisión de QA; el orquestador lo comprueba con Grep | 2026-11-19 |
+| D-159 | 5 | 1 | F029 criterio 13: el administrador autorrevocado recibe en el bot el aviso de privacidad (D-039), no es.admin.forbidden; se corrigen el contrato y la prueba | 2026-11-19 |
