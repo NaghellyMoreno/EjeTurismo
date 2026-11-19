@@ -338,7 +338,7 @@
       "Con la identidad de A, pedir directamente al backend la ficha en borrador de B y verificar que responde acceso denegado",
       "Con la identidad de A, enviar al backend una edición y un envío a revisión de la ficha de B y verificar que responden acceso denegado y la ficha de B no cambia"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F029",
