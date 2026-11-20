@@ -415,7 +415,7 @@
       "Pulsar el botón de ubicación y verificar que abre Google Maps",
       "Volver a la lista con el botón de regreso y verificar que se conserva el municipio y la categoría elegidos"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F017",
