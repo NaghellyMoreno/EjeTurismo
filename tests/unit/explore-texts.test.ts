@@ -58,6 +58,9 @@ describe("criterio 17: menús existentes", () => {
     ["menu-by-role", "provider-registration", "provider-review", "authorize-admin", "form-cancel-errors", "revoke-role", "privacy-notice", "review", "self-revoke", "self-revoke-roles"].map((name) => `tests/bot/${name}.test.ts`),
   );
   ALLOWED.add("tests/helpers/bot.ts");
+  // D-168: archivos de prueba modificados por 94647bb y 8bf8192
+  ALLOWED.add("tests/e2e/listings.spec.ts");
+  ALLOWED.add("tests/unit/webhook.test.ts");
 
   const exists = () => {
     try {
