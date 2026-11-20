@@ -170,3 +170,4 @@ Solo se agregan filas al final, con `>>`. Ninguna fila se edita, se borra ni se 
 | D-164 | 5 | 1 | F022: P1 a P4 en la opción recomendada de contracts/F022.md | 2026-11-19 |
 | D-165 | 5 | 2 | F022: se amplía el criterio 17 para permitir ajustar tests/helpers/bot.ts y las cinco pruebas de menú solo en el botón Explorar; se mantiene D-164 | 2026-11-19 |
 | D-166 | 5 | 3 | F022: se añaden al criterio 17 privacy-notice, review, self-revoke y self-revoke-roles (tests/bot), solo para sumar Explorar a los botones esperados; se mantiene D-164 | 2026-11-19 |
+| D-167 | 5 | 1 | F023: P1 a P8 en la opción recomendada de contracts/F023.md (sin Solicitar información, botón por ficha, respaldo de fotos, sin telegram_file_id, textos propuestos al implementar, nombre completo en el botón, guidesInfo en mensajes consecutivos, fotos sin pie) | 2026-11-19 |
