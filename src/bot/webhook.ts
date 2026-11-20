@@ -2,7 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import type { Bot } from "grammy";
 import type { Update } from "grammy/types";
 import { internalError, problem } from "@/server/http/problem";
-import { logError } from "@/server/observability/logger";
+import { log, logError } from "@/server/observability/logger";
 
 export const SECRET_HEADER = "x-telegram-bot-api-secret-token";
 
@@ -25,7 +25,14 @@ export function createWebhookHandler(options: WebhookOptions) {
     try {
       expected = options.secret();
     } catch (error) {
-      logError("webhook.config_failed", error);
+      // Solo los nombres de las variables que loadConfig reporta; nunca valores (ADR 0005 y 0006).
+      const text = error instanceof Error ? error.message : "";
+      const listed = /variable de entorno (.+)\.$/.exec(text)?.[1] ?? "";
+      const variables = listed.split(", ").filter((n) => /^[A-Z][A-Z0-9_]{0,63}$/.test(n));
+      log("error", "webhook.config_failed", {
+        errorName: error instanceof Error ? error.name : "UnknownError",
+        ...(variables.length > 0 ? { variables } : {}),
+      });
       return internalError();
     }
     if (!sameSecret(request.headers.get(SECRET_HEADER) ?? "", expected)) {

@@ -37,6 +37,30 @@ describe("webhook: secreto (criterio 29; ADR 0003)", () => {
     expect((await handler(new Request("http://localhost/x", { method: "POST", body: "{}", headers: secret }))).status).toBe(500);
     expect(botFactory).not.toHaveBeenCalled();
   });
+
+  it("registra solo el nombre de la variable que falla, nunca su valor", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const handler = createWebhookHandler({
+      secret: () => {
+        throw new Error("Configuración inválida: falta o no es válida la variable de entorno IDENTITY_HASH_KEY, DATABASE_URL.");
+      },
+      bot: vi.fn(),
+    });
+    await handler(new Request("http://localhost/x", { method: "POST", body: "{}", headers: secret }));
+    const line = JSON.parse(String(spy.mock.calls.at(-1)?.[0]));
+    spy.mockRestore();
+    expect(line).toEqual({ level: "error", event: "webhook.config_failed", errorName: "Error", variables: ["IDENTITY_HASH_KEY", "DATABASE_URL"] });
+  });
+
+  it("no registra nada del mensaje si no es una lista de nombres de variable", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const handler = createWebhookHandler({ secret: () => { throw new Error("variable de entorno valor-secreto=abc."); }, bot: vi.fn() });
+    await handler(new Request("http://localhost/x", { method: "POST", body: "{}", headers: secret }));
+    const line = String(spy.mock.calls.at(-1)?.[0]);
+    spy.mockRestore();
+    expect(line).not.toContain("valor-secreto");
+    expect(JSON.parse(line)).not.toHaveProperty("variables");
+  });
 });
 
 describe("webhook: cuerpos que no sirven (criterio 38)", () => {
