@@ -2,13 +2,13 @@ import type { components } from "@/shared/api/schema";
 import type { Actor } from "@/server/auth/actor";
 import { assertConsented } from "@/server/auth/consent-guard";
 import { AppError } from "@/server/errors";
-import { getStorage, type PhotoStorage } from "@/server/storage";
+import { downloadPhoto, getStorage, type PhotoStorage } from "@/server/storage";
 import { getConsentState } from "./consent";
 import { uuidPattern } from "./managed-listings";
 import { loadPhotos } from "./photo-views";
 import type { Db } from "./types";
 
-type PublicListingDetail = components["schemas"]["PublicListingDetail"];
+export type PublicListingDetail = components["schemas"]["PublicListingDetail"];
 
 const notFound = () => new AppError("not_found", 404, "Ficha no encontrada", undefined, { detail: "No encontramos esa ficha." });
 
@@ -53,3 +53,6 @@ export async function getPublishedListing(db: Db, actor: Actor, listingId: strin
     publishedAt: (row.decided_at ?? row.created_at).toISOString(),
   };
 }
+
+// Respaldo del envío de fotos del bot (F023): descarga la foto de una URL firmada que devolvió `getPublishedListing`.
+export const downloadPublishedPhoto = downloadPhoto;

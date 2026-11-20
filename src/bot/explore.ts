@@ -1,8 +1,10 @@
 import { type Context, InlineKeyboard } from "grammy";
 import type { Actor } from "@/server/auth/actor";
 import type { Config } from "@/server/config";
-import { listCatalog, listMunicipalities, listPublishedListings } from "@/server/services";
+import { AppError } from "@/server/errors";
+import { getPublishedListing, listCatalog, listMunicipalities, listPublishedListings } from "@/server/services";
 import type { Db } from "@/server/services";
+import { showListingDetail } from "./listing-detail";
 import { send } from "./send";
 import { es } from "./texts/es";
 
@@ -12,6 +14,8 @@ export const EXPLORE_PREFIX = "exp:";
 export const EXPLORE_START = "exp:m";
 const CATEGORIES = "exp:c:";
 const LIST = "exp:l:";
+const DETAIL = "exp:d:";
+const BACK = "exp:b:";
 
 // Fichas por página (P4, D-164).
 export const EXPLORE_PAGE_SIZE = 10;
@@ -20,6 +24,7 @@ const MAX_PAGE = 100000;
 export interface ExploreDeps {
   db: () => Db;
   config: () => Config;
+  now?: () => Date;
 }
 
 export const isExploreCallback = (data: string | undefined): data is string => data !== undefined && data.startsWith(EXPLORE_PREFIX);
@@ -37,7 +42,9 @@ function unpack(text: string): string | null {
   return UUID.test(uuid) && pack(uuid) === text ? uuid : null;
 }
 
-type Parsed = { action: "municipalities" } | { action: "categories"; municipalityId: string } | { action: "list"; municipalityId: string; categoryId: string; page: number };
+type Parsed = { action: "municipalities" } | { action: "categories"; municipalityId: string } | { action: "list"; municipalityId: string; categoryId: string; page: number }
+  | { action: "detail"; listingId: string; page: number }
+  | { action: "back"; listingId: string; page: number };
 
 export function parseExploreCallback(data: string): Parsed | null {
   if (Buffer.byteLength(data) > 64) return null;
@@ -53,6 +60,14 @@ export function parseExploreCallback(data: string): Parsed | null {
     const categoryId = unpack(parts[1]);
     const page = Number(parts[2]);
     return municipalityId && categoryId && page <= MAX_PAGE ? { action: "list", municipalityId, categoryId, page } : null;
+  }
+  for (const [prefix, action] of [[DETAIL, "detail"], [BACK, "back"]] as const) {
+    if (!data.startsWith(prefix)) continue;
+    const parts = data.slice(prefix.length).split(":");
+    if (parts.length !== 2 || !/^[1-9][0-9]{0,5}$/.test(parts[1])) return null;
+    const listingId = unpack(parts[0]);
+    const page = Number(parts[1]);
+    return listingId && page <= MAX_PAGE ? { action, listingId, page } : null;
   }
   return null;
 }
@@ -90,10 +105,25 @@ async function showList(ctx: Context, deps: ExploreDeps, actor: Actor, municipal
     return void (await send(ctx, es.explore.empty(municipality.name, category.name), back()));
   }
   const keyboard = new InlineKeyboard();
+  for (const item of result.items) keyboard.text(item.name, `${DETAIL}${pack(item.id)}:${page}`).row();
   if (page * EXPLORE_PAGE_SIZE < result.total) keyboard.text(es.explore.more, `${LIST}${pack(municipalityId)}:${pack(categoryId)}:${page + 1}`).row();
   keyboard.text(es.explore.back, `${CATEGORIES}${pack(municipalityId)}`);
   const names = result.items.map((item) => item.name);
   await send(ctx, [es.explore.listHeader(municipality.name, category.name), ...names].join("\n"), keyboard);
+}
+
+// B16 (F023): solo se abre una ficha con versión publicada; cualquier otra cosa (inexistente, borrador, pendiente, rechazada) es "stale".
+// "Volver" toma el municipio y la categoría de la ficha publicada y la página del `callback_data`.
+async function showDetail(ctx: Context, deps: ExploreDeps, actor: Actor, listingId: string, page: number, back: boolean) {
+  let detail;
+  try {
+    detail = await getPublishedListing(deps.db(), actor, listingId, deps.now?.() ?? new Date());
+  } catch (error) {
+    if (error instanceof AppError && error.code === "not_found") return void (await stale(ctx));
+    throw error;
+  }
+  if (back) return showList(ctx, deps, actor, detail.municipality.id, detail.category.id, page);
+  await showListingDetail(ctx, detail, `${BACK}${pack(listingId)}:${page}`);
 }
 
 // El llamador ya comprobó que la cuenta tiene el aviso vigente; los servicios lo vuelven a verificar con el actor.
@@ -102,5 +132,7 @@ export async function handleExploreCallback(ctx: Context, deps: ExploreDeps, act
   if (!parsed) return void (await stale(ctx));
   if (parsed.action === "municipalities") return showMunicipalities(ctx, deps, actor);
   if (parsed.action === "categories") return showCategories(ctx, deps, actor, parsed.municipalityId);
+  if (parsed.action === "detail") return showDetail(ctx, deps, actor, parsed.listingId, parsed.page, false);
+  if (parsed.action === "back") return showDetail(ctx, deps, actor, parsed.listingId, parsed.page, true);
   return showList(ctx, deps, actor, parsed.municipalityId, parsed.categoryId, parsed.page);
 }

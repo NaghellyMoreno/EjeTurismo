@@ -220,6 +220,17 @@ export const es = {
     useButtons: "Para continuar, usa los botones del mensaje anterior. Si prefieres salir, envía /cancelar.",
     sessionConflict: "Tu mensaje anterior todavía se estaba procesando. Repite el paso, por favor.",
   },
+  // B16 (F023): detalle de una ficha publicada. Etiquetas de los campos y aviso cuando las fotos no se pueden mostrar.
+  listingDetail: {
+    municipality: "Municipio",
+    category: "Categoría",
+    type: "Tipo",
+    description: "Descripción",
+    schedule: "Horarios",
+    contact: "Contacto",
+    guides: "Guías",
+    photosUnavailable: "No pude mostrar las fotos de esta ficha por ahora.",
+  },
   // Botón de ubicación de la ficha (F021); lo usa la pantalla de detalle B16 de F023.
   location: {
     button: "Ver ubicación",
