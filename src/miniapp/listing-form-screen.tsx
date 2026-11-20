@@ -185,7 +185,8 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
     const missing: Errors = {};
     for (const field of ["name", "municipalityId"] as const) if (draft[field] === "") missing[field] = t.required[field];
     setErrors(missing);
-    setSummary(null);
+    // Si faltan campos, el aviso junto a los botones muestra que el botón respondió aunque el campo marcado quede arriba.
+    setSummary(Object.keys(missing).length > 0 ? t.invalid : null);
     setSaved(false);
     if (Object.keys(missing).length === 0) setDialog("save");
   }
@@ -194,7 +195,8 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
     const missing: Errors = {};
     for (const field of REQUIRED) if (draft[field] === "") missing[field] = t.required[field];
     setErrors(missing);
-    setSummary(null);
+    // Si faltan campos, el aviso junto a los botones muestra que el botón respondió aunque el campo marcado quede arriba.
+    setSummary(Object.keys(missing).length > 0 ? t.invalid : null);
     setSaved(false);
     if (Object.keys(missing).length === 0) {
       setDeclared(false);

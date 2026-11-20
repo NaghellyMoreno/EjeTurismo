@@ -232,7 +232,14 @@ test.describe("37: campo vacío al enviar", () => {
       await expect(error).toHaveText(message);
       await expect(error).toHaveAttribute("role", "alert");
       await expect(page.getByTestId("listing-submit-dialog")).toHaveCount(0);
+      // Junto a los botones se ve el aviso aprobado, para que se note que el botón respondió.
+      await expect(page.getByTestId("listing-error")).toHaveText("Revisa los campos marcados.");
     }
+    // Lo mismo al guardar sin nombre.
+    await page.getByLabel("Nombre", { exact: true }).fill("");
+    await page.getByTestId("listing-save").click();
+    await expect(page.getByTestId("listing-error-name")).toHaveText("El nombre es obligatorio.");
+    await expect(page.getByTestId("listing-error")).toHaveText("Revisa los campos marcados.");
     expect(seen.submissions).toBe(0);
     expect(await count("listings")).toBe(0);
   });
