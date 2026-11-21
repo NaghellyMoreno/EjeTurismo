@@ -462,7 +462,7 @@
       "Elegir un tipo de experiencia y verificar que se listan solo las rutas y experiencias publicadas de ese tipo en ese municipio",
       "Elegir un tipo sin fichas publicadas y verificar que el bot lo informa"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F027",
