@@ -41,11 +41,17 @@ export function ListingDetailScreen({ id }: { id: string }) {
     [`${prefix}-name`, t.form.nameLabel, version.content.name],
     [`${prefix}-municipality`, t.form.municipalityLabel, version.content.municipality.name],
     [`${prefix}-category`, t.form.categoryLabel, version.content.category?.name],
-    [`${prefix}-establishment-type`, t.form.establishmentTypeLabel, version.content.establishmentType?.name],
+    ...(version.content.experienceType === undefined
+      ? ([[`${prefix}-establishment-type`, t.form.establishmentTypeLabel, version.content.establishmentType?.name]] as [string, string, string | null | undefined][])
+      : []),
+    ...(version.content.experienceType !== undefined
+      ? ([[`${prefix}-experience-type`, t.form.experienceTypeLabel, version.content.experienceType?.name]] as [string, string, string | null | undefined][])
+      : []),
     [`${prefix}-description`, t.form.descriptionLabel, version.content.description],
     [`${prefix}-schedule`, t.form.scheduleLabel, version.content.schedule],
     [`${prefix}-contact`, t.form.contactLabel, version.content.contact],
     [`${prefix}-maps-url`, t.form.mapsUrlLabel, version.content.mapsUrl],
+    ...(version.content.guidesInfo !== undefined ? ([[`${prefix}-guides-info`, t.form.guidesInfoLabel, version.content.guidesInfo]] as [string, string, string | null | undefined][]) : []),
   ];
   const blocks = [
     working && { testId: "listing-working", title: t.detail.workingVersion, fields: fieldsOf(working, "listing") },

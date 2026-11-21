@@ -6,10 +6,11 @@ import type { Config } from "@/server/config";
 import {
   missingToSubmit,
   parseDraftSave,
-  parseEstablishmentCreate,
+  parseProviderCreate,
   parseManagedListQuery,
   parseSubmission,
   type DraftContent,
+  type ProviderKind,
   listingErrorMessage,
 } from "@/server/domain/listings";
 import { normalizeName } from "@/server/domain/normalize-name";
@@ -136,16 +137,19 @@ const reload = async (db: Db, listingId: string): Promise<ManagedListing> => (aw
 // ---- Referencias del contenido ------------------------------------------------------------------------------------
 
 async function checkReferences(db: Db, content: DraftContent): Promise<{ municipalityName: string }> {
-  const [municipality, category, type] = await Promise.all([
+  const [municipality, category, type, experience] = await Promise.all([
     db.selectFrom("municipalities").select("name").where("id", "=", content.municipalityId).executeTakeFirst(),
     content.categoryId ? db.selectFrom("categories").select("id").where("id", "=", content.categoryId).executeTakeFirst() : Promise.resolve(true),
     content.establishmentTypeId ? db.selectFrom("establishment_types").select("id").where("id", "=", content.establishmentTypeId).executeTakeFirst() : Promise.resolve(true),
+    content.experienceTypeId ? db.selectFrom("experience_types").select("id").where("id", "=", content.experienceTypeId).executeTakeFirst() : Promise.resolve(true),
   ]);
   const missing: FieldError[] = [];
   const notFound = (field: string): FieldError => ({ field, code: "not_found", message: listingErrorMessage(field, "not_found") });
   if (!municipality) missing.push(notFound("municipalityId"));
   if (!category) missing.push(notFound("categoryId"));
   if (!type) missing.push(notFound("establishmentTypeId"));
+  // El tipo de experiencia inexistente responde `invalid` (F018, criterio 4).
+  if (!experience) missing.push({ field: "experienceTypeId", code: "invalid", message: listingErrorMessage("experienceTypeId", "invalid") });
   if (missing.length > 0) throw validationFailed(missing);
   return { municipalityName: municipality!.name };
 }
@@ -156,6 +160,8 @@ const contentColumns = (content: DraftContent) => ({
   municipality_id: content.municipalityId,
   category_id: content.categoryId,
   establishment_type_id: content.establishmentTypeId,
+  experience_type_id: content.experienceTypeId,
+  guides_info: content.guidesInfo,
   description: content.description,
   schedule: content.schedule,
   contact: content.contact,
@@ -164,18 +170,18 @@ const contentColumns = (content: DraftContent) => ({
 
 // ---- createListing ---------------------------------------------------------------------------------------------
 
-// Administrador: atractivo (F012). Prestador: establecimiento en borrador (D-006). Orden: 401 (ruta), 403
+// Administrador: atractivo (F012). Prestador: establecimiento o ruta o experiencia en borrador (D-006, F018). Orden: 401 (ruta), 403
 // `consent_required`, 403 `forbidden`, 422 y 409 `duplicate`. Un rechazo no deja negocio, ficha ni versión.
 export async function createListing(db: Db, config: Config, actor: Actor, rawBody: unknown, now: Date = new Date()): Promise<ManagedListing> {
   const caller = await loadCaller(db, config, actor);
   if (caller.isAdmin) return createAttractionListing(db, config, actor, rawBody, now);
 
-  const parsed = parseEstablishmentCreate(rawBody);
+  const parsed = parseProviderCreate(rawBody);
   if (!parsed.ok) {
     if ("forbiddenKind" in parsed) throw forbidden("Sin permiso para este tipo de ficha");
     throw validationFailed(parsed.errors);
   }
-  const { content } = parsed;
+  const { content, kind } = parsed;
   await checkReferences(db, content);
 
   try {
@@ -184,7 +190,7 @@ export async function createListing(db: Db, config: Config, actor: Actor, rawBod
       const business = await trx.insertInto("businesses").values({ provider_account_id: caller.accountId, created_at: now }).returning("id").executeTakeFirstOrThrow();
       const listing = await trx
         .insertInto("listings")
-        .values({ kind: "establishment", business_id: business.id, created_by_account_id: caller.accountId, created_at: now })
+        .values({ kind, business_id: business.id, created_by_account_id: caller.accountId, created_at: now })
         .returning("id")
         .executeTakeFirstOrThrow();
       await trx
@@ -200,7 +206,7 @@ export async function createListing(db: Db, config: Config, actor: Actor, rawBod
           action: LISTING_CREATED_ACTION,
           entity_type: "listing",
           entity_id: listing.id,
-          details: JSON.stringify({ kind: "establishment", businessId: business.id, municipalityId: content.municipalityId }),
+          details: JSON.stringify({ kind, businessId: business.id, municipalityId: content.municipalityId }),
         })
         .execute();
       return await reload(trx, listing.id);
@@ -252,7 +258,8 @@ export async function saveListingDraft(db: Db, config: Config, actor: Actor, lis
       // F015: con versión publicada, la edición parte de la más reciente: la publicada o una edición rechazada posterior (P2).
       const reopen = !open && (versions[0]?.status === "rejected" || versions[0]?.status === "published") ? versions[0] : undefined;
       if (!reopen && (!open || open.status !== "draft")) throw stateError();
-      const parsed = parseDraftSave(rawBody);
+      const listingRow = await trx.selectFrom("listings").select("kind").where("id", "=", listingId).executeTakeFirstOrThrow();
+      const parsed = parseDraftSave(rawBody, listingRow.kind as ProviderKind);
       if (!parsed.ok) throw validationFailed(parsed.errors);
       await checkReferences(trx, parsed.content);
       if (reopen) {
@@ -287,7 +294,7 @@ export async function submitListingForReview(db: Db, config: Config, actor: Acto
     await sql`select set_config('app.actor_role', 'provider', true), set_config('app.actor_account_id', ${caller.accountId}, true)`.execute(trx);
     const version = await trx
       .selectFrom("listing_versions")
-      .select(["id", "status", "category_id", "description", "schedule", "contact", "maps_url"])
+      .select(["id", "status", "category_id", "experience_type_id", "description", "schedule", "contact", "maps_url"])
       .where("listing_id", "=", listingId)
       .where("status", "in", ["draft", "pending"])
       .forUpdate()
@@ -295,7 +302,13 @@ export async function submitListingForReview(db: Db, config: Config, actor: Acto
     if (!version || version.status !== "draft") throw stateError();
 
     const errors: FieldError[] = [];
-    errors.push(...missingToSubmit({ categoryId: version.category_id, description: version.description, schedule: version.schedule, contact: version.contact, mapsUrl: version.maps_url }));
+    const { kind } = await trx.selectFrom("listings").select("kind").where("id", "=", listingId).executeTakeFirstOrThrow();
+    errors.push(
+      ...missingToSubmit(
+        { categoryId: version.category_id, description: version.description, schedule: version.schedule, contact: version.contact, mapsUrl: version.maps_url, experienceTypeId: version.experience_type_id },
+        kind as ProviderKind,
+      ),
+    );
     const parsed = parseSubmission(rawBody);
     if (!parsed.ok) errors.push(...parsed.errors);
     if (errors.length > 0) throw validationFailed(errors);
@@ -314,7 +327,7 @@ export async function submitListingForReview(db: Db, config: Config, actor: Acto
         action: LISTING_SUBMITTED_ACTION,
         entity_type: "listing",
         entity_id: listingId,
-        details: JSON.stringify({ kind: "establishment", versionId: version.id }),
+        details: JSON.stringify({ kind, versionId: version.id }),
       })
       .execute();
     return await reload(trx, listingId);

@@ -11,18 +11,20 @@ type Municipality = components["schemas"]["Municipality"];
 type CatalogItem = components["schemas"]["CatalogItem"];
 type FieldError = components["schemas"]["FieldError"];
 
-const FIELDS = ["name", "municipalityId", "categoryId", "establishmentTypeId", "description", "schedule", "contact", "mapsUrl"] as const;
+const FIELDS = ["name", "municipalityId", "categoryId", "establishmentTypeId", "experienceTypeId", "description", "schedule", "contact", "mapsUrl", "guidesInfo"] as const;
 type Field = (typeof FIELDS)[number];
 type Draft = Record<Field, string>;
 // Los 7 campos que se exigen al enviar a revisión (D-003); el tipo de establecimiento es opcional (D-040).
+// En una ruta o experiencia también se exige el tipo de experiencia (F018); los datos del guía son opcionales.
 const REQUIRED = ["name", "municipalityId", "categoryId", "description", "schedule", "contact", "mapsUrl"] as const;
+type Kind = "establishment" | "route_experience";
 type ErrorKey = Field | "thirdPartyAuthorizationDeclared";
 type Errors = Partial<Record<ErrorKey, string>>;
 
-const EMPTY: Draft = { name: "", municipalityId: "", categoryId: "", establishmentTypeId: "", description: "", schedule: "", contact: "", mapsUrl: "" };
+const EMPTY: Draft = { name: "", municipalityId: "", categoryId: "", establishmentTypeId: "", experienceTypeId: "", description: "", schedule: "", contact: "", mapsUrl: "", guidesInfo: "" };
 const isErrorKey = (value: string): value is ErrorKey => value === "thirdPartyAuthorizationDeclared" || (FIELDS as readonly string[]).includes(value);
 
-type Lists = { municipalities: Municipality[]; categories: CatalogItem[]; types: CatalogItem[]; failed: boolean };
+type Lists = { municipalities: Municipality[]; categories: CatalogItem[]; types: CatalogItem[]; experienceTypes: CatalogItem[]; failed: boolean };
 type Step = "loading" | "ready" | "locked" | "forbidden" | "submitted";
 type Dialog = null | "save" | "submit";
 type Outcome = { ok: true; id: string } | { ok: false };
@@ -34,7 +36,7 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
   const router = useRouter();
   const { session, setSession, client } = useProviderSession();
   const [step, setStep] = useState<Step>("loading");
-  const [lists, setLists] = useState<Lists>({ municipalities: [], categories: [], types: [], failed: false });
+  const [lists, setLists] = useState<Lists>({ municipalities: [], categories: [], types: [], experienceTypes: [], failed: false });
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [errors, setErrors] = useState<Errors>({});
   const [summary, setSummary] = useState<string | null>(null);
@@ -44,6 +46,8 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
   const idRef = useRef<string | undefined>(listingId);
+  // La clase se elige solo al crear (F018, P1); al editar queda fija con la de la ficha.
+  const [kind, setKind] = useState<Kind>("establishment");
 
   useEffect(() => {
     if (session.kind !== "ready") return;
@@ -51,19 +55,21 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
     if (!api) return;
     let cancelled = false;
     (async () => {
-      const [municipalities, categories, types] = await Promise.all([
+      const [municipalities, categories, types, experienceTypes] = await Promise.all([
         api.GET("/api/v1/municipalities"),
         api.GET("/api/v1/categories"),
         api.GET("/api/v1/establishment-types"),
+        api.GET("/api/v1/experience-types"),
       ]);
       if (cancelled) return;
-      if ([municipalities, categories, types].some((r) => r.response.status === 401)) return setSession({ kind: "session-error" });
-      if ([municipalities, categories, types].some((r) => r.response.status === 403)) return setStep("forbidden");
+      if ([municipalities, categories, types, experienceTypes].some((r) => r.response.status === 401)) return setSession({ kind: "session-error" });
+      if ([municipalities, categories, types, experienceTypes].some((r) => r.response.status === 403)) return setStep("forbidden");
       setLists({
         municipalities: municipalities.data ?? [],
         categories: categories.data ?? [],
         types: types.data ?? [],
-        failed: !municipalities.data || !categories.data || !types.data,
+        experienceTypes: experienceTypes.data ?? [],
+        failed: !municipalities.data || !categories.data || !types.data || !experienceTypes.data,
       });
       if (!listingId) return setStep("ready");
       const found = await api.GET("/api/v1/managed-listings/{listingId}", { params: { path: { listingId } } });
@@ -77,11 +83,14 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
       const source = working ?? found.data.published;
       if (!editable || !source) return setStep("locked");
       const content = source.content;
+      setKind(found.data.kind === "route_experience" ? "route_experience" : "establishment");
       setDraft({
         name: content.name,
         municipalityId: content.municipality.id,
         categoryId: content.category?.id ?? "",
         establishmentTypeId: content.establishmentType?.id ?? "",
+        experienceTypeId: content.experienceType?.id ?? "",
+        guidesInfo: content.guidesInfo ?? "",
         description: content.description ?? "",
         schedule: content.schedule ?? "",
         contact: content.contact ?? "",
@@ -110,11 +119,12 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
 
   // Crea la ficha (POST) o reemplaza el borrador (PUT). Muestra el error que corresponda y devuelve si salió bien.
   async function persist(api: Api, genericError: string): Promise<Outcome> {
-    const content = draft;
+    const { establishmentTypeId, experienceTypeId, guidesInfo, ...common } = draft;
+    const content = kind === "route_experience" ? { ...common, experienceTypeId, guidesInfo } : { ...common, establishmentTypeId };
     const existing = idRef.current;
     const result = existing
       ? await api.PUT("/api/v1/managed-listings/{listingId}/draft", { params: { path: { listingId: existing } }, body: { content, confirmed: true } })
-      : await api.POST("/api/v1/managed-listings", { body: { kind: "establishment", content, confirmed: true } });
+      : await api.POST("/api/v1/managed-listings", { body: { kind, content, confirmed: true } });
     const { response } = result;
     if (response.status === 401) setSession({ kind: "session-error" });
     else if (response.status === 403) setStep("forbidden");
@@ -193,7 +203,8 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
 
   function onSubmit() {
     const missing: Errors = {};
-    for (const field of REQUIRED) if (draft[field] === "") missing[field] = t.required[field];
+    const required = kind === "route_experience" ? [...REQUIRED, "experienceTypeId" as const] : REQUIRED;
+    for (const field of required) if (draft[field] === "") missing[field] = t.required[field];
     setErrors(missing);
     // Si faltan campos, el aviso junto a los botones muestra que el botón respondió aunque el campo marcado quede arriba.
     setSummary(Object.keys(missing).length > 0 ? t.invalid : null);
@@ -223,7 +234,7 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
   const text = (field: Field, label: string, testId: string) =>
     row(field, label, (props) => <input {...props} data-testid={testId} value={draft[field]} onChange={(event) => change(field, event.target.value)} />);
 
-  const list = (field: "municipalityId" | "categoryId" | "establishmentTypeId", label: string, testId: string, items: { id: string; name: string }[], placeholder: string) =>
+  const list = (field: "municipalityId" | "categoryId" | "establishmentTypeId" | "experienceTypeId", label: string, testId: string, items: { id: string; name: string }[], placeholder: string) =>
     row(field, label, (props) => (
       <select {...props} data-testid={testId} value={draft[field]} onChange={(event) => change(field, event.target.value)}>
         <option value="">{placeholder}</option>
@@ -234,9 +245,10 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
     ));
 
   const name = draft.name.trim();
+  const isRoute = kind === "route_experience";
   return (
     <main className="screen">
-      <h1 data-testid="listing-title">{listingId ? t.form.titleEdit : t.form.titleNew}</h1>
+      <h1 data-testid="listing-title">{listingId ? t.form.titleEdit : isRoute ? t.form.titleNewRoute : t.form.titleNew}</h1>
       <div aria-live="polite">
         {(session.kind === "loading" || (session.kind === "ready" && step === "loading")) && <p>{miniappTexts.loading}</p>}
         {session.kind === "session-error" && <p data-testid="session-error">{miniappTexts.sessionExpired}</p>}
@@ -253,16 +265,57 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
             {lists.failed && <p data-testid="listing-lists-error" role="alert">{t.listsError}</p>}
             {saved && <p data-testid="listing-saved">{t.saved}</p>}
             <form onSubmit={onSave} noValidate>
+              {!listingId && (
+                <div className="field" role="radiogroup" aria-labelledby="listing-kind-legend">
+                  <p id="listing-kind-legend">{t.form.kindLegend}</p>
+                  <div className="actions">
+                    {(["establishment", "route_experience"] as const).map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        role="radio"
+                        aria-checked={kind === option}
+                        className={kind === option ? "primary" : "secondary"}
+                        data-testid={`listing-kind-${option}`}
+                        onClick={() => {
+                          setKind(option);
+                          setErrors({});
+                          setSummary(null);
+                          setSaved(false);
+                        }}
+                      >
+                        {option === "establishment" ? t.form.kindEstablishment : t.form.kindRoute}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {text("name", t.form.nameLabel, "listing-name")}
               {list("municipalityId", t.form.municipalityLabel, "listing-municipality", lists.municipalities, t.form.selectPlaceholder)}
               {list("categoryId", t.form.categoryLabel, "listing-category", lists.categories, t.form.selectPlaceholder)}
-              {list("establishmentTypeId", t.form.establishmentTypeLabel, "listing-establishment-type", lists.types, t.form.noType)}
+              {isRoute
+                ? list("experienceTypeId", t.form.experienceTypeLabel, "listing-experience-type", lists.experienceTypes, t.form.experienceTypePlaceholder)
+                : list("establishmentTypeId", t.form.establishmentTypeLabel, "listing-establishment-type", lists.types, t.form.noType)}
               {row("description", t.form.descriptionLabel, (props) => (
                 <textarea {...props} data-testid="listing-description" rows={4} value={draft.description} onChange={(event) => change("description", event.target.value)} />
               ))}
               {text("schedule", t.form.scheduleLabel, "listing-schedule")}
               {text("contact", t.form.contactLabel, "listing-contact")}
               {text("mapsUrl", t.form.mapsUrlLabel, "listing-maps-url")}
+              {isRoute &&
+                row("guidesInfo", t.form.guidesInfoLabel, (props) => (
+                  <>
+                    <textarea
+                      {...props}
+                      data-testid="listing-guides-info"
+                      rows={3}
+                      aria-describedby={[props["aria-describedby"], "listing-field-guidesInfo-hint"].filter(Boolean).join(" ")}
+                      value={draft.guidesInfo}
+                      onChange={(event) => change("guidesInfo", event.target.value)}
+                    />
+                    <p id="listing-field-guidesInfo-hint">{t.form.guidesInfoHint}</p>
+                  </>
+                ))}
               {summary && <p data-testid="listing-error" role="alert">{summary}</p>}
               {dialog === null && (
                 <div className="actions">

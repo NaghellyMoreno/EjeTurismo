@@ -36,18 +36,26 @@ const MESSAGES: Record<string, string> = {
   "thirdPartyAuthorizationDeclared.declaration_required": "Debes declarar que tienes la autorización de los guías y contactos.",
   "establishmentTypeId.invalid": "El tipo de establecimiento elegido no es válido.",
   "establishmentTypeId.not_found": "El tipo de establecimiento elegido ya no existe. Actualiza la pantalla.",
+  // F018 (rutas y experiencias).
+  "experienceTypeId.required": "Elige un tipo de experiencia.",
+  "experienceTypeId.invalid": "El tipo de experiencia elegido no es válido.",
+  "guidesInfo.invalid": "Los datos del guía no son válidos.",
+  "guidesInfo.too_long": "Los datos del guía admiten hasta 4096 caracteres.",
 };
 export const LISTING_ERROR_MESSAGES: Readonly<Record<string, string>> = MESSAGES;
 
 export const PARAM_INVALID_TEXT = "El valor indicado no es válido.";
 
-export function listingErrorMessage(field: string, code: string, kind: "attraction" | "establishment" = "attraction"): string {
-  if (code === "not_allowed") return kind === "establishment" ? "Este dato no corresponde a un establecimiento." : "Este dato no corresponde a un atractivo.";
+export function listingErrorMessage(field: string, code: string, kind: ListingKindValue = "attraction"): string {
+  if (code === "not_allowed") {
+    if (kind === "establishment") return "Este dato no corresponde a un establecimiento.";
+    return kind === "route_experience" ? "Este dato no corresponde a una ruta o experiencia." : "Este dato no corresponde a un atractivo.";
+  }
   if (code === "unknown_field") return "Este dato no se reconoce.";
   return MESSAGES[`${field}.${code}`] ?? PARAM_INVALID_TEXT;
 }
 
-const fieldError = (field: string, code: string, kind: "attraction" | "establishment" = "attraction"): FieldError => ({
+const fieldError = (field: string, code: string, kind: ListingKindValue = "attraction"): FieldError => ({
   field,
   code,
   message: listingErrorMessage(field, code, kind),
@@ -161,13 +169,19 @@ export function parsePublishedListQuery(params: URLSearchParams): { ok: true; qu
   return errors.length > 0 ? { ok: false, errors } : { ok: true, query };
 }
 
-// ---- Establecimientos del prestador (F013) --------------------------------------------------------------------
+// ---- Establecimientos (F013) y rutas o experiencias (F018) del prestador --------------------------------------
+
+// Máximo técnico de `guidesInfo` en api/openapi.yaml (D-013 sigue pendiente; D-169).
+export const GUIDES_INFO_MAX = 4096;
+export type ProviderKind = "establishment" | "route_experience";
 
 export interface DraftContent {
   name: string;
   municipalityId: string;
   categoryId: string | null;
   establishmentTypeId: string | null;
+  experienceTypeId: string | null;
+  guidesInfo: string | null;
   description: string | null;
   schedule: string | null;
   contact: string | null;
@@ -175,13 +189,21 @@ export interface DraftContent {
 }
 
 const OPTIONAL_TEXT_FIELDS = ["description", "schedule", "contact", "mapsUrl"] as const;
-const DRAFT_KEYS = ["name", "municipalityId", "categoryId", "establishmentTypeId", ...OPTIONAL_TEXT_FIELDS];
-const NOT_ALLOWED_FOR_ESTABLISHMENT = ["experienceTypeId", "guidesInfo"];
+const BASE_KEYS = ["name", "municipalityId", "categoryId", ...OPTIONAL_TEXT_FIELDS];
+const KEYS_BY_KIND: Record<ProviderKind, string[]> = {
+  establishment: [...BASE_KEYS, "establishmentTypeId"],
+  route_experience: [...BASE_KEYS, "experienceTypeId", "guidesInfo"],
+};
+const NOT_ALLOWED_BY_KIND: Record<ProviderKind, string[]> = {
+  establishment: ["experienceTypeId", "guidesInfo"],
+  route_experience: ["establishmentTypeId"],
+};
 const est = (field: string, code: string): FieldError => fieldError(field, code, "establishment");
 
-// Contenido de un borrador de establecimiento (P6): solo `name` y `municipalityId` son obligatorios; un campo opcional
-// vacío (`""`, solo espacios o `null`) se guarda como NULL. Reúne todos los errores en `errors`.
-function parseDraftContent(content: unknown, errors: FieldError[]): DraftContent | undefined {
+// Contenido de un borrador (P6): solo `name` y `municipalityId` son obligatorios; un campo opcional vacío (`""`, solo
+// espacios o `null`) se guarda como NULL (para `guidesInfo`, D-169). Reúne todos los errores en `errors`.
+function parseDraftContent(content: unknown, errors: FieldError[], kind: ProviderKind): DraftContent | undefined {
+  const est = (field: string, code: string): FieldError => fieldError(field, code, kind);
   if (content === undefined || content === null) {
     errors.push(est("content", "required"));
     return undefined;
@@ -192,10 +214,10 @@ function parseDraftContent(content: unknown, errors: FieldError[]): DraftContent
   }
   const before = errors.length;
   for (const key of Object.keys(content)) {
-    if (NOT_ALLOWED_FOR_ESTABLISHMENT.includes(key)) errors.push(est(key, "not_allowed"));
-    else if (!DRAFT_KEYS.includes(key)) errors.push(est(key, "unknown_field"));
+    if (NOT_ALLOWED_BY_KIND[kind].includes(key)) errors.push(est(key, "not_allowed"));
+    else if (!KEYS_BY_KIND[kind].includes(key)) errors.push(est(key, "unknown_field"));
   }
-  const value: DraftContent = { name: "", municipalityId: "", categoryId: null, establishmentTypeId: null, description: null, schedule: null, contact: null, mapsUrl: null };
+  const value: DraftContent = { name: "", municipalityId: "", categoryId: null, establishmentTypeId: null, experienceTypeId: null, guidesInfo: null, description: null, schedule: null, contact: null, mapsUrl: null };
 
   const name = typeof content.name === "string" ? content.name.trim() : "";
   if (name === "") errors.push(est("name", "required"));
@@ -207,7 +229,7 @@ function parseDraftContent(content: unknown, errors: FieldError[]): DraftContent
   else if (!isUuid(municipality)) errors.push(est("municipalityId", "invalid"));
   else value.municipalityId = municipality;
 
-  for (const field of ["categoryId", "establishmentTypeId"] as const) {
+  for (const field of ["categoryId", "establishmentTypeId", "experienceTypeId"] as const) {
     const raw = content[field];
     if (raw === undefined || raw === null || (typeof raw === "string" && raw.trim() === "")) continue;
     if (!isUuid(raw)) errors.push(est(field, "invalid"));
@@ -229,6 +251,12 @@ function parseDraftContent(content: unknown, errors: FieldError[]): DraftContent
     } else if ([...text].length > LISTING_LIMITS[field]) errors.push(est(field, "too_long"));
     else value[field] = text;
   }
+  const guides = content.guidesInfo;
+  if (guides !== undefined && guides !== null) {
+    if (typeof guides !== "string") errors.push(est("guidesInfo", "invalid"));
+    else if ([...guides.trim()].length > GUIDES_INFO_MAX) errors.push(est("guidesInfo", "too_long"));
+    else value.guidesInfo = guides.trim() === "" ? null : guides.trim();
+  }
   return errors.length === before ? value : undefined;
 }
 
@@ -240,31 +268,31 @@ const unknownRootKeys = (raw: Record<string, unknown>, allowed: string[], errors
 };
 
 export type ParsedDraftCreate =
-  | { ok: true; content: DraftContent }
+  | { ok: true; kind: ProviderKind; content: DraftContent }
   | { ok: false; errors: FieldError[] }
   | { ok: false; forbiddenKind: true };
 
-// `createListing` del prestador con `kind: establishment`. `attraction` es de administrador (403); `route_experience` aún
-// no existe (F018) y responde 422 `kind` `invalid` (P5).
-export function parseEstablishmentCreate(raw: unknown): ParsedDraftCreate {
+// `createListing` del prestador con `kind: establishment` o `route_experience` (F018). `attraction` es de administrador (403).
+export function parseProviderCreate(raw: unknown): ParsedDraftCreate {
   if (!isRecord(raw)) return { ok: false, errors: [est("body", "invalid_json")] };
   const errors: FieldError[] = [];
   const kind = raw.kind;
   if (kind === undefined || kind === null) errors.push(est("kind", "required"));
   else if (kind === "attraction") return { ok: false, forbiddenKind: true };
-  else if (kind !== "establishment") errors.push(est("kind", "invalid"));
+  else if (kind !== "establishment" && kind !== "route_experience") errors.push(est("kind", "invalid"));
   unknownRootKeys(raw, ["kind", "content", "confirmed"], errors);
-  const content = parseDraftContent(raw.content, errors);
+  const providerKind: ProviderKind = kind === "route_experience" ? "route_experience" : "establishment";
+  const content = parseDraftContent(raw.content, errors, providerKind);
   confirmationError(raw, errors);
-  return errors.length > 0 || !content ? { ok: false, errors } : { ok: true, content };
+  return errors.length > 0 || !content ? { ok: false, errors } : { ok: true, kind: providerKind, content };
 }
 
 // `saveListingDraft`: el cuerpo lleva `content` y `confirmed`; reemplaza el contenido completo (P6).
-export function parseDraftSave(raw: unknown): { ok: true; content: DraftContent } | { ok: false; errors: FieldError[] } {
+export function parseDraftSave(raw: unknown, kind: ProviderKind = "establishment"): { ok: true; content: DraftContent } | { ok: false; errors: FieldError[] } {
   if (!isRecord(raw)) return { ok: false, errors: [est("body", "invalid_json")] };
   const errors: FieldError[] = [];
   unknownRootKeys(raw, ["content", "confirmed"], errors);
-  const content = parseDraftContent(raw.content, errors);
+  const content = parseDraftContent(raw.content, errors, kind);
   confirmationError(raw, errors);
   return errors.length > 0 || !content ? { ok: false, errors } : { ok: true, content };
 }
@@ -272,8 +300,14 @@ export function parseDraftSave(raw: unknown): { ok: true; content: DraftContent 
 // Los 5 campos de D-003 que el borrador puede tener vacíos; se exigen al enviar a revisión sobre el contenido guardado.
 export const REQUIRED_TO_SUBMIT = ["categoryId", "description", "schedule", "contact", "mapsUrl"] as const;
 
-export function missingToSubmit(saved: Partial<Record<(typeof REQUIRED_TO_SUBMIT)[number], string | null>>): FieldError[] {
-  return REQUIRED_TO_SUBMIT.filter((field) => (saved[field] ?? "").trim() === "").map((field) => est(field, "required"));
+// En rutas y experiencias también se exige el tipo de experiencia (F018); los datos del guía son opcionales (D-169).
+export function missingToSubmit(
+  saved: Partial<Record<(typeof REQUIRED_TO_SUBMIT)[number], string | null>> & { experienceTypeId?: string | null },
+  kind: ProviderKind = "establishment",
+): FieldError[] {
+  const missing = REQUIRED_TO_SUBMIT.filter((field) => (saved[field] ?? "").trim() === "").map((field) => fieldError(field, "required", kind));
+  if (kind === "route_experience" && !saved.experienceTypeId) missing.push(fieldError("experienceTypeId", "required", kind));
+  return missing;
 }
 
 // `submitListingForReview`: confirmación y declaración de autorización de terceros (D-024).

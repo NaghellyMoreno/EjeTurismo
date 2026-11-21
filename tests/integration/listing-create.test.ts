@@ -196,8 +196,9 @@ describe("criterio 5 (extracto) y criterios 6 y 7: control de acceso", () => {
     expect(a6.status).toBe(422);
     const attraction = await api.create(A6, { ...createBody(world), kind: "attraction" });
     expect([attraction.status, (await body(attraction)).code]).toEqual([403, "forbidden"]);
+    // F018: `route_experience` ya es una clase válida del prestador; con el tipo de establecimiento del cuerpo es `not_allowed`.
     const route = await expect422(A6, { ...createBody(world), kind: "route_experience" }, "route_experience");
-    expect(route.errors).toContainEqual(expect.objectContaining({ field: "kind", code: "invalid" }));
+    expect(route.errors).toContainEqual(expect.objectContaining({ field: "establishmentTypeId", code: "not_allowed" }));
     expect(changedTables(before, await snapshotAll(owner))).toEqual([]);
 
     // Revocación inmediata: el permiso del prestador se revoca y la ficha existente no cambia.

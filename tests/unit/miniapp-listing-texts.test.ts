@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LISTING_ERROR_MESSAGES, listingErrorMessage, parseDraftSave, parseEstablishmentCreate, parseManagedListQuery, parseSubmission } from "@/server/domain/listings";
+import { LISTING_ERROR_MESSAGES, listingErrorMessage, parseDraftSave, parseProviderCreate, parseManagedListQuery, parseSubmission } from "@/server/domain/listings";
 import { listingTexts as t } from "@/miniapp/texts";
 
 // F013, criterio 43: los textos coinciden letra por letra con la tabla "Textos nuevos" y cumplen la regla comprobable.
@@ -50,8 +50,8 @@ describe("mensajes del servidor de F013", () => {
   it("ningún errors[].message de un cuerpo inválido contiene UUID, números largos ni literales técnicos", () => {
     const messages = [...Object.values(LISTING_ERROR_MESSAGES), listingErrorMessage("x", "not_allowed", "establishment")];
     const bad = [
-      parseEstablishmentCreate({ kind: "route_experience", otro: 1, content: { name: 5, experienceTypeId: "x", guidesInfo: "y", mapsUrl: 4, categoryId: "no", municipalityId: "no" }, confirmed: "true" }),
-      parseEstablishmentCreate([]),
+      parseProviderCreate({ kind: "route_experience", otro: 1, content: { name: 5, experienceTypeId: "x", guidesInfo: "y", mapsUrl: 4, categoryId: "no", municipalityId: "no" }, confirmed: "true" }),
+      parseProviderCreate([]),
       parseDraftSave({ x: 1 }),
       parseSubmission({ otro: 1 }),
       parseManagedListQuery(new URLSearchParams({ page: "0", pageSize: "51", kind: "otro", displayStatus: "otro" })),

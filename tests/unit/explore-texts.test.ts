@@ -61,6 +61,9 @@ describe("criterio 17: menús existentes", () => {
   // D-168: archivos de prueba modificados por 94647bb y 8bf8192
   ALLOWED.add("tests/e2e/listings.spec.ts");
   ALLOWED.add("tests/unit/webhook.test.ts");
+  // D-172: archivos de prueba modificados por F018
+  ALLOWED.add("tests/integration/listing-create.test.ts");
+  ALLOWED.add("tests/unit/miniapp-listing-texts.test.ts");
 
   const exists = () => {
     try {
@@ -82,7 +85,10 @@ describe("criterio 17: menús existentes", () => {
       const count = (text: string) => (text.match(/\b(it|test)\(/g) ?? []).length;
       expect(count(readFileSync(resolve(process.cwd(), file), "utf8")), file).toBeGreaterThanOrEqual(count(git("show", `${START}:${file}`)));
       const removed = git("diff", "-U0", START, "--", file).split("\n").filter((l) => l.startsWith("-") && !l.startsWith("---"));
-      for (const l of removed) expect(l, `${file}: ${l}`).toMatch(/Revocar mi autorización|registerButton|selfRevoke\.button|myListings|revoke\.button|MENU_BUTTONS|buttons|keyboardOf/i);
+      // D-172: líneas que F018 reemplaza en las pruebas de crear ficha (la clase ruta o experiencia ya es válida)
+      const f018 = file === "tests/integration/listing-create.test.ts" || file === "tests/unit/miniapp-listing-texts.test.ts" ? "|parseEstablishmentCreate|field: \"kind\", code: \"invalid\"" : "";
+      const allowedRemoved = new RegExp(`Revocar mi autorización|registerButton|selfRevoke\\.button|myListings|revoke\\.button|MENU_BUTTONS|buttons|keyboardOf${f018}`, "i");
+      for (const l of removed) expect(l, `${file}: ${l}`).toMatch(allowedRemoved);
     }
   });
 });

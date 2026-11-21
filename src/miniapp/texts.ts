@@ -113,7 +113,15 @@ export const listingTexts = {
   },
   form: {
     titleNew: "Nueva ficha de establecimiento",
+    titleNewRoute: "Nueva ficha de ruta o experiencia",
     titleEdit: "Editar ficha",
+    kindLegend: "¿Qué vas a registrar?",
+    kindEstablishment: "Establecimiento",
+    kindRoute: "Ruta o experiencia",
+    experienceTypeLabel: "Tipo de experiencia",
+    experienceTypePlaceholder: "Elige un tipo de experiencia",
+    guidesInfoLabel: "Datos del guía (opcional)",
+    guidesInfoHint: "Escribe el nombre y el contacto del guía, si lo hay.",
     nameLabel: attractionTexts.nameLabel,
     municipalityLabel: attractionTexts.municipalityLabel,
     categoryLabel: attractionTexts.categoryLabel,
@@ -149,7 +157,7 @@ export const listingTexts = {
   duplicate: "Ya existe una ficha con ese nombre en ese municipio.",
   invalid: attractionTexts.invalid,
   listsError: attractionTexts.listsError,
-  required: attractionTexts.required,
+  required: { ...attractionTexts.required, experienceTypeId: "Elige un tipo de experiencia." },
   declarationRequired: "Debes declarar que tienes la autorización de los guías y contactos.",
 } as const;
 
