@@ -432,7 +432,7 @@
       "Con la cuenta de prestador, crear una ficha de experiencia, elegir el tipo de experiencia \"Sabores de Caldas\" cargado por la semilla (D-048, D-052), completar los campos obligatorios de D-003, enviarla a revisión con la declaración de D-024 y confirmación; con la cuenta de administrador, aprobarla; como visitante, verificar que aparece en el directorio gastronómico del municipio",
       "Publicar del mismo modo una ficha de establecimiento de tipo hotel y una experiencia con un tipo de experiencia no gastronómico, y verificar que ninguna de las dos aparece en el directorio gastronómico (D-040, D-048)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F018",
