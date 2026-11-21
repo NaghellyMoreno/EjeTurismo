@@ -18,3 +18,7 @@ export function unpack(text: string): string | null {
 export const REQUEST_PREFIX = "ir:";
 export const REQUEST_START = "exp:r:";
 export const requestStartData = (listingId: string, back: string) => `${REQUEST_START}${pack(listingId)}:${back.slice(back.lastIndexOf(":") + 1)}`;
+
+// B14 (F031): botón "Atender" de la alerta al prestador. Solo lleva el identificador de la solicitud; F032 construye B13.
+export const REQUEST_ATTEND = "ra:";
+export const attendData = (requestId: string) => `${REQUEST_ATTEND}${pack(requestId)}`;

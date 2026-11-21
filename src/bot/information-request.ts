@@ -4,6 +4,7 @@ import type { Config } from "@/server/config";
 import { bogotaToday, checkMessage, checkRequesterName, formatBotDate, parseBotDate, parsePartySize } from "@/server/domain/information-request";
 import { AppError } from "@/server/errors";
 import { logError } from "@/server/observability/logger";
+import { scheduleDelivery } from "@/server/notifications";
 import { claimBotSession, clearBotSession, createInformationRequest, getPublishedListing, loadBotSession, saveBotSession } from "@/server/services";
 import type { Db } from "@/server/services";
 import { pack, REQUEST_PREFIX, REQUEST_START, unpack } from "./callback-ids";
@@ -257,7 +258,9 @@ async function confirm(ctx: Context, deps: InformationRequestDeps, actor: Actor,
     return true;
   }
   try {
-    await createInformationRequest(db, deps.config(), actor, session.listingId, { requesterName: name, interestDate: date, partySize, message, confirmed: true }, now);
+    await createInformationRequest(db, deps.config(), actor, session.listingId, { requesterName: name, interestDate: date, partySize, message, confirmed: true }, now, (ids) =>
+      scheduleDelivery(ids, { db: deps.db, now: deps.now, send: (chatId, text, extra) => ctx.api.sendMessage(chatId, text, extra) }),
+    );
     await send(ctx, t.sent);
   } catch (error) {
     if (error instanceof AppError && error.code === "rate_limited") await send(ctx, t.rateLimited);

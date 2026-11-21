@@ -1,8 +1,11 @@
 import { Api, GrammyError } from "grammy";
 import { after } from "next/server";
+import { attendData } from "@/bot/callback-ids";
 import { es } from "@/bot/texts/es";
+import { renderInformationRequestAlert } from "@/server/domain/information-request-alert";
 import type { Config } from "@/server/config";
 import { logError } from "@/server/observability/logger";
+import { TEMPLATE_INFORMATION_REQUEST } from "@/server/services/information-requests";
 import { TEMPLATE_LISTING_APPROVED, TEMPLATE_LISTING_REJECTED } from "@/server/services/listing-review";
 import { TEMPLATE_APPROVED, TEMPLATE_REJECTED } from "@/server/services/provider-review";
 import type { Db } from "@/server/services";
@@ -11,7 +14,11 @@ import type { Db } from "@/server/services";
 // aquí se envían después de responder (`after()`). Ningún mensaje lleva tipo, número de identidad ni ID de Telegram (invariante 7);
 // el rechazo de una ficha lleva el motivo que el administrador escribió para el prestador (F014, P1).
 
-export type Sender = (chatId: string, text: string) => Promise<unknown>;
+// `extra` lleva el teclado en línea de las alertas que lo tienen (B14); los avisos de F003 y F014 no lo usan.
+export interface SendExtra {
+  reply_markup: { inline_keyboard: { text: string; callback_data: string }[][] };
+}
+export type Sender = (chatId: string, text: string, extra?: SendExtra) => Promise<unknown>;
 
 export interface NotifyDeps {
   db: () => Db;
@@ -22,13 +29,38 @@ export interface NotifyDeps {
 // Inferido: ADR 0007 no fija el intervalo; un fallo de Telegram se vuelve a intentar una hora después (D-093: sin cron todavía).
 export const RETRY_DELAY_MS = 60 * 60 * 1000;
 
-type Payload = { listingName?: string; reason?: string; isEdit?: boolean } | null;
+type Payload = {
+  listingName?: string;
+  reason?: string;
+  isEdit?: boolean;
+  requestId?: string;
+  requesterName?: string;
+  interestDate?: string;
+  partySize?: number;
+  message?: string;
+} | null;
+const alertText = (p: Payload) =>
+  renderInformationRequestAlert({
+    listingName: p?.listingName ?? "",
+    requesterName: p?.requesterName ?? "",
+    interestDate: p?.interestDate ?? "",
+    partySize: p?.partySize ?? 0,
+    message: p?.message ?? "",
+  });
+
 const TEXTS: Record<string, (payload: Payload) => string> = {
   [TEMPLATE_APPROVED]: () => es.provider.approved,
   [TEMPLATE_REJECTED]: () => es.provider.rejected,
   [TEMPLATE_LISTING_APPROVED]: (p) => (p?.isEdit ? es.provider.editApproved : es.provider.listingApproved)(p?.listingName ?? ""),
+  [TEMPLATE_INFORMATION_REQUEST]: alertText,
   [TEMPLATE_LISTING_REJECTED]: (p) => (p?.isEdit ? es.provider.editRejected : es.provider.listingRejected)(p?.listingName ?? "", p?.reason ?? ""),
 };
+
+// Solo la alerta de solicitud lleva botón; `callback_data` identifica la solicitud, nunca autoriza (ADR 0006).
+const extraFor = (template: string, p: Payload): SendExtra | undefined =>
+  template === TEMPLATE_INFORMATION_REQUEST && p?.requestId
+    ? { reply_markup: { inline_keyboard: [[{ text: es.informationRequest.attendButton, callback_data: attendData(p.requestId) }]] } }
+    : undefined;
 
 // Telegram responde 403 cuando la persona bloqueó el bot: no se reintenta.
 const isBlocked = (error: unknown) => error instanceof GrammyError && error.error_code === 403;
@@ -48,7 +80,11 @@ export async function deliverNotifications(ids: string[], deps: NotifyDeps): Pro
     const now = deps.now();
     try {
       if (!render) throw new Error("plantilla_desconocida");
-      await deps.send(String(row.recipient_telegram_user_id), render(row.payload as Payload));
+      const payload = row.payload as Payload;
+      const extra = extraFor(row.template, payload);
+      const chatId = String(row.recipient_telegram_user_id);
+      if (extra) await deps.send(chatId, render(payload), extra);
+      else await deps.send(chatId, render(payload));
       await db
         .updateTable("notification_outbox")
         .set({ status: "sent", attempts: row.attempts + 1, next_attempt_at: null, sent_at: now })
@@ -87,5 +123,5 @@ export function scheduleDelivery(ids: string[], deps: NotifyDeps): void {
 // Remitente real: la API de Telegram con el token del bot.
 export function telegramSender(config: Config): Sender {
   const api = new Api(config.botToken);
-  return (chatId, text) => api.sendMessage(chatId, text);
+  return (chatId, text, extra) => api.sendMessage(chatId, text, extra);
 }

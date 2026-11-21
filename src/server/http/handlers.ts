@@ -514,6 +514,9 @@ export function createInformationRequestHandler(deps: Deps) {
       if (actor instanceof Response) return actor;
       const { listingId } = await context.params;
       const body: unknown = await request.json().catch(() => undefined);
-      return json(await createInformationRequest(deps.db(), deps.config(), actor, listingId, body, deps.now()), 201);
+      const receipt = await createInformationRequest(deps.db(), deps.config(), actor, listingId, body, deps.now(), (ids) =>
+        scheduleDelivery(ids, { db: deps.db, now: deps.now, send: deps.send ?? telegramSender(deps.config()) }),
+      );
+      return json(receipt, 201);
     });
 }

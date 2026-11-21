@@ -245,6 +245,7 @@ export const es = {
   // asegurar nada; la única aparición de la palabra "reserva" es la aclaración aprobada de que la solicitud no la es (invariante 5).
   informationRequest: {
     button: "Solicitar información",
+    attendButton: "Atender",
     proposeName: (name: string) => `Usaré este nombre para tu solicitud: ${name}`,
     useName: "Usar este nombre",
     changeName: "Cambiar nombre",

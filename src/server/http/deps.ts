@@ -1,5 +1,6 @@
 import { type Config, getConfig } from "@/server/config";
 import { getDb } from "@/server/db";
+import type { Sender } from "@/server/notifications";
 import type { Db } from "@/server/services";
 import type { PhotoStorage } from "@/server/storage";
 
@@ -11,7 +12,7 @@ export interface Deps {
   // Remitente de los avisos de la bandeja de salida (ADR 0007); por defecto, la API de Telegram con el token del bot.
   // Almacén de fotografías; por defecto, el que decide `getStorage()` (Vercel Blob, o el doble en memoria con STORAGE_DRIVER=memory).
   storage?: () => PhotoStorage;
-  send?: (chatId: string, text: string) => Promise<unknown>;
+  send?: Sender;
 }
 
 export const defaultDeps: Deps = { config: getConfig, db: getDb, now: () => new Date() };
