@@ -511,7 +511,7 @@
       "Verificar que A recibe un mensaje del bot con nombre, fecha de interés, número de personas, mensaje y un botón para atenderla",
       "Verificar que B no recibe ninguna alerta"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F032",
