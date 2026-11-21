@@ -39,6 +39,12 @@ export const es = {
     gastronomicButton: "Directorio gastronómico",
     gastronomicHeader: (municipality: string) => `Directorio gastronómico de ${municipality}`,
     gastronomicEmpty: "Aún no hay restaurantes, cafés ni experiencias gastronómicas publicadas en este municipio.",
+    // B17 (F024), textos aprobados en D-180.
+    experienceButton: "Rutas y experiencias",
+    chooseExperienceType: (municipality: string) => `Elige un tipo de experiencia en ${municipality}.`,
+    experienceHeader: (type: string, municipality: string) => `Rutas y experiencias de tipo ${type} en ${municipality}:`,
+    experienceEmpty: (type: string, municipality: string) => `Todavía no hay rutas ni experiencias publicadas de tipo ${type} en ${municipality}.`,
+    noExperienceTypes: "Todavía no hay tipos de experiencia disponibles.",
   },
   // B04, B05 y B21 mínimo del registro de prestador. Textos aprobados en D-079; ninguno incluye el número ni lo escrito por la persona.
   provider: {

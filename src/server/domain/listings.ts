@@ -134,6 +134,7 @@ export interface PublishedListQuery {
   pageSize: number;
   municipalityId?: string;
   categoryId?: string;
+  experienceTypeId?: string;
   kind?: ListingKindValue;
   gastronomic?: boolean;
 }
@@ -156,7 +157,7 @@ export function parsePublishedListQuery(params: URLSearchParams): { ok: true; qu
     return n;
   };
   const query: PublishedListQuery = { page: integer("page", Number.MAX_SAFE_INTEGER, 1), pageSize: integer("pageSize", MAX_PAGE_SIZE, DEFAULT_PAGE_SIZE) };
-  for (const field of ["municipalityId", "categoryId"] as const) {
+  for (const field of ["municipalityId", "categoryId", "experienceTypeId"] as const) {
     const raw = params.get(field);
     if (raw === null) continue;
     if (isUuid(raw)) query[field] = raw;

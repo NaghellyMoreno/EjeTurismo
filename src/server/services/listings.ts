@@ -133,7 +133,7 @@ export async function listPublishedListings(db: Db, actor: Actor, params: URLSea
   assertConsented(await getConsentState(db, actor.telegramUserId));
   const parsed = parsePublishedListQuery(params);
   if (!parsed.ok) throw validationFailed(parsed.errors);
-  const { page, pageSize, municipalityId, categoryId, kind, gastronomic } = parsed.query;
+  const { page, pageSize, municipalityId, categoryId, experienceTypeId, kind, gastronomic } = parsed.query;
 
   const filtered = () => {
     let query = db
@@ -143,6 +143,8 @@ export async function listPublishedListings(db: Db, actor: Actor, params: URLSea
     if (municipalityId) query = query.where("v.municipality_id", "=", municipalityId);
     if (categoryId) query = query.where("v.category_id", "=", categoryId);
     if (kind) query = query.where("l.kind", "=", kind);
+    // F024: solo las rutas y experiencias tienen tipo de experiencia; con `kind=establishment` el resultado es vacío (D-179).
+    if (experienceTypeId) query = query.where("l.kind", "=", "route_experience").where("v.experience_type_id", "=", experienceTypeId);
     // F017 (HU-011): la marca vive solo en las listas cerradas (ADR 0004), según el tipo de la versión publicada.
     if (gastronomic) {
       query = query

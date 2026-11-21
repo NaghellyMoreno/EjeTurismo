@@ -111,7 +111,7 @@ describe("criterio 5 y 9: categorías y volver", () => {
     t.clear();
     await press(VISITOR, mu1);
     expect(t.texts()).toEqual([es.explore.chooseCategory("Municipio Ficticio Uno")]);
-    const shown = buttons().map((b) => b.text);
+    const shown = buttons().map((b) => b.text).filter((text) => text !== es.explore.experienceButton); // D-179: botón de B17 aparte de las categorías
     expect(shown.slice(0, -1)).toEqual((await listCatalog(t.db, actor, "category")).map((c) => c.name));
     expect(shown.at(-1)).toBe(es.explore.back);
     const rows = rowsOf();
