@@ -478,7 +478,7 @@
       "Provocar un error en el registro de prestador y verificar que el mensaje no muestra el número de identidad",
       "Revisar los registros técnicos generados durante las pruebas y verificar que no contienen el número de identidad"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F030",
