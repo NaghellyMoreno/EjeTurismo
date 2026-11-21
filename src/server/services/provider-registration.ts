@@ -86,8 +86,9 @@ function validateInput(raw: unknown): { errors: FieldError[]; type?: components[
   }
   const body = raw as Record<string, unknown>;
   const errors: FieldError[] = [];
-  for (const key of Object.keys(body)) {
-    if (!KNOWN_FIELDS.has(key)) errors.push({ field: key, code: "invalid_format", message: "Este campo no se admite." });
+  // Un campo desconocido no se nombra: su nombre lo escribió quien envía y podría ser el número de identidad (F027).
+  if (Object.keys(body).some((key) => !KNOWN_FIELDS.has(key))) {
+    errors.push({ field: "body", code: "invalid_format", message: "Hay campos que no se admiten." });
   }
   if (body.confirmed !== true) errors.push({ field: "confirmed", code: "required", message: "Debes confirmar el registro." });
   errors.push(...validateIdentityNumber(body.identityDocumentType, body.identityNumber));
