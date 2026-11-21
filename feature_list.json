@@ -497,7 +497,7 @@
       "Verificar que la solicitud queda en estado nueva, dirigida al negocio de la ficha, con el nombre cambiado",
       "Verificar que en ningún paso se ofrecen pagos, cupos ni confirmación automática"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F031",
