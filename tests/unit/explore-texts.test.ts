@@ -68,6 +68,8 @@ describe("criterio 17: menús existentes", () => {
   ALLOWED.add("tests/integration/review-database.test.ts");
   ALLOWED.add("tests/integration/listing-history.test.ts");
   ALLOWED.add("tests/bot/listing-history.test.ts");
+  // F030: B16 muestra "Solicitar información" y acceptsRequests se calcula; la operación nueva entra a la matriz y el reinicio vacía la tabla nueva.
+  for (const file of ["tests/bot/explore-detail.test.ts", "tests/unit/listing-detail.test.ts", "tests/helpers/explore.ts", "tests/helpers/db.ts", "tests/helpers/protected-operations.ts", "tests/unit/init-data-coverage.test.ts", "tests/unit/f013-matrix.test.ts"]) ALLOWED.add(file);
 
   const exists = () => {
     try {
@@ -93,7 +95,11 @@ describe("criterio 17: menús existentes", () => {
       const f018 = file === "tests/integration/listing-create.test.ts" || file === "tests/unit/miniapp-listing-texts.test.ts" ? "|parseEstablishmentCreate|field: \"kind\", code: \"invalid\"" : "";
       // D-173 y D-175: el it( reescrito de review-database y las fechas fijas de listing-history
       const d175 = file === "tests/integration/review-database.test.ts" ? "|existe y es posterior a 20261118100000|files\\.length|files\\.indexOf\\(NAME\\)" : file.endsWith("listing-history.test.ts") ? "|2026-11-21T0" : "";
-      const allowedRemoved = new RegExp(`Revocar mi autorización|registerButton|selfRevoke\\.button|myListings|revoke\\.button|MENU_BUTTONS|buttons|keyboardOf${f018}${d175}`, "i");
+      // F030: los dos TRUNCATE de tests/helpers/db.ts ganan `app.information_requests` (referencia fichas, negocios y cuentas).
+      const f030 = file === "tests/helpers/db.ts" ? "|truncate app\\.listing_photos" : "";
+      // D-185: el conteo de operaciones protegidas pasa de 38 a 39 en las dos pruebas de la matriz
+      const f185 = file === "tests/unit/f013-matrix.test.ts" || file === "tests/unit/init-data-coverage.test.ts" ? "|operaciones protegidas es exactamente el de las 38|la matriz de F009 tiene 38|toHaveLength\\(38\\)" : "";
+      const allowedRemoved = new RegExp(`Revocar mi autorización|registerButton|selfRevoke\\.button|myListings|revoke\\.button|MENU_BUTTONS|buttons|keyboardOf${f018}${d175}${f030}${f185}`, "i");
       for (const l of removed) expect(l, `${file}: ${l}`).toMatch(allowedRemoved);
     }
   });
