@@ -155,6 +155,24 @@ export interface InformationRequestsTable {
   updated_at: DefaultedTimestamp;
 }
 
+export interface InformationRequestRepliesTable {
+  id: Generated<string>;
+  request_id: string;
+  body: string;
+  sent_by_account_id: string | null;
+  sent_at: DefaultedTimestamp;
+}
+
+// Solo lo escribe el disparador de estado de `information_requests`; la aplicación únicamente lo lee.
+export interface InformationRequestStatusEventsTable {
+  id: Generated<number>;
+  request_id: string;
+  from_status: "new" | "attended";
+  to_status: "attended" | "closed";
+  actor_account_id: string | null;
+  occurred_at: Timestamp;
+}
+
 export interface ListingsTable {
   id: Generated<string>;
   kind: ListingKindValue;
@@ -246,6 +264,8 @@ export interface Database {
   establishment_types: TypeCatalogTable;
   businesses: BusinessesTable;
   information_requests: InformationRequestsTable;
+  information_request_replies: InformationRequestRepliesTable;
+  information_request_status_events: InformationRequestStatusEventsTable;
   listings: ListingsTable;
   listing_versions: ListingVersionsTable;
   listing_status_events: ListingStatusEventsTable;

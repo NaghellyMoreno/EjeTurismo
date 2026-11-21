@@ -48,3 +48,11 @@ export { downloadPublishedPhoto, getPublishedListing } from "./public-listing";
 export type { PublicListingDetail } from "./public-listing";
 export { createInformationRequest, INFORMATION_REQUEST_ACTION } from "./information-requests";
 export type { InformationRequestReceipt } from "./information-requests";
+export {
+  changeInformationRequestStatus,
+  getInformationRequest,
+  listMyBusinessInformationRequests,
+  replyToInformationRequest,
+  TEMPLATE_INFORMATION_REQUEST_REPLY,
+} from "./provider-requests";
+export type { InformationRequest, InformationRequestPage, InformationRequestReply, InformationRequestStatus } from "./provider-requests";

@@ -12,7 +12,7 @@ export interface AlertData {
 }
 
 // Recorta a `max` unidades terminando en "…", sin partir un par sustituto.
-function clip(text: string, max: number): string {
+export function clip(text: string, max: number): string {
   if (text.length <= max) return text;
   if (max < 1) return "";
   let out = text.slice(0, max - 1);

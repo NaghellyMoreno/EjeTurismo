@@ -70,21 +70,22 @@ export const HISTORY_OPERATION_ID = "getListingStatusHistory";
 // F020: las 3 operaciones de fotos (prestador y administrador).
 export const PHOTO_OPERATION_IDS = ["createPhotoUpload", "registerPhoto", "removePhoto"];
 
-// Operaciones de rol con ruta: las 14 de solo administrador, `createListing` (F012), las 4 de F013, las 4 de F014, la de F029 y las 3 de F020 (D-136 y D-137).
+// F032: las 4 operaciones de solicitudes de información del prestador.
+export const REQUEST_OPERATION_IDS = ["listMyBusinessInformationRequests", "getInformationRequest", "replyToInformationRequest", "changeInformationRequestStatus"];
+
+// Operaciones de rol con ruta: las 14 de solo administrador, `createListing` (F012), las 4 de F013, las 4 de F014, la de F029, las 3 de F020 y las 4 de F032 (D-136 y D-137).
 // `ADMIN_OPERATION_IDS` no cambia: F008 y la autorrevocación la usan.
 export const ROUTED_OPERATION_IDS = [
-  ...ADMIN_OPERATION_IDS, "createListing", "listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview", ...REVIEW_OPERATION_IDS, HISTORY_OPERATION_ID, ...PHOTO_OPERATION_IDS,
+  ...ADMIN_OPERATION_IDS, "createListing", "listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview", ...REVIEW_OPERATION_IDS, HISTORY_OPERATION_ID, ...PHOTO_OPERATION_IDS, ...REQUEST_OPERATION_IDS,
 ];
 
-// Las 4 operaciones de rol sin `route.ts` todavía (criterio 15 de F007; cobertura diferida a las funcionalidades siguientes).
-export const UNROUTED_OPERATION_IDS = [
-  "listMyBusinessInformationRequests", "getInformationRequest", "replyToInformationRequest", "changeInformationRequestStatus",
-];
+// Operaciones de rol sin `route.ts` todavía (criterio 15 de F007; cobertura diferida a las funcionalidades siguientes). Ya no queda ninguna.
+export const UNROUTED_OPERATION_IDS: string[] = [];
 
 export const ROLE_DENIAL_OPERATIONS: RoleDenialOperation[] = [
   ...ADMIN_OPERATION_IDS.map((id) => entry(id, ["admin"], true)),
   entry("createListing", ["provider", "admin"], true),
-  ...["listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview", ...REVIEW_OPERATION_IDS, HISTORY_OPERATION_ID, ...PHOTO_OPERATION_IDS].map((id) => entry(id, specRoles(id), true)),
+  ...["listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview", ...REVIEW_OPERATION_IDS, HISTORY_OPERATION_ID, ...PHOTO_OPERATION_IDS, ...REQUEST_OPERATION_IDS].map((id) => entry(id, specRoles(id), true)),
   ...UNROUTED_OPERATION_IDS.map((id) => entry(id, specRoles(id), false)),
 ];
 
@@ -121,7 +122,7 @@ export const roleOperations = () => specOperations.filter((o) => o.roles.some((r
 export type ResourceKey =
   | "registrationId" | "secondRegistrationId" | "grantId" | "municipalityId" | "categoryId" | "experienceTypeId" | "establishmentTypeId"
   | "draftListingId" | "submitListingId" | "pendingListingId" | "reviewVersionId" | "approveVersionId" | "rejectVersionId"
-  | "draftVersionId" | "photoId" | "uploadId";
+  | "draftVersionId" | "photoId" | "uploadId" | "requestId";
 
 export interface RoleCase {
   operationId: string;
@@ -228,6 +229,11 @@ export const ROLE_CASES: RoleCase[] = [
     positive: 201,
     positiveActor: PROVIDER_CONTROL,
   },
+  // F032 (D-136, D-137): las 4 operaciones de solicitudes sobre la solicitud sembrada para el prestador de control, en este orden.
+  { operationId: "listMyBusinessInformationRequests", positive: 200, positiveActor: PROVIDER_CONTROL },
+  { operationId: "getInformationRequest", resource: "requestId", positive: 200, positiveActor: PROVIDER_CONTROL },
+  { operationId: "replyToInformationRequest", resource: "requestId", body: { body: "Respuesta ficticia.", confirmed: true }, positive: 201, positiveActor: PROVIDER_CONTROL },
+  { operationId: "changeInformationRequestStatus", resource: "requestId", body: { status: "attended", confirmed: true }, positive: 200, positiveActor: PROVIDER_CONTROL },
   {
     operationId: "removePhoto",
     resources: ["draftListingId", "draftVersionId", "photoId"],
@@ -301,6 +307,13 @@ export async function seedRoleDenial(owner: Pool): Promise<RoleFixtures> {
     "insert into app.listing_photos (version_id, blob_pathname, content_type, size_bytes, position, uploaded_by) values ($1, $2, 'image/jpeg', 1000, 1, $3) returning id",
     [draftVersionId, `listings/${draftListingId}/sembrada.jpg`, providerControlAccountId],
   );
+  // F032: una solicitud nueva de un visitante a una ficha publicada del prestador de control.
+  const published = await seedListing(owner, { ...own, name: "Ficha Sembrada Publicada", status: "published" });
+  const requestId = await one(
+    `insert into app.information_requests (listing_id, business_id, visitor_account_id, requester_name, interest_date, party_size, message)
+     values ($1, $2, $3, 'Solicitante Ficticio', current_date + 30, 2, 'Mensaje ficticio') returning id`,
+    [published.listingId, published.businessId, otherAccount],
+  );
   const uploadId = randomUUID();
   const uploadPathname = `listings/${draftListingId}/${uploadId}.jpg`;
   await owner.query(
@@ -311,7 +324,7 @@ export async function seedRoleDenial(owner: Pool): Promise<RoleFixtures> {
   return {
     ids: {
       registrationId, secondRegistrationId, grantId, municipalityId, categoryId, experienceTypeId, establishmentTypeId, draftListingId, submitListingId,
-      pendingListingId, reviewVersionId, approveVersionId, rejectVersionId, draftVersionId, photoId, uploadId,
+      pendingListingId, reviewVersionId, approveVersionId, rejectVersionId, draftVersionId, photoId, uploadId, requestId,
     },
     a4RegistrationId,
     providerControlAccountId,
@@ -336,7 +349,7 @@ export function roleRequest(fixtures: RoleFixtures, rc: RoleCase, headers: Recor
 // Los manejadores leen su propio parámetro; se entregan todos con el mismo ID.
 export const roleContext = (id: string) => ({
   params: Promise.resolve({
-    registrationId: id, grantId: id, municipalityId: id, categoryId: id, experienceTypeId: id, establishmentTypeId: id, listingId: id, versionId: id, photoId: id,
+    registrationId: id, grantId: id, municipalityId: id, categoryId: id, experienceTypeId: id, establishmentTypeId: id, listingId: id, versionId: id, photoId: id, requestId: id,
   }),
 });
 export const contextFor = (fixtures: RoleFixtures, rc: RoleCase, variant: "valid" | "empty" = "valid") => {

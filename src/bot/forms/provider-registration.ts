@@ -28,6 +28,7 @@ import { handleAuthorizeUpdate, isAuthCallback, isAuthorizeAdminSession } from "
 import { EXPLORE_START, handleExploreCallback, isExploreCallback } from "../explore";
 import { isCancelCommand, SessionConflictError } from "../common";
 import { handleInformationRequestUpdate, isInformationRequestCallback } from "../information-request";
+import { handleProviderRequestsUpdate, isProviderRequestsCallback, isRequestsCommand } from "../provider-requests";
 import { handleHistoryCallback, isHistoryCallback } from "../history";
 import { handleReviewCallback, handleReviewUpdate, isMyListingsCallback, isReviewCallback, isReviewSession, MY_LISTINGS, showMyListings } from "../review";
 import { addSelfRevokeButton, handleSelfRevokeCallback, isSelfRevokeCallback, withSelfRevoke } from "../self-revoke";
@@ -120,6 +121,16 @@ export async function showAccountMenu(ctx: Context, deps: FormDeps, actor: Actor
   await showMenu(ctx, await getAccountContext(deps.db(), deps.config(), accountId, actor.telegramUserId));
 }
 
+// Mensajes de una respuesta en curso (B13). Sin el rol de prestador vigente la sesión se descarta y no se hace nada más.
+async function handleOpenReplyUpdate(ctx: Context, deps: FormDeps, actor: Actor, accountId: string, info: AccountContext, showMenu: () => Promise<void>): Promise<boolean> {
+  if (info.roles.includes("provider")) return handleProviderRequestsUpdate(ctx, deps, actor, accountId, showMenu);
+  const stored = await loadBotSession(deps.db(), accountId);
+  if ((stored?.data as { form?: unknown } | undefined)?.form !== "information_request_reply") return false;
+  await clearBotSession(deps.db(), accountId, deps.now());
+  await send(ctx, es.admin.forbidden);
+  return true;
+}
+
 // Atiende la actualización de una cuenta con el aviso vigente aceptado. El actor sale de `from.id`; la sesión, de su cuenta.
 export async function handleAccountUpdate(ctx: Context, deps: FormDeps, actor: Actor, accountId: string): Promise<void> {
   const db = deps.db();
@@ -146,6 +157,12 @@ export async function handleAccountUpdate(ctx: Context, deps: FormDeps, actor: A
     if (!isAdmin(info)) return void (await send(ctx, es.admin.forbidden));
     return handleHistoryCallback(ctx, deps, actor, callback);
   }
+  // B13 (F032): solicitudes de información del prestador. El rol se lee de la base en cada pulsación (ADR 0003); los servicios
+  // vuelven a verificar el rol y que la solicitud sea de un negocio suyo.
+  if (isProviderRequestsCallback(callback) || (callback === undefined && isRequestsCommand(ctx))) {
+    if (!info.roles.includes("provider")) return void (await send(ctx, es.admin.forbidden));
+    if (await handleProviderRequestsUpdate(ctx, deps, actor, accountId, async () => void (await showMenu(ctx, info)))) return;
+  }
   // B12 (F014): mis fichas, solo para quien tiene el permiso de prestador.
   if (isMyListingsCallback(callback)) {
     if (!info.roles.includes("provider")) return void (await send(ctx, es.admin.forbidden));
@@ -162,6 +179,8 @@ export async function handleAccountUpdate(ctx: Context, deps: FormDeps, actor: A
   if (isAdmin(info) && callback === undefined && (await handleReviewUpdate(ctx, deps, actor, accountId))) return;
   // B19: el texto, `/cancelar` y los archivos de un formulario de solicitud en curso. Va después de B08 y B10, que solo atienden su propia sesión.
   if (callback === undefined && (await handleInformationRequestUpdate(ctx, deps, actor, accountId))) return;
+  // B13: el texto, `/cancelar` y los archivos de una respuesta en curso. Un prestador revocado con una respuesta abierta la pierde.
+  if (callback === undefined && (await handleOpenReplyUpdate(ctx, deps, actor, accountId, info, async () => void (await showMenu(ctx, info))))) return;
   const cancelling = callback === CANCEL || (callback === undefined && isCancelCommand(ctx));
   if (!canRegister(info)) {
     // Sin formulario posible, cancelar no hace nada y se muestra el menú que le corresponde (D-087).

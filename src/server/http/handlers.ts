@@ -11,6 +11,7 @@ import {
   approveListingVersion,
   approveProviderRegistration,
   authorizeAdministrator,
+  changeInformationRequestStatus,
   createInformationRequest,
   createListing,
   createMunicipality,
@@ -20,6 +21,7 @@ import {
   getActiveRoles,
   getConsentState,
   getCurrentPrivacyNotice,
+  getInformationRequest,
   getManagedListing,
   getMe,
   getMyProviderRegistration,
@@ -28,6 +30,7 @@ import {
   getReview,
   listManagedListings,
   listMunicipalities,
+  listMyBusinessInformationRequests,
   listPendingReviews,
   listPublishedListings,
   listCatalog,
@@ -37,6 +40,7 @@ import {
   registerPhoto,
   rejectProviderRegistration,
   removePhoto,
+  replyToInformationRequest,
   revokeMyAuthorization,
   revokeRole,
   saveListingDraft,
@@ -518,5 +522,55 @@ export function createInformationRequestHandler(deps: Deps) {
         scheduleDelivery(ids, { db: deps.db, now: deps.now, send: deps.send ?? telegramSender(deps.config()) }),
       );
       return json(receipt, 201);
+    });
+}
+
+// ---- Solicitudes del prestador (F032) ---------------------------------------------------------------------------
+// Solo el prestador dueño del negocio. Orden: 401, 403 (aviso, rol, solicitud ajena, inexistente o con id mal formado), 422 y 409;
+// lo aplica el servicio, que lee el rol de la base en cada llamada.
+type RequestRoute = { params: Promise<{ requestId: string }> };
+
+export function listMyBusinessInformationRequestsHandler(deps: Deps) {
+  return (request: Request) =>
+    guarded("information_request.list_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      return json(await listMyBusinessInformationRequests(deps.db(), actor, new URL(request.url).searchParams));
+    });
+}
+
+export function getInformationRequestHandler(deps: Deps) {
+  return (request: Request, context: RequestRoute) =>
+    guarded("information_request.get_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const { requestId } = await context.params;
+      return json(await getInformationRequest(deps.db(), actor, requestId));
+    });
+}
+
+// Después de responder, `after()` envía la respuesta al visitante (ADR 0007); un fallo de envío no deshace nada.
+export function replyToInformationRequestHandler(deps: Deps) {
+  return (request: Request, context: RequestRoute) =>
+    guarded("information_request.reply_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const { requestId } = await context.params;
+      const body: unknown = await request.json().catch(() => undefined);
+      const reply = await replyToInformationRequest(deps.db(), actor, requestId, body, deps.now(), (ids) =>
+        scheduleDelivery(ids, { db: deps.db, now: deps.now, send: deps.send ?? telegramSender(deps.config()) }),
+      );
+      return json(reply, 201);
+    });
+}
+
+export function changeInformationRequestStatusHandler(deps: Deps) {
+  return (request: Request, context: RequestRoute) =>
+    guarded("information_request.change_status_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const { requestId } = await context.params;
+      const body: unknown = await request.json().catch(() => undefined);
+      return json(await changeInformationRequestStatus(deps.db(), actor, requestId, body, deps.now()));
     });
 }

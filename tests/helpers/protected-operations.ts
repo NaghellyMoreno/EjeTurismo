@@ -9,7 +9,11 @@ import {
   createCatalogItemHandler,
   createInformationRequestHandler,
   createListingHandler,
+  changeInformationRequestStatusHandler,
   createPhotoUploadHandler,
+  getInformationRequestHandler,
+  listMyBusinessInformationRequestsHandler,
+  replyToInformationRequestHandler,
   getPublishedListingHandler,
   registerPhotoHandler,
   removePhotoHandler,
@@ -103,6 +107,11 @@ export const PROTECTED_OPERATIONS: ProtectedOperation[] = [
   { operationId: "listPublishedListings", method: "GET", path: "/api/v1/public/listings", handler: h(listPublishedListingsHandler), role: "consented", hasBody: false },
   // F030: enviar una solicitud de información (cualquier cuenta con el aviso vigente). Con un cuerpo vacío la apertura normal es 422.
   { operationId: "createInformationRequest", method: "POST", path: `/api/v1/public/listings/${ID}/information-requests`, handler: h(createInformationRequestHandler), role: "consented", hasBody: true },
+  // F032: las 4 operaciones de solicitudes del prestador. Con un ID inexistente la apertura normal es 403 (no se revela si existe).
+  { operationId: "listMyBusinessInformationRequests", method: "GET", path: "/api/v1/information-requests", handler: h(listMyBusinessInformationRequestsHandler), role: "provider", hasBody: false },
+  { operationId: "getInformationRequest", method: "GET", path: `/api/v1/information-requests/${ID}`, handler: h(getInformationRequestHandler), role: "provider", hasBody: false, opening: 403 },
+  { operationId: "replyToInformationRequest", method: "POST", path: `/api/v1/information-requests/${ID}/replies`, handler: h(replyToInformationRequestHandler), role: "provider", hasBody: true, opening: 403 },
+  { operationId: "changeInformationRequestStatus", method: "POST", path: `/api/v1/information-requests/${ID}/status-changes`, handler: h(changeInformationRequestStatusHandler), role: "provider", hasBody: true, opening: 403 },
 ];
 
 // Los 38 operationId: los 23 de F009 (criterio 1), `createListing` y `listPublishedListings` de F012 (criterio 17, D-136), las 4 de F013 (criterio 28) las 4 de F014 (criterio 15), la de F029 (criterio 17) y las 4 de F020 (criterio 20).
@@ -117,11 +126,12 @@ export const EXPECTED_OPERATION_IDS = [
   "createPhotoUpload", "registerPhoto", "removePhoto", "getPublishedListing",
 ];
 EXPECTED_OPERATION_IDS.push("createInformationRequest"); // F030
+EXPECTED_OPERATION_IDS.push("listMyBusinessInformationRequests", "getInformationRequest", "replyToInformationRequest", "changeInformationRequestStatus"); // F032
 
 // Parámetros de ruta de cualquier operación (los manejadores leen solo el suyo).
 export const routeContext = () => ({
   params: Promise.resolve({
-    registrationId: ID, grantId: ID, municipalityId: ID, categoryId: ID, experienceTypeId: ID, establishmentTypeId: ID, listingId: ID, versionId: ID, photoId: ID,
+    registrationId: ID, grantId: ID, municipalityId: ID, categoryId: ID, experienceTypeId: ID, establishmentTypeId: ID, listingId: ID, versionId: ID, photoId: ID, requestId: ID,
   }),
 });
 

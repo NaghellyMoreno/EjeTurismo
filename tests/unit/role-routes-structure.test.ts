@@ -18,15 +18,15 @@ const withRoute = operationIdsWithRoute();
 const roleOps = roleOperations();
 
 describe("F007 criterio 15: cobertura estructural de rutas de rol", () => {
-  it("las operaciones de rol sin route.ts son exactamente las 4 del contrato", () => {
+  it("las operaciones de rol sin route.ts son exactamente las 0 del contrato (las 4 de F032 ya tienen ruta)", () => {
     const without = roleOps.filter((o) => !withRoute.has(o.operationId)).map((o) => o.operationId);
-    expect(without).toHaveLength(4);
+    expect(without).toHaveLength(0);
     expect(without.sort()).toEqual([...UNROUTED_OPERATION_IDS].sort());
   });
 
-  it("las operaciones de rol con route.ts son exactamente las 27 (14 de administrador, createListing, las 4 de F013, las 4 de F014, la de F029 y las 3 de F020)", () => {
+  it("las operaciones de rol con route.ts son exactamente las 31 (14 de administrador, createListing, las 4 de F013, las 4 de F014, la de F029, las 3 de F020 y las 4 de F032)", () => {
     const withRoutes = roleOps.filter((o) => withRoute.has(o.operationId)).map((o) => o.operationId);
-    expect(withRoutes).toHaveLength(27);
+    expect(withRoutes).toHaveLength(31);
     expect(withRoutes.sort()).toEqual([...ROUTED_OPERATION_IDS].sort());
   });
 
@@ -66,7 +66,7 @@ describe("F007 criterio 16: forma de ROLE_DENIAL_OPERATIONS", () => {
     expect([e.A1.code, e.A2.code, e.A3.code, e.A4.code, e.A5.code]).toEqual(["consent_required", "forbidden", "consent_required", "forbidden", "forbidden"]);
   });
 
-  it("las 27 con ruta declaran hasRoute true y las 4 sin ruta hasRoute false", () => {
+  it("las 31 con ruta declaran hasRoute true y ninguna queda sin ruta", () => {
     expect(ROLE_DENIAL_OPERATIONS).toHaveLength(31);
     expect(ROLE_DENIAL_OPERATIONS.filter((e) => e.hasRoute).map((e) => e.operationId).sort()).toEqual([...ROUTED_OPERATION_IDS].sort());
     expect(ROLE_DENIAL_OPERATIONS.filter((e) => !e.hasRoute).map((e) => e.operationId).sort()).toEqual([...UNROUTED_OPERATION_IDS].sort());
@@ -79,8 +79,8 @@ describe("F007 criterio 16: forma de ROLE_DENIAL_OPERATIONS", () => {
     }
   });
 
-  it("los casos de ROLE_CASES son los 28 (14 de administrador, createListing dos veces, las 4 de F013, las 4 de F014, la de F029 y las 3 de F020)", () => {
-    expect(ROLE_CASES).toHaveLength(28);
+  it("los casos de ROLE_CASES son los 32 (14 de administrador, createListing dos veces, las 4 de F013, las 4 de F014, la de F029, las 3 de F020 y las 4 de F032)", () => {
+    expect(ROLE_CASES).toHaveLength(32);
     expect(ROLE_CASES.map((c) => c.operationId).sort()).toEqual([...ROUTED_OPERATION_IDS, "createListing"].sort());
   });
 });
