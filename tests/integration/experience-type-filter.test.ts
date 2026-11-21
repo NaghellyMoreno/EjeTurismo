@@ -144,7 +144,11 @@ describe("criterios 17b y 18: otros roles y datos personales", () => {
 });
 
 describe("criterio 20: sin cambios de contrato", () => {
-  it("api/openapi.yaml y supabase/migrations no cambian respecto del commit de partida", () => {
-    expect(() => execFileSync("git", ["diff", "--exit-code", "2c4843d", "--", "api/openapi.yaml", "supabase/migrations"])).not.toThrow();
+  // D-186: F030 agrega una única migración nueva; todo lo demás sigue sin cambios.
+  const F030_MIGRATION = "supabase/migrations/20261121100000_f030_information_requests.sql";
+  it("api/openapi.yaml y supabase/migrations no cambian respecto del commit de partida, salvo la migración de F030", () => {
+    expect(() => execFileSync("git", ["diff", "--exit-code", "2c4843d", "--", "api/openapi.yaml"])).not.toThrow();
+    const changes = execFileSync("git", ["diff", "--name-status", "2c4843d", "--", "supabase/migrations"]).toString().trim().split("\n").filter(Boolean);
+    expect(changes).toEqual([`A\t${F030_MIGRATION}`]);
   });
 });
