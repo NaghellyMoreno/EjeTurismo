@@ -11,6 +11,7 @@ import {
   approveListingVersion,
   approveProviderRegistration,
   authorizeAdministrator,
+  createInformationRequest,
   createListing,
   createMunicipality,
   createCatalogItem,
@@ -501,5 +502,18 @@ export function getPublishedListingHandler(deps: Deps) {
       if (actor instanceof Response) return actor;
       const { listingId } = await context.params;
       return json(await getPublishedListing(deps.db(), actor, listingId, deps.now(), deps.storage?.()));
+    });
+}
+
+// POST /api/v1/public/listings/{listingId}/information-requests (createInformationRequest, F030): cualquier cuenta con el aviso
+// vigente (D-039, D-183). Orden: 401, 403 `consent_required`, 429, 422, 404 y 409; lo aplica el servicio. El negocio sale de la ficha.
+export function createInformationRequestHandler(deps: Deps) {
+  return (request: Request, context: ListingRoute) =>
+    guarded("information_request.create_failed", async () => {
+      const actor = authenticate(request, deps);
+      if (actor instanceof Response) return actor;
+      const { listingId } = await context.params;
+      const body: unknown = await request.json().catch(() => undefined);
+      return json(await createInformationRequest(deps.db(), deps.config(), actor, listingId, body, deps.now()), 201);
     });
 }

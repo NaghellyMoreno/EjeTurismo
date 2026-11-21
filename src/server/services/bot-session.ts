@@ -1,3 +1,4 @@
+import { sql } from "kysely";
 import type { Db } from "./types";
 
 // Almacenamiento de la sesión del bot sobre `bot_sessions` (ADR 0015). Solo existe para cuentas con el aviso vigente aceptado.
@@ -36,4 +37,18 @@ export async function saveBotSession(db: Db, accountId: string, data: unknown, e
 // Vacía el borrador (cancelar, duplicado). Sin bloqueo: borrar un número sellado nunca debe fallar por una carrera.
 export async function clearBotSession(db: Db, accountId: string, now: Date): Promise<void> {
   await db.updateTable("bot_sessions").set({ data: "{}", updated_at: now }).where("account_id", "=", accountId).execute();
+}
+
+// Reclama el borrador de un formulario para ejecutarlo una sola vez: lo vacía solo si sigue siendo el que se leyó (`updated_at`)
+// y sigue siendo de ese formulario. Con dos toques simultáneos solo uno lo reclama, aunque compartan la misma marca de tiempo.
+export async function claimBotSession(db: Db, accountId: string, form: string, expected: Date, now: Date): Promise<boolean> {
+  const row = await db
+    .updateTable("bot_sessions")
+    .set({ data: "{}", updated_at: now })
+    .where("account_id", "=", accountId)
+    .where("updated_at", "=", expected)
+    .where(sql<boolean>`data->>'form' = ${form}`)
+    .returning("account_id")
+    .executeTakeFirst();
+  return !!row;
 }

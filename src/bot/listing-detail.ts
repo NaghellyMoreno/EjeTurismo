@@ -2,6 +2,7 @@ import { type Context, GrammyError, InputFile, InputMediaBuilder } from "grammy"
 import { buildListingDetailMessages } from "@/server/domain/listing-detail";
 import { logError } from "@/server/observability/logger";
 import { downloadPublishedPhoto, type PublicListingDetail } from "@/server/services";
+import { requestStartData } from "./callback-ids";
 import { buildLocationKeyboard } from "./location-keyboard";
 import { send } from "./send";
 import { es } from "./texts/es";
@@ -61,6 +62,9 @@ export async function showListingDetail(ctx: Context, detail: PublicListingDetai
     },
     es.listingDetail,
   );
-  const keyboard = buildLocationKeyboard(detail.mapsUrl).row().text(es.explore.back, back);
+  const keyboard = buildLocationKeyboard(detail.mapsUrl);
+  // B19 (F030): solo las fichas que aceptan solicitudes (el backend lo calcula; también para el dueño, D-184).
+  if (detail.acceptsRequests) keyboard.row().text(es.informationRequest.button, requestStartData(detail.id, back));
+  keyboard.row().text(es.explore.back, back);
   for (const [index, text] of messages.entries()) await send(ctx, text, index === messages.length - 1 ? keyboard : undefined);
 }

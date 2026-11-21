@@ -6,10 +6,10 @@ import { ADMIN_OPERATION_IDS, ROLE_CASES, ROLE_DENIAL_OPERATIONS, ROUTED_OPERATI
 const F013 = ["listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview"];
 
 describe("criterio 31: PROTECTED_OPERATIONS y ROLE_DENIAL_OPERATIONS", () => {
-  it("la matriz de F009 tiene 38 operaciones (las 4 de F013, las 4 de F014, la de F029 y las 4 de F020 entran con su rol)", () => {
+  it("la matriz de F009 tiene 39 operaciones (las 4 de F013, las 4 de F014, la de F029, las 4 de F020 y la de F030 entran con su rol)", () => {
     const ids = PROTECTED_OPERATIONS.map((o) => o.operationId);
     process.stdout.write(`PROTECTED_OPERATIONS (${ids.length}): ${ids.join(", ")}\n`);
-    expect(PROTECTED_OPERATIONS).toHaveLength(38);
+    expect(PROTECTED_OPERATIONS).toHaveLength(39);
     expect(ids.filter((id) => !EXPECTED_OPERATION_IDS.includes(id)), "sobran").toEqual([]);
     expect(EXPECTED_OPERATION_IDS.filter((id) => !ids.includes(id)), "faltan").toEqual([]);
     for (const id of F013) expect(ids, id).toContain(id);

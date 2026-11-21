@@ -134,12 +134,13 @@ describe("criterio 27: migración 20261118120000_f014_review.sql", () => {
     return url.toString();
   };
 
-  it("existe y es posterior a 20261118100000 (F015, F020 y F018 agregan después 20261119100000, 20261119110000 y 20261120100000, D-155 y D-172)", () => {
+  it("existe y es posterior a 20261118100000 (F015, F020, F018 y F030 agregan después 20261119100000, 20261119110000, 20261120100000 y 20261121100000, D-155 y D-172)", () => {
     expect(files).toContain(NAME);
-    expect(files.indexOf(NAME)).toBe(files.length - 4);
-    expect(files[files.length - 3]).toBe("20261119100000_f015_published_guard.sql");
-    expect(files[files.length - 2]).toBe("20261119110000_f020_photos.sql");
-    expect(files[files.length - 1]).toBe("20261120100000_f018_route_grants.sql");
+    expect(files.indexOf(NAME)).toBe(files.length - 5);
+    expect(files[files.length - 4]).toBe("20261119100000_f015_published_guard.sql");
+    expect(files[files.length - 3]).toBe("20261119110000_f020_photos.sql");
+    expect(files[files.length - 2]).toBe("20261120100000_f018_route_grants.sql");
+    expect(files[files.length - 1]).toBe("20261121100000_f030_information_requests.sql");
     expect(files[files.indexOf(NAME) - 1]).toBe("20261118100000_f013_establishments.sql");
   });
 

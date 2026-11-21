@@ -141,6 +141,20 @@ export interface BusinessesTable {
   created_at: DefaultedTimestamp;
 }
 
+export interface InformationRequestsTable {
+  id: Generated<string>;
+  listing_id: string;
+  business_id: string;
+  visitor_account_id: string;
+  requester_name: string;
+  interest_date: ColumnType<Date | string, string, never>;
+  party_size: number;
+  message: string;
+  status: Generated<"new" | "attended" | "closed">;
+  created_at: DefaultedTimestamp;
+  updated_at: DefaultedTimestamp;
+}
+
 export interface ListingsTable {
   id: Generated<string>;
   kind: ListingKindValue;
@@ -231,6 +245,7 @@ export interface Database {
   experience_types: TypeCatalogTable;
   establishment_types: TypeCatalogTable;
   businesses: BusinessesTable;
+  information_requests: InformationRequestsTable;
   listings: ListingsTable;
   listing_versions: ListingVersionsTable;
   listing_status_events: ListingStatusEventsTable;

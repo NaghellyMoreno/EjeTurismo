@@ -24,10 +24,23 @@ export async function getPublishedListing(db: Db, actor: Actor, listingId: strin
     .leftJoin("categories as c", "c.id", "v.category_id")
     .leftJoin("establishment_types as t", "t.id", "v.establishment_type_id")
     .leftJoin("experience_types as x", "x.id", "v.experience_type_id")
-    .select([
+    .leftJoin("businesses as b", "b.id", "l.business_id")
+    .leftJoin("accounts as pa", "pa.id", "b.provider_account_id")
+    .select((eb) => [
       "v.id", "l.kind", "v.name", "v.description", "v.schedule", "v.contact", "v.maps_url", "v.guides_info", "v.decided_at", "v.created_at",
       "m.id as municipality_id", "m.name as municipality_name", "c.id as category_id", "c.name as category_name",
       "t.id as type_id", "t.name as type_name", "x.id as experience_id", "x.name as experience_name",
+      // F030: solo las fichas de un prestador con rol activo reciben solicitudes (D-005, D-029, D-043).
+      eb
+        .exists(
+          eb
+            .selectFrom("role_grants as g")
+            .select("g.id")
+            .whereRef("g.telegram_user_id", "=", "pa.telegram_user_id")
+            .where("g.role", "=", "provider")
+            .where("g.revoked_at", "is", null),
+        )
+        .as("provider_active"),
     ])
     .where("l.id", "=", listingId)
     .where("v.status", "=", "published")
@@ -49,7 +62,7 @@ export async function getPublishedListing(db: Db, actor: Actor, listingId: strin
     contact: row.contact!,
     mapsUrl: row.maps_url!,
     photos,
-    acceptsRequests: false,
+    acceptsRequests: row.provider_active === true,
     publishedAt: (row.decided_at ?? row.created_at).toISOString(),
   };
 }

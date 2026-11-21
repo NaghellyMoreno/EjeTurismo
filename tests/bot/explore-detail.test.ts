@@ -214,7 +214,7 @@ describe("criterio 6: orden de envío con textos largos (bot)", () => {
     await press(VISITOR, detailData(id));
     expect(sequence()).toEqual(["sendMessage"]);
     expect(String(lastText().text)).toContain(`${es.listingDetail.guides}: Guía de trato amable.`);
-    expect(buttonsOf(sent()[0]).map((b) => b.text)).toEqual([es.location.button, es.explore.back]);
+    expect(buttonsOf(sent()[0]).map((b) => b.text)).toEqual([es.location.button, es.informationRequest.button, es.explore.back]);
   });
 
   it("guías en el máximo de 4096: mensajes aparte, completos, con los botones solo en el último", async () => {
@@ -230,7 +230,7 @@ describe("criterio 6: orden de envío con textos largos (bot)", () => {
     expect(texts[1].startsWith(`${es.listingDetail.guides}: `)).toBe(true);
     expect(texts.slice(1).join("").slice(`${es.listingDetail.guides}: `.length)).toBe(guides);
     expect(messages.slice(0, -1).every((m) => m.payload.reply_markup === undefined)).toBe(true);
-    expect(buttonsOf(messages.at(-1)!).map((b) => b.text)).toEqual([es.location.button, es.explore.back]);
+    expect(buttonsOf(messages.at(-1)!).map((b) => b.text)).toEqual([es.location.button, es.informationRequest.button, es.explore.back]);
     expect(texts).toEqual(buildListingDetailMessages({ name: "Ruta Ficticia De Guias", municipality: "Municipio Ficticio Uno", category: "Categoria Ficticia Uno", description: "Descripción de ruta.", schedule: "Sábados", contact: CONTACT, guidesInfo: guides }, es.listingDetail));
   });
 

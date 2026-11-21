@@ -4,6 +4,7 @@ import type { Config } from "@/server/config";
 import { AppError } from "@/server/errors";
 import { getPublishedListing, listCatalog, listMunicipalities, listPublishedListings } from "@/server/services";
 import type { Db } from "@/server/services";
+import { pack, unpack } from "./callback-ids";
 import { showListingDetail } from "./listing-detail";
 import { send } from "./send";
 import { es } from "./texts/es";
@@ -39,19 +40,6 @@ export interface ExploreDeps {
 }
 
 export const isExploreCallback = (data: string | undefined): data is string => data !== undefined && data.startsWith(EXPLORE_PREFIX);
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-
-const pack = (uuid: string) => Buffer.from(uuid.replaceAll("-", ""), "hex").toString("base64url");
-
-// Nulo si el texto no es un UUID empaquetado canónico (mal formado, truncado o alterado).
-function unpack(text: string): string | null {
-  if (text.length !== 22) return null;
-  const hex = Buffer.from(text, "base64url").toString("hex");
-  if (hex.length !== 32) return null;
-  const uuid = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-  return UUID.test(uuid) && pack(uuid) === text ? uuid : null;
-}
 
 // Pantalla desde la que se abrió el detalle: la lista de B15 (""), el directorio de B18 ("g") o la lista de B17 ("e").
 type Origin = "" | typeof GASTRO_PAGE | typeof EXPERIENCE_PAGE;

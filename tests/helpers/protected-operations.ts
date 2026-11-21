@@ -7,6 +7,7 @@ import {
   approveProviderRegistrationHandler,
   authorizeAdministratorHandler,
   createCatalogItemHandler,
+  createInformationRequestHandler,
   createListingHandler,
   createPhotoUploadHandler,
   getPublishedListingHandler,
@@ -100,6 +101,8 @@ export const PROTECTED_OPERATIONS: ProtectedOperation[] = [
   { operationId: "removePhoto", method: "DELETE", path: `/api/v1/managed-listings/${ID}/versions/${ID}/photos/${ID}`, handler: h(removePhotoHandler), role: "provider", hasBody: false, opening: 403 },
   { operationId: "getPublishedListing", method: "GET", path: `/api/v1/public/listings/${ID}`, handler: h(getPublishedListingHandler), role: "consented", hasBody: false, opening: 404 },
   { operationId: "listPublishedListings", method: "GET", path: "/api/v1/public/listings", handler: h(listPublishedListingsHandler), role: "consented", hasBody: false },
+  // F030: enviar una solicitud de información (cualquier cuenta con el aviso vigente). Con un cuerpo vacío la apertura normal es 422.
+  { operationId: "createInformationRequest", method: "POST", path: `/api/v1/public/listings/${ID}/information-requests`, handler: h(createInformationRequestHandler), role: "consented", hasBody: true },
 ];
 
 // Los 38 operationId: los 23 de F009 (criterio 1), `createListing` y `listPublishedListings` de F012 (criterio 17, D-136), las 4 de F013 (criterio 28) las 4 de F014 (criterio 15), la de F029 (criterio 17) y las 4 de F020 (criterio 20).
@@ -113,6 +116,7 @@ export const EXPECTED_OPERATION_IDS = [
   "listPendingReviews", "getReview", "approveListingVersion", "rejectListingVersion", "getListingStatusHistory",
   "createPhotoUpload", "registerPhoto", "removePhoto", "getPublishedListing",
 ];
+EXPECTED_OPERATION_IDS.push("createInformationRequest"); // F030
 
 // Parámetros de ruta de cualquier operación (los manejadores leen solo el suyo).
 export const routeContext = () => ({

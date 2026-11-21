@@ -24,7 +24,7 @@ export const SEED_MUNICIPALITIES = [
 
 // Deja la tabla de municipios como la semilla (F010): cada prueba parte de exactamente 3 filas.
 export async function restoreMunicipalitySeed(owner: Pool): Promise<void> {
-  await owner.query("truncate app.listing_photos, app.photo_uploads, app.listing_status_events, app.listing_versions, app.listings, app.municipalities");
+  await owner.query("truncate app.information_requests, app.listing_photos, app.photo_uploads, app.listing_status_events, app.listing_versions, app.listings, app.municipalities");
   await owner.query(
     `insert into app.municipalities (id, name, name_normalized, department)
      values ('${SEED_MUNICIPALITIES[0].id}', 'Manizales', 'manizales', 'Caldas'),
@@ -34,7 +34,7 @@ export async function restoreMunicipalitySeed(owner: Pool): Promise<void> {
 }
 
 export async function resetDb(owner: Pool): Promise<void> {
-  await owner.query("truncate app.listing_photos, app.photo_uploads, app.listing_status_events, app.listing_versions, app.listings, app.businesses, app.notification_outbox, app.audit_events, app.role_grants, app.provider_registrations, app.bot_sessions, app.rate_limit_counters, app.processed_updates, app.consent_events, app.municipalities, app.accounts, app.categories, app.experience_types, app.establishment_types restart identity");
+  await owner.query("truncate app.information_requests, app.listing_photos, app.photo_uploads, app.listing_status_events, app.listing_versions, app.listings, app.businesses, app.notification_outbox, app.audit_events, app.role_grants, app.provider_registrations, app.bot_sessions, app.rate_limit_counters, app.processed_updates, app.consent_events, app.municipalities, app.accounts, app.categories, app.experience_types, app.establishment_types restart identity");
   await restoreMunicipalitySeed(owner);
   // Las listas cerradas (F011) referencian cuentas y se truncan con ellas; se vuelve a cargar su semilla de referencia (ADR 0011).
   await owner.query(readFileSync(resolve(process.cwd(), "supabase/seed/reference-gastronomic-experience-type.sql"), "utf8"));

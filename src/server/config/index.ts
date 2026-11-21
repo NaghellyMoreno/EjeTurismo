@@ -15,6 +15,8 @@ const DEFAULT_RATE_LIMITS: Record<string, RateLimitRule> = {
   provider_registration: { limit: 5, windowSeconds: 3600 },
   // F020: 30 intentos de subida por cuenta y hora (ADR 0006).
   photo_upload: { limit: 30, windowSeconds: 3600 },
+  // F030: 10 solicitudes de información por cuenta y día (ADR 0006).
+  information_request: { limit: 10, windowSeconds: 86400 },
 };
 
 const rateLimits = z

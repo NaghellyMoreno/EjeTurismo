@@ -27,6 +27,7 @@ import { adminKeyboard, handleAdminCallback, isAdminCallback } from "../admin";
 import { handleAuthorizeUpdate, isAuthCallback, isAuthorizeAdminSession } from "./authorize-admin";
 import { EXPLORE_START, handleExploreCallback, isExploreCallback } from "../explore";
 import { isCancelCommand, SessionConflictError } from "../common";
+import { handleInformationRequestUpdate, isInformationRequestCallback } from "../information-request";
 import { handleHistoryCallback, isHistoryCallback } from "../history";
 import { handleReviewCallback, handleReviewUpdate, isMyListingsCallback, isReviewCallback, isReviewSession, MY_LISTINGS, showMyListings } from "../review";
 import { addSelfRevokeButton, handleSelfRevokeCallback, isSelfRevokeCallback, withSelfRevoke } from "../self-revoke";
@@ -128,6 +129,8 @@ export async function handleAccountUpdate(ctx: Context, deps: FormDeps, actor: A
   const callback = ctx.callbackQuery?.data;
   // D-101: el principal queda reflejado en `role_grants` en su siguiente actualización si falta la fila.
   if (info.isPrincipalAdmin) await ensurePrincipalGrant(db, config, actor.telegramUserId, now);
+  // B19 (F030): solicitud de información. Cualquier cuenta con el aviso vigente; el servicio vuelve a verificarlo todo al crear.
+  if (isInformationRequestCallback(callback) && (await handleInformationRequestUpdate(ctx, deps, actor, accountId))) return;
   // Botones de revisión (B07): el rol de administrador se lee de la base en cada pulsación (ADR 0003), no del botón.
   if (isAdminCallback(callback)) {
     if (!isAdmin(info)) return void (await send(ctx, es.admin.forbidden));
@@ -157,6 +160,8 @@ export async function handleAccountUpdate(ctx: Context, deps: FormDeps, actor: A
   if (isAdmin(info) && (await handleAuthorizeUpdate(ctx, deps, actor, accountId))) return;
   // B10: el motivo del rechazo y `/cancelar` de una revisión en curso (B08 no reclama una sesión de otro formulario).
   if (isAdmin(info) && callback === undefined && (await handleReviewUpdate(ctx, deps, actor, accountId))) return;
+  // B19: el texto, `/cancelar` y los archivos de un formulario de solicitud en curso. Va después de B08 y B10, que solo atienden su propia sesión.
+  if (callback === undefined && (await handleInformationRequestUpdate(ctx, deps, actor, accountId))) return;
   const cancelling = callback === CANCEL || (callback === undefined && isCancelCommand(ctx));
   if (!canRegister(info)) {
     // Sin formulario posible, cancelar no hace nada y se muestra el menú que le corresponde (D-087).

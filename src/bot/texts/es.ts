@@ -241,6 +241,34 @@ export const es = {
     guides: "Guías",
     photosUnavailable: "No pude mostrar las fotos de esta ficha por ahora.",
   },
+  // B19 (F030): solicitud de información desde una ficha publicada. Textos aprobados en D-182, D-183 y D-184. Ninguno ofrece pagar ni
+  // asegurar nada; la única aparición de la palabra "reserva" es la aclaración aprobada de que la solicitud no la es (invariante 5).
+  informationRequest: {
+    button: "Solicitar información",
+    proposeName: (name: string) => `Usaré este nombre para tu solicitud: ${name}`,
+    useName: "Usar este nombre",
+    changeName: "Cambiar nombre",
+    cancelButton: "Cancelar",
+    askName: "Escribe el nombre que quieres usar para tu solicitud.",
+    nameInvalid: "El nombre no puede estar vacío ni pasar de 4096 caracteres. Escríbelo de nuevo.",
+    askDate: "¿Para qué fecha te interesa? Escríbela como DD/MM/AAAA, por ejemplo 15/12/2026.",
+    dateInvalid: "No pude entender esa fecha. Escríbela como DD/MM/AAAA, por ejemplo 15/12/2026.",
+    datePast: "La fecha no puede ser anterior a hoy. Escríbela como DD/MM/AAAA, por ejemplo 15/12/2026.",
+    askParty: "¿Para cuántas personas es? Escribe un número entero mayor que cero.",
+    partyInvalid: "El número de personas debe ser un entero mayor que cero. Escríbelo de nuevo, por ejemplo 3.",
+    askMessage: "Escribe tu mensaje para el prestador. Máximo 4096 caracteres.",
+    messageInvalid: "El mensaje no puede estar vacío ni pasar de 4096 caracteres. Escríbelo de nuevo.",
+    summary: (d: { listing: string; name: string; date: string; partySize: number; message: string }) =>
+      `Esta es tu solicitud de información:\nFicha: ${d.listing}\nNombre: ${d.name}\nFecha de interés: ${d.date}\nPersonas: ${d.partySize}\nMensaje: ${d.message}\n\n¿La envías al prestador?`,
+    confirmButton: "Confirmar",
+    sent: "Tu solicitud fue enviada al prestador. No es una reserva confirmada.",
+    cancelled: "Solicitud cancelada.",
+    alreadySent: "Esta solicitud ya fue enviada.",
+    rateLimited: "Llegaste al límite de solicitudes de hoy. Intenta de nuevo mañana.",
+    unavailable: "Esta ficha ya no recibe solicitudes.",
+    expired: "Esa solicitud ya no está en curso. Abre la ficha y pulsa «Solicitar información» para empezar de nuevo.",
+    error: "No pude enviar tu solicitud. Inténtalo de nuevo más tarde.",
+  },
   // Botón de ubicación de la ficha (F021); lo usa la pantalla de detalle B16 de F023.
   location: {
     button: "Ver ubicación",

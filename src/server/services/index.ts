@@ -8,7 +8,7 @@ export {
   toMe,
 } from "./consent";
 export type { AcceptInput, ConsentState, Me, PrivacyNotice } from "./consent";
-export { clearBotSession, loadBotSession, saveBotSession } from "./bot-session";
+export { claimBotSession, clearBotSession, loadBotSession, saveBotSession } from "./bot-session";
 export {
   createProviderRegistration,
   getAccountContext,
@@ -46,3 +46,5 @@ export type { ReviewDecision } from "./listing-review";
 export { createPhotoUpload, PHOTO_ADDED_ACTION, PHOTO_REMOVED_ACTION, registerPhoto, removePhoto } from "./photos";
 export { downloadPublishedPhoto, getPublishedListing } from "./public-listing";
 export type { PublicListingDetail } from "./public-listing";
+export { createInformationRequest, INFORMATION_REQUEST_ACTION } from "./information-requests";
+export type { InformationRequestReceipt } from "./information-requests";
