@@ -128,9 +128,9 @@ describe("criterio 11: responsable ausente (API)", () => {
     const noName = await createAccount(owner, 900007111, "Cuenta Sin Nombre");
     await owner.query("update app.accounts set telegram_display_name = null where id = $1", [noName]);
     await seedEvents(owner, seeded.listingId, seeded.versionId, [
-      { from: "draft", to: "pending", role: "admin", accountId: null, at: "2026-11-21T01:00:00Z" },
-      { from: "pending", to: "rejected", role: "provider", accountId: noName, at: "2026-11-21T02:00:00Z" },
-      { from: "rejected", to: "draft", role: "system", accountId: null, at: "2026-11-21T03:00:00Z" },
+      { from: "draft", to: "pending", role: "admin", accountId: null, at: "2099-01-01T01:00:00Z" },
+      { from: "pending", to: "rejected", role: "provider", accountId: noName, at: "2099-01-01T02:00:00Z" },
+      { from: "rejected", to: "draft", role: "system", accountId: null, at: "2099-01-01T03:00:00Z" },
     ]);
     const res = await history(ADMIN, seeded.listingId);
     expect(res.status).toBe(200);

@@ -183,9 +183,9 @@ describe("criterio 11 (bot): responsable ausente", () => {
     const seeded = await seedListing(owner, { accountId: world.a6Account, municipalityId: world.municipalityOne, categoryId: world.categoryOne, name: "Ficha Ausentes" });
     await owner.query("update app.accounts set telegram_display_name = null where id = $1", [world.p2pAccount]);
     await seedEvents(owner, seeded.listingId, seeded.versionId, [
-      { from: "draft", to: "pending", role: "admin", accountId: null, at: "2026-11-21T01:00:00Z" },
-      { from: "pending", to: "rejected", role: "provider", accountId: world.p2pAccount, at: "2026-11-21T02:00:00Z" },
-      { from: "rejected", to: "draft", role: "system", accountId: null, at: "2026-11-21T03:00:00Z" },
+      { from: "draft", to: "pending", role: "admin", accountId: null, at: "2099-01-01T01:00:00Z" },
+      { from: "pending", to: "rejected", role: "provider", accountId: world.p2pAccount, at: "2099-01-01T02:00:00Z" },
+      { from: "rejected", to: "draft", role: "system", accountId: null, at: "2099-01-01T03:00:00Z" },
     ]);
     await press(ADMIN, `his:o:${seeded.listingId}`);
     const lines = changeLines().slice(-3);

@@ -64,6 +64,10 @@ describe("criterio 17: menús existentes", () => {
   // D-172: archivos de prueba modificados por F018
   ALLOWED.add("tests/integration/listing-create.test.ts");
   ALLOWED.add("tests/unit/miniapp-listing-texts.test.ts");
+  // D-173 y D-175: pruebas ajustadas por F018 y F020
+  ALLOWED.add("tests/integration/review-database.test.ts");
+  ALLOWED.add("tests/integration/listing-history.test.ts");
+  ALLOWED.add("tests/bot/listing-history.test.ts");
 
   const exists = () => {
     try {
@@ -87,7 +91,9 @@ describe("criterio 17: menús existentes", () => {
       const removed = git("diff", "-U0", START, "--", file).split("\n").filter((l) => l.startsWith("-") && !l.startsWith("---"));
       // D-172: líneas que F018 reemplaza en las pruebas de crear ficha (la clase ruta o experiencia ya es válida)
       const f018 = file === "tests/integration/listing-create.test.ts" || file === "tests/unit/miniapp-listing-texts.test.ts" ? "|parseEstablishmentCreate|field: \"kind\", code: \"invalid\"" : "";
-      const allowedRemoved = new RegExp(`Revocar mi autorización|registerButton|selfRevoke\\.button|myListings|revoke\\.button|MENU_BUTTONS|buttons|keyboardOf${f018}`, "i");
+      // D-173 y D-175: el it( reescrito de review-database y las fechas fijas de listing-history
+      const d175 = file === "tests/integration/review-database.test.ts" ? "|existe y es posterior a 20261118100000|files\\.length|files\\.indexOf\\(NAME\\)" : file.endsWith("listing-history.test.ts") ? "|2026-11-21T0" : "";
+      const allowedRemoved = new RegExp(`Revocar mi autorización|registerButton|selfRevoke\\.button|myListings|revoke\\.button|MENU_BUTTONS|buttons|keyboardOf${f018}${d175}`, "i");
       for (const l of removed) expect(l, `${file}: ${l}`).toMatch(allowedRemoved);
     }
   });
