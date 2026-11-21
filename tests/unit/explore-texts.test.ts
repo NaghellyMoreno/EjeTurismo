@@ -71,6 +71,18 @@ describe("criterio 17: menús existentes", () => {
   // F030: B16 muestra "Solicitar información" y acceptsRequests se calcula; la operación nueva entra a la matriz y el reinicio vacía la tabla nueva.
   for (const file of ["tests/bot/explore-detail.test.ts", "tests/unit/listing-detail.test.ts", "tests/helpers/explore.ts", "tests/helpers/db.ts", "tests/helpers/protected-operations.ts", "tests/unit/init-data-coverage.test.ts", "tests/unit/f013-matrix.test.ts"]) ALLOWED.add(file);
 
+  // F032 (D-189): la migración nueva y las 4 rutas nuevas rompen estas guardas (orden de migraciones, conteos de la matriz de operaciones
+  // protegidas y de acceso denegado, TRUNCATE y el criterio 20 de F024).
+  for (const file of ["tests/helpers/role-denial.ts", "tests/unit/role-routes-structure.test.ts", "tests/integration/role-access-denied.test.ts", "tests/integration/provider-no-admin.test.ts", "tests/integration/experience-type-filter.test.ts"]) ALLOWED.add(file);
+
+  const F032_GUARDS = new Set(["tests/helpers/protected-operations.ts", "tests/helpers/role-denial.ts", "tests/integration/review-database.test.ts", "tests/unit/f013-matrix.test.ts", "tests/unit/init-data-coverage.test.ts", "tests/unit/role-routes-structure.test.ts", "tests/integration/role-access-denied.test.ts", "tests/integration/provider-no-admin.test.ts", "tests/integration/experience-type-filter.test.ts"]);
+  const F032_REMOVED = [
+    "registrationId: (ID|id), grantId", "Operaciones de rol con ruta", "ADMIN_OPERATION_IDS, \"createListing\"", "UNROUTED_OPERATION_IDS", "listMyBusinessInformationRequests", "^-\\];",
+    "draftVersionId", "PHOTO_OPERATION_IDS", "existe y es posterior a 20261118100000", "files\\.", "la matriz de F009 tiene 38", "toHaveLength\\(\\d+\\)", "ROLE_DENIAL_OPERATIONS tiene 31",
+    "las operaciones de rol", "el conjunto de operaciones protegidas", "los casos de ROLE_CASES", "las 27 con ruta", "27 operaciones", "toBe\\(81\\)", "280 casos", "28 filas", "4 a 6 y 8",
+    "F012, F013 y F014", "PROTECTED_OPERATIONS\\.filter", "const expected", "Las 4 operaciones de rol sin",
+  ].join("|");
+
   const exists = () => {
     try {
       git("cat-file", "-e", `${START}^{commit}`);
@@ -99,7 +111,9 @@ describe("criterio 17: menús existentes", () => {
       const f030 = file === "tests/helpers/db.ts" ? "|truncate app\\.listing_photos" : "";
       // D-185: el conteo de operaciones protegidas pasa de 38 a 39 en las dos pruebas de la matriz
       const f185 = file === "tests/unit/f013-matrix.test.ts" || file === "tests/unit/init-data-coverage.test.ts" ? "|operaciones protegidas es exactamente el de las 38|la matriz de F009 tiene 38|toHaveLength\\(38\\)" : "";
-      const allowedRemoved = new RegExp(`Revocar mi autorización|registerButton|selfRevoke\\.button|myListings|revoke\\.button|MENU_BUTTONS|buttons|keyboardOf${f018}${d175}${f030}${f185}`, "i");
+      // F032 (D-189): líneas que cambian por los conteos de la matriz, el orden de migraciones y el criterio 20 de F024.
+      const f032 = F032_GUARDS.has(file) ? `|${F032_REMOVED}` : "";
+      const allowedRemoved = new RegExp(`Revocar mi autorización|registerButton|selfRevoke\\.button|myListings|revoke\\.button|MENU_BUTTONS|buttons|keyboardOf${f018}${d175}${f030}${f185}${f032}`, "i");
       for (const l of removed) expect(l, `${file}: ${l}`).toMatch(allowedRemoved);
     }
   });

@@ -21,6 +21,7 @@ import {
   PENDING_OWNER,
   ADMIN_OPERATION_IDS,
   HISTORY_OPERATION_ID,
+  REQUEST_OPERATION_IDS,
   REVIEW_OPERATION_IDS,
   ROLE_CASES,
   roleCaseOf,
@@ -267,8 +268,8 @@ describe("matriz de las 19 operaciones (14 de F003 a F011, las 4 de revisión de
     const derived = adminOnly.map((e) => e.operationId).sort();
     expect(derived).toHaveLength(19);
     expect(derived, "operaciones de solo administrador vs ADMIN_OPERATION_IDS, las 4 de F014 y la de F029").toEqual([...ADMIN_OPERATION_IDS, ...REVIEW_OPERATION_IDS, HISTORY_OPERATION_ID].sort());
-    // F012, F013 y F014: ROLE_CASES suma `createListing` (dos casos), las 4 operaciones de fichas gestionadas y las 4 de revisión, la de historial y las 3 de fotos de F020 (28 elementos).
-    const expected = [...derived, "createListing", "createListing", "listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview", "createPhotoUpload", "registerPhoto", "removePhoto"];
+    // F012, F013 y F014: ROLE_CASES suma `createListing` (dos casos), las 4 operaciones de fichas gestionadas y las 4 de revisión, la de historial y las 3 de fotos de F020 (28 elementos) y F032 suma las 4 de solicitudes (32).
+    const expected = [...derived, "createListing", "createListing", "listManagedListings", "getManagedListing", "saveListingDraft", "submitListingForReview", "createPhotoUpload", "registerPhoto", "removePhoto", ...REQUEST_OPERATION_IDS];
     expect(ROLE_CASES.map((c) => c.operationId).sort(), "ROLE_CASES").toEqual(expected.sort());
     const missing = derived.filter((id) => !executed.has(id));
     const extra = [...executed].filter((id) => !derived.includes(id));

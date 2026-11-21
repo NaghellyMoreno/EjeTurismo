@@ -81,7 +81,7 @@ const hasRoute = ROLE_DENIAL_OPERATIONS.filter((e) => e.hasRoute);
 const executed = new Set<string>();
 
 describe("paso 1: sin identidad válida (criterios 1 a 3)", () => {
-  it("1 y 2: 27 operaciones x 3 variantes dan 401 unauthenticated y no cambian ninguna tabla (81 casos)", async () => {
+  it("1 y 2: 31 operaciones x 3 variantes dan 401 unauthenticated y no cambian ninguna tabla (93 casos)", async () => {
     expect(hasRoute.map((e) => e.operationId).sort()).toEqual([...ROUTED_OPERATION_IDS].sort());
     let cases = 0;
     for (const entry of hasRoute) {
@@ -97,7 +97,7 @@ describe("paso 1: sin identidad válida (criterios 1 a 3)", () => {
         cases++;
       }
     }
-    expect(cases).toBe(81);
+    expect(cases).toBe(93);
   });
 
   it("3: aprobar o rechazar sin cabecera da 401; el registro sigue pending y no hay filas nuevas", async () => {
@@ -114,7 +114,7 @@ describe("paso 1: sin identidad válida (criterios 1 a 3)", () => {
 });
 
 describe("paso 2: visitante y registro pendiente (criterios 4 a 10)", () => {
-  it("4 a 6 y 8: 28 casos x A1 a A5, con cuerpo válido y vacío; mismo código, sin cambios y sin filtrar datos (280 casos)", async () => {
+  it("4 a 6 y 8: 32 casos x A1 a A5, con cuerpo válido y vacío; mismo código, sin cambios y sin filtrar datos (320 casos)", async () => {
     const table: Array<{ operacion: string; persona: string; esperado: string; obtenido: string }> = [];
     const secrets = [
       SECRET_REGISTRATION_NAME, SECRET_MUNICIPALITY_NAME, SECRET_IDENTITY_NUMBER,
@@ -144,7 +144,7 @@ describe("paso 2: visitante y registro pendiente (criterios 4 a 10)", () => {
       }
     }
     console.table(table);
-    expect(table).toHaveLength(140);
+    expect(table).toHaveLength(160);
     expect(table.filter((r) => r.esperado !== r.obtenido)).toEqual([]);
   });
 
@@ -183,14 +183,14 @@ describe("paso 2: visitante y registro pendiente (criterios 4 a 10)", () => {
     }
   });
 
-  it("10: control positivo (administrador de prueba o prestador A6 según el caso), 28 filas con el código exacto de la tabla", async () => {
+  it("10: control positivo (administrador de prueba o prestador A6 según el caso), 32 filas con el código exacto de la tabla", async () => {
     const table: Array<{ orden: number; operacion: string; esperado: number; obtenido: number }> = [];
     for (const [i, rc] of ROLE_CASES.entries()) {
       const res = await run(rc, initFor(rc.positiveActor ?? ADMIN_TEST));
       table.push({ orden: i + 1, operacion: `${rc.operationId}${rc.kind ? ` (${rc.kind})` : ""}`, esperado: rc.positive, obtenido: res.status });
     }
     console.table(table);
-    expect(table).toHaveLength(28);
+    expect(table).toHaveLength(32);
     expect(table.filter((r) => r.esperado !== r.obtenido)).toEqual([]);
   });
 });
@@ -201,7 +201,7 @@ describe("paso 3: registro pendiente (criterios 11 y 12)", () => {
     return { status: res.status, json: await body(res) };
   };
 
-  it("11: A4 no obtiene permisos por tener un registro pendiente, antes ni después de los 280 casos", async () => {
+  it("11: A4 no obtiene permisos por tener un registro pendiente, antes ni después de los 320 casos", async () => {
     const schema = responseSchemaName("getMe", 200)!.name;
     const before = await getMe(PERSON_IDS.A4);
     expect(before.status).toBe(200);
