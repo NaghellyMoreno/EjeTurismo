@@ -133,7 +133,7 @@ export async function listPublishedListings(db: Db, actor: Actor, params: URLSea
   assertConsented(await getConsentState(db, actor.telegramUserId));
   const parsed = parsePublishedListQuery(params);
   if (!parsed.ok) throw validationFailed(parsed.errors);
-  const { page, pageSize, municipalityId, categoryId, kind } = parsed.query;
+  const { page, pageSize, municipalityId, categoryId, kind, gastronomic } = parsed.query;
 
   const filtered = () => {
     let query = db
@@ -143,6 +143,18 @@ export async function listPublishedListings(db: Db, actor: Actor, params: URLSea
     if (municipalityId) query = query.where("v.municipality_id", "=", municipalityId);
     if (categoryId) query = query.where("v.category_id", "=", categoryId);
     if (kind) query = query.where("l.kind", "=", kind);
+    // F017 (HU-011): la marca vive solo en las listas cerradas (ADR 0004), según el tipo de la versión publicada.
+    if (gastronomic) {
+      query = query
+        .leftJoin("establishment_types as et", "et.id", "v.establishment_type_id")
+        .leftJoin("experience_types as xt", "xt.id", "v.experience_type_id")
+        .where((eb) =>
+          eb.or([
+            eb.and([eb("l.kind", "=", "establishment"), eb("et.is_gastronomic", "=", true)]),
+            eb.and([eb("l.kind", "=", "route_experience"), eb("xt.is_gastronomic", "=", true)]),
+          ]),
+        );
+    }
     return query;
   };
 

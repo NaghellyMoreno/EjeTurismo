@@ -71,7 +71,7 @@ describe("criterio 2: municipios como botones", () => {
     expect(list.length).toBeLessThanOrEqual(100);
     for (const b of list) expect(bytes(b.callback_data!)).toBeLessThanOrEqual(64);
     expect(list.map((b) => b.text)).toEqual(expect.arrayContaining(["Municipio Ficticio Uno", "Municipio Ficticio Dos"]));
-    expect(list.map((b) => b.text)).toEqual((await listMunicipalities(t.db, actor)).map((m) => m.name));
+    expect(list.map((b) => b.text).filter((text) => text !== es.explore.gastronomicButton)).toEqual((await listMunicipalities(t.db, actor)).map((m) => m.name));
   });
 });
 

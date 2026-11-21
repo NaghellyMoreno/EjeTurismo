@@ -35,6 +35,10 @@ export const es = {
     back: "Volver",
     stale: "Esa opción ya no está disponible. Empieza a explorar de nuevo.",
     startOver: "Empezar de nuevo",
+    // B18 (F017), textos aprobados en D-177.
+    gastronomicButton: "Directorio gastronómico",
+    gastronomicHeader: (municipality: string) => `Directorio gastronómico de ${municipality}`,
+    gastronomicEmpty: "Aún no hay restaurantes, cafés ni experiencias gastronómicas publicadas en este municipio.",
   },
   // B04, B05 y B21 mínimo del registro de prestador. Textos aprobados en D-079; ninguno incluye el número ni lo escrito por la persona.
   provider: {

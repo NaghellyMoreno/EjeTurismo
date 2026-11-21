@@ -16,6 +16,11 @@ const CATEGORIES = "exp:c:";
 const LIST = "exp:l:";
 const DETAIL = "exp:d:";
 const BACK = "exp:b:";
+// B18 (F017): directorio gastronómico por municipio. `exp:gm` lista municipios; `exp:g:<municipio>:<página>` lista las fichas.
+const GASTRO_START = "exp:gm";
+const GASTRO_LIST = "exp:g:";
+// En el detalle y en "Volver" de B18 la página lleva el prefijo `g` para recordar el origen (exp:d:<ficha>:g<página>).
+const GASTRO_PAGE = "g";
 
 // Fichas por página (P4, D-164).
 export const EXPLORE_PAGE_SIZE = 10;
@@ -43,12 +48,21 @@ function unpack(text: string): string | null {
 }
 
 type Parsed = { action: "municipalities" } | { action: "categories"; municipalityId: string } | { action: "list"; municipalityId: string; categoryId: string; page: number }
-  | { action: "detail"; listingId: string; page: number }
-  | { action: "back"; listingId: string; page: number };
+  | { action: "detail"; listingId: string; page: number; gastronomic: boolean }
+  | { action: "back"; listingId: string; page: number; gastronomic: boolean }
+  | { action: "gastroMunicipalities" } | { action: "gastroList"; municipalityId: string; page: number };
 
 export function parseExploreCallback(data: string): Parsed | null {
   if (Buffer.byteLength(data) > 64) return null;
   if (data === EXPLORE_START) return { action: "municipalities" };
+  if (data === GASTRO_START) return { action: "gastroMunicipalities" };
+  if (data.startsWith(GASTRO_LIST)) {
+    const parts = data.slice(GASTRO_LIST.length).split(":");
+    if (parts.length !== 2 || !/^[1-9][0-9]{0,5}$/.test(parts[1])) return null;
+    const municipalityId = unpack(parts[0]);
+    const page = Number(parts[1]);
+    return municipalityId && page <= MAX_PAGE ? { action: "gastroList", municipalityId, page } : null;
+  }
   if (data.startsWith(CATEGORIES)) {
     const municipalityId = unpack(data.slice(CATEGORIES.length));
     return municipalityId ? { action: "categories", municipalityId } : null;
@@ -64,10 +78,12 @@ export function parseExploreCallback(data: string): Parsed | null {
   for (const [prefix, action] of [[DETAIL, "detail"], [BACK, "back"]] as const) {
     if (!data.startsWith(prefix)) continue;
     const parts = data.slice(prefix.length).split(":");
-    if (parts.length !== 2 || !/^[1-9][0-9]{0,5}$/.test(parts[1])) return null;
+    const gastronomic = parts[1]?.startsWith(GASTRO_PAGE) ?? false;
+    const pageText = gastronomic ? parts[1].slice(1) : parts[1];
+    if (parts.length !== 2 || !/^[1-9][0-9]{0,5}$/.test(pageText)) return null;
     const listingId = unpack(parts[0]);
-    const page = Number(parts[1]);
-    return listingId && page <= MAX_PAGE ? { action, listingId, page } : null;
+    const page = Number(pageText);
+    return listingId && page <= MAX_PAGE ? { action, listingId, page, gastronomic } : null;
   }
   return null;
 }
@@ -79,7 +95,34 @@ async function showMunicipalities(ctx: Context, deps: ExploreDeps, actor: Actor)
   if (municipalities.length === 0) return void (await send(ctx, es.explore.noMunicipalities));
   const keyboard = new InlineKeyboard();
   for (const municipality of municipalities) keyboard.text(municipality.name, `${CATEGORIES}${pack(municipality.id)}`).row();
+  keyboard.text(es.explore.gastronomicButton, GASTRO_START);
   await send(ctx, es.explore.chooseMunicipality, keyboard);
+}
+
+async function showGastroMunicipalities(ctx: Context, deps: ExploreDeps, actor: Actor) {
+  const municipalities = await listMunicipalities(deps.db(), actor);
+  if (municipalities.length === 0) return void (await send(ctx, es.explore.noMunicipalities));
+  const keyboard = new InlineKeyboard();
+  for (const municipality of municipalities) keyboard.text(municipality.name, `${GASTRO_LIST}${pack(municipality.id)}:1`).row();
+  keyboard.text(es.explore.back, EXPLORE_START);
+  await send(ctx, es.explore.chooseMunicipality, keyboard);
+}
+
+async function showGastroList(ctx: Context, deps: ExploreDeps, actor: Actor, municipalityId: string, page: number) {
+  const municipality = (await listMunicipalities(deps.db(), actor)).find((item) => item.id === municipalityId);
+  if (!municipality) return void (await stale(ctx));
+  const params = new URLSearchParams({ municipalityId, gastronomic: "true", page: String(page), pageSize: String(EXPLORE_PAGE_SIZE) });
+  const result = await listPublishedListings(deps.db(), actor, params);
+  const back = () => new InlineKeyboard().text(es.explore.back, GASTRO_START);
+  if (result.items.length === 0) {
+    if (page > 1) return void (await stale(ctx));
+    return void (await send(ctx, es.explore.gastronomicEmpty, back()));
+  }
+  const keyboard = new InlineKeyboard();
+  for (const item of result.items) keyboard.text(item.name, `${DETAIL}${pack(item.id)}:${GASTRO_PAGE}${page}`).row();
+  if (page * EXPLORE_PAGE_SIZE < result.total) keyboard.text(es.explore.more, `${GASTRO_LIST}${pack(municipalityId)}:${page + 1}`).row();
+  keyboard.text(es.explore.back, GASTRO_START);
+  await send(ctx, [es.explore.gastronomicHeader(municipality.name), ...result.items.map((item) => item.name)].join("\n"), keyboard);
 }
 
 async function showCategories(ctx: Context, deps: ExploreDeps, actor: Actor, municipalityId: string) {
@@ -114,7 +157,7 @@ async function showList(ctx: Context, deps: ExploreDeps, actor: Actor, municipal
 
 // B16 (F023): solo se abre una ficha con versión publicada; cualquier otra cosa (inexistente, borrador, pendiente, rechazada) es "stale".
 // "Volver" toma el municipio y la categoría de la ficha publicada y la página del `callback_data`.
-async function showDetail(ctx: Context, deps: ExploreDeps, actor: Actor, listingId: string, page: number, back: boolean) {
+async function showDetail(ctx: Context, deps: ExploreDeps, actor: Actor, listingId: string, page: number, back: boolean, gastronomic: boolean) {
   let detail;
   try {
     detail = await getPublishedListing(deps.db(), actor, listingId, deps.now?.() ?? new Date());
@@ -122,8 +165,9 @@ async function showDetail(ctx: Context, deps: ExploreDeps, actor: Actor, listing
     if (error instanceof AppError && error.code === "not_found") return void (await stale(ctx));
     throw error;
   }
+  if (back && gastronomic) return showGastroList(ctx, deps, actor, detail.municipality.id, page);
   if (back) return showList(ctx, deps, actor, detail.municipality.id, detail.category.id, page);
-  await showListingDetail(ctx, detail, `${BACK}${pack(listingId)}:${page}`);
+  await showListingDetail(ctx, detail, `${BACK}${pack(listingId)}:${gastronomic ? GASTRO_PAGE : ""}${page}`);
 }
 
 // El llamador ya comprobó que la cuenta tiene el aviso vigente; los servicios lo vuelven a verificar con el actor.
@@ -132,7 +176,9 @@ export async function handleExploreCallback(ctx: Context, deps: ExploreDeps, act
   if (!parsed) return void (await stale(ctx));
   if (parsed.action === "municipalities") return showMunicipalities(ctx, deps, actor);
   if (parsed.action === "categories") return showCategories(ctx, deps, actor, parsed.municipalityId);
-  if (parsed.action === "detail") return showDetail(ctx, deps, actor, parsed.listingId, parsed.page, false);
-  if (parsed.action === "back") return showDetail(ctx, deps, actor, parsed.listingId, parsed.page, true);
+  if (parsed.action === "gastroMunicipalities") return showGastroMunicipalities(ctx, deps, actor);
+  if (parsed.action === "gastroList") return showGastroList(ctx, deps, actor, parsed.municipalityId, parsed.page);
+  if (parsed.action === "detail") return showDetail(ctx, deps, actor, parsed.listingId, parsed.page, false, parsed.gastronomic);
+  if (parsed.action === "back") return showDetail(ctx, deps, actor, parsed.listingId, parsed.page, true, parsed.gastronomic);
   return showList(ctx, deps, actor, parsed.municipalityId, parsed.categoryId, parsed.page);
 }

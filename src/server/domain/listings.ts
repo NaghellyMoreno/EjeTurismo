@@ -135,6 +135,7 @@ export interface PublishedListQuery {
   municipalityId?: string;
   categoryId?: string;
   kind?: ListingKindValue;
+  gastronomic?: boolean;
 }
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -165,6 +166,12 @@ export function parsePublishedListQuery(params: URLSearchParams): { ok: true; qu
   if (kind !== null) {
     if ((LISTING_KINDS as readonly string[]).includes(kind)) query.kind = kind as ListingKindValue;
     else errors.push(paramError("kind"));
+  }
+  // F017 (P6, D-176): solo `true` y `false` en minúscula; cualquier otra forma, incluido el valor vacío, es inválida.
+  const gastronomic = params.get("gastronomic");
+  if (gastronomic !== null) {
+    if (gastronomic === "true" || gastronomic === "false") query.gastronomic = gastronomic === "true";
+    else errors.push(paramError("gastronomic"));
   }
   return errors.length > 0 ? { ok: false, errors } : { ok: true, query };
 }
