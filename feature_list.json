@@ -448,7 +448,7 @@
       "Verificar que queda pendiente y no la ve el visitante",
       "Con una cuenta de administrador, aprobarla y verificar que el visitante la ve en la exploración de su municipio"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F024",

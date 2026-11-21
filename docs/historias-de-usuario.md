@@ -1,0 +1,367 @@
+# Historias de usuario: Eje Turismo
+
+Recopilación de las 30 historias de usuario del proyecto, copiadas sin cambios de `docs/02-requisitos.md`, que sigue siendo la fuente que se mantiene. Si ese documento cambia, este archivo debe regenerarse.
+
+Marcas: **Confirmado** sale del contexto o de una decisión congelada; **Inferido** requiere aprobación de la usuaria; **Pendiente** falta información. Cuando una historia mezcla estados, cada criterio lleva su marca.
+
+Canal (Confirmado, D-002): el bot lleva privacidad, registro, exploración, solicitudes y aprobaciones; la Mini App lleva los formularios largos de fichas. El catálogo con fotos de la Mini App para el visitante queda fuera de esta entrega (D-030).
+
+Textos al usuario: el administrador fijado en la configuración de la publicación se llama "administrador principal" (Confirmado, D-032).
+
+## Índice
+
+| ID | Historia | Rol | Alcance | Funcionalidades |
+| --- | --- | --- | --- | --- |
+| HU-001 | Aceptar el aviso de privacidad | Usuario de Telegram (visitante, prestador o administrador) | En esta entrega | F001, F036 |
+| HU-002 | Registro inicial del prestador | Prestador turístico | En esta entrega | F002, F027 |
+| HU-003 | Autorizar o rechazar el registro de un prestador | Administrador | En esta entrega | F003, F007 |
+| HU-004 | Autorizar a otro administrador | Administrador | En esta entrega | F004, F008 |
+| HU-005 | Revocar el rol de un usuario autorizado ("Revocar rol") | Administrador | En esta entrega | F006 |
+| HU-006 | Ingresar sin repetir el registro | Prestador o administrador autorizado | En esta entrega | F005, F007, F009 |
+| HU-007 | Gestionar municipios | Administrador | En esta entrega | F010 |
+| HU-008 | Gestionar categorías y tipos de experiencia | Administrador | En esta entrega | F011 |
+| HU-009 | Registrar un atractivo turístico | Administrador | En esta entrega | F012 |
+| HU-010 | Registrar un establecimiento o alojamiento | Prestador autorizado | En esta entrega | F013, F016 |
+| HU-011 | Registrar un restaurante, café o experiencia gastronómica | Prestador autorizado | En esta entrega | F017 |
+| HU-012 | Registrar una ruta o experiencia | Prestador autorizado | En esta entrega | F018 |
+| HU-013 | Registrar un evento | Administrador | Fuera de esta entrega (D-030) | — |
+| HU-014 | Aprobar o rechazar una ficha | Administrador | En esta entrega | F014, F008 |
+| HU-015 | Consultar estado y motivo de rechazo | Prestador | En esta entrega | F014 |
+| HU-016 | Editar una ficha publicada sin ocultarla | Prestador | En esta entrega | F015 |
+| HU-017 | Agregar fotografías a una ficha | Prestador o administrador | En esta entrega | F020 |
+| HU-018 | Indicar y abrir la ubicación | Prestador o administrador | En esta entrega | F021 |
+| HU-019 | Explorar por municipio y categoría en el bot | Visitante | En esta entrega | F022 |
+| HU-020 | Ver la ficha de detalle en el bot | Visitante | En esta entrega | F023, F027 |
+| HU-021 | Filtrar por tipo de experiencia | Visitante | En esta entrega | F024 |
+| HU-022 | Consultar la agenda de eventos | Visitante | Fuera de esta entrega (D-030) | — |
+| HU-023 | Explorar el catálogo en la Mini App | Visitante | Fuera de esta entrega (D-030) | — |
+| HU-024 | Enviar una solicitud de información o interés | Visitante | En esta entrega | F030, F037 |
+| HU-025 | Recibir la alerta de una solicitud | Prestador | En esta entrega | F031 |
+| HU-026 | Responder y gestionar el estado de una solicitud | Prestador | En esta entrega | F032, F033 |
+| HU-027 | Cancelar formularios y corregir entradas inválidas | Usuario del bot | En esta entrega | F028 |
+| HU-028 | Consultar la trazabilidad de una ficha | Administrador | En esta entrega | F029 |
+| HU-029 | Reportes básicos | Administrador | Fuera de esta entrega (D-030) | — |
+| HU-030 | Revocar mi autorización | Usuario de Telegram (visitante, prestador o administrador) | En esta entrega | F034, F035, F036, F037, F038 |
+
+## Detalle
+
+### Privacidad, registro y roles
+
+#### HU-001: Aceptar el aviso de privacidad
+- **Historia:** Como usuario de Telegram (visitante, prestador o administrador), quiero leer y aceptar el aviso de privacidad y tratamiento de datos al empezar, para saber cómo se tratan mis datos.
+- **Fuente:** sección 3.15
+- **Criterios de aceptación:**
+  1. Dado un usuario que abre el bot por primera vez, cuando inicia la conversación, entonces el bot muestra el aviso de privacidad con un botón para aceptarlo, antes de pedir o guardar cualquier dato personal. (Confirmado)
+  2. Dado un usuario que acepta, cuando vuelve a abrir el bot, entonces no se le muestra el aviso de nuevo y queda registrada la fecha y hora de aceptación (America/Bogota). (Confirmado: aceptación, sección 3.15; registro de fecha, sección 3.12)
+  3. Dado un usuario que no acepta, cuando intenta continuar, entonces el bot no guarda ningún dato y le explica que debe aceptar el aviso para seguir. (Confirmado, D-008)
+  4. El texto del aviso es el de `docs/05-aviso-privacidad.md`, aprobado por la usuaria, en la versión "2026-11-v3", vigente desde la fecha de publicación en producción; la constancia de aceptación registra esa versión. El apartado 2 menciona "tu tipo y número de documento de identidad" y el apartado 2.5 tiene el texto aprobado. (Confirmado, D-034, D-050, D-056, D-057)
+  5. Dado un usuario que aceptó una versión anterior del aviso, cuando se publica una versión nueva y vuelve a abrir el bot o la Mini App, entonces se le muestra el aviso nuevo y debe aceptarlo de nuevo antes de seguir. (Confirmado, D-025)
+  6. Dado un usuario que entra por primera vez por la Mini App, cuando se carga, entonces ve el mismo aviso y la misma declaración que en el bot antes de cualquier otro paso. (Confirmado, D-025)
+  7. Las consultas y correcciones de datos personales se atienden solo por correo electrónico y teléfono; el bot y la Mini App no ofrecen opción para consultarlos o corregirlos. (Confirmado, D-025)
+- **Estado:** Confirmado
+
+#### HU-002: Registro inicial del prestador
+- **Historia:** Como prestador turístico, quiero registrarme una sola vez con mi número de identidad, para quedar vinculado a mi ID de Telegram y esperar la autorización del administrador.
+- **Fuente:** sección 2.3
+- **Criterios de aceptación:**
+  1. Dado un usuario que aceptó el aviso de privacidad, cuando elige registrarse como prestador, elige el tipo de documento e ingresa su número de identidad, entonces el bot pide confirmación y, al confirmar, queda un registro pendiente que vincula ese número con su ID de Telegram. (Confirmado)
+  2. Dado un registro pendiente, cuando el prestador intenta usar funciones de prestador, entonces el bot le informa que su registro espera autorización y el backend no le permite operar como prestador. (Confirmado)
+  3. Dado un tipo y número de documento o un ID de Telegram ya registrado, cuando se intenta un nuevo registro con alguno de ellos, entonces el sistema lo rechaza con un mensaje claro y no crea un duplicado. El duplicado compara el tipo y el número de documento juntos: el mismo número con otro tipo no es duplicado. Para comparar, el número se normaliza sin espacios al inicio ni al final y con las letras en mayúsculas, sin quitar puntos ni espacios internos (por ejemplo, " ab123 " y "AB123" del mismo tipo son duplicados). (Confirmado: regla, sección 3.12; tipo y número, D-054; normalización, D-055)
+  4. El número de identidad es un texto y va acompañado de un tipo de documento, que solo puede ser CC, CE, PPT o PA. (Confirmado, D-046) Los nombres que se muestran para cada sigla son cédula de ciudadanía, cédula de extranjería, Permiso por Protección Temporal y pasaporte, y el bot acepta la sigla escrita en minúsculas. (Confirmado, D-055) Dado un tipo de documento distinto de esos cuatro, o un número vacío, cuando se envía, entonces el sistema lo rechaza; en el bot, explica el motivo y vuelve a pedir solo ese dato. (Confirmado: validación, sección 3.12; tipos, D-046) El número admite un máximo técnico de 4096 caracteres (un mensaje de Telegram; no es regla del producto). (Confirmado, D-055) Reglas de caracteres o de longitud por tipo: no hay; D-046 no las fija. (Pendiente solo si la usuaria quiere agregarlas)
+  5. Dado un usuario que no aceptó el aviso de privacidad, cuando intenta registrarse, entonces no se le pide el número de identidad. (Confirmado, sección 3.15)
+  6. El número de identidad solo lo ven los administradores. (Confirmado, D-011)
+- **Estado:** Confirmado (D-046, D-054, D-055)
+
+#### HU-003: Autorizar o rechazar el registro de un prestador
+- **Historia:** Como administrador, quiero revisar los registros pendientes de prestadores y autorizarlos o rechazarlos, para que solo quien yo autorice tenga rol de prestador.
+- **Fuente:** secciones 2.3, 3.16
+- **Criterios de aceptación:**
+  1. Dado un administrador autorizado, cuando consulta en el bot los registros pendientes, entonces ve cada uno con su ID de Telegram, nombre de Telegram, número de identidad y fecha de registro. (Confirmado; número de identidad visible solo para administradores, D-011)
+  2. Dado un registro pendiente, cuando el administrador lo autoriza y confirma, entonces el usuario obtiene el rol de prestador y recibe un mensaje del bot que se lo informa. (Confirmado: autorización; mensaje Inferido)
+  3. Dado un registro pendiente, cuando el administrador lo rechaza y confirma, entonces el usuario no obtiene el rol y recibe un mensaje del bot que se lo informa. (Inferido)
+  4. Cada autorización o rechazo queda registrada con fecha, administrador responsable y resultado. (Confirmado, sección 3.12)
+- **Estado:** Confirmado (criterio 3 y mensaje del criterio 2 Inferido)
+
+#### HU-004: Autorizar a otro administrador
+- **Historia:** Como administrador, quiero autorizar el ID de Telegram de otra persona como administrador, para compartir la gestión de la plataforma.
+- **Fuente:** secciones 2.3, 3.16
+- **Criterios de aceptación:**
+  1. Dado un administrador autorizado, cuando ingresa un ID de Telegram para darle el rol de administrador y confirma, entonces esa persona, al abrir el bot, accede a las funciones de administrador. (Confirmado)
+  2. Dado un ID que ya es administrador, cuando se intenta autorizar de nuevo, entonces el sistema informa que ya está autorizado y no crea un duplicado. (Confirmado, sección 3.12)
+  3. El nuevo administrador no se registra con número de identidad: ni el bot ni la Mini App se lo piden. (Confirmado, D-007)
+  4. El administrador principal es el que se fija por su ID de Telegram en la configuración de la publicación; al abrir el bot ve el menú de administrador sin registro previo. (Confirmado, D-007, D-032)
+- **Estado:** Confirmado
+
+#### HU-005: Revocar el rol de un usuario autorizado ("Revocar rol")
+- **Historia:** Como administrador, quiero revocar el rol de un administrador o prestador, para mantener al día los usuarios autorizados.
+- **Fuente:** sección 2.3 ("gestiona usuarios autorizados"); D-015, D-020
+- **Criterios de aceptación:**
+  1. La opción del menú de administrador se llama "Revocar rol" y es distinta de "Revocar mi autorización" (HU-030). (Confirmado, D-020)
+  2. Dado un usuario autorizado, cuando el administrador elige "Revocar rol" y confirma, entonces la siguiente operación de ese usuario como prestador o administrador es rechazada por el backend. (Confirmado, D-015)
+  3. Dado el mensaje de confirmación, cuando el administrador cancela, entonces el usuario conserva el rol. (Confirmado, sección 3.12)
+  4. La revocación queda registrada con fecha, responsable y usuario afectado. (Confirmado, sección 3.12)
+  5. Un administrador no puede revocarse el rol a sí mismo si es el único administrador. (Confirmado, D-020)
+  6. Nadie puede revocar el rol del administrador principal; el mensaje lo nombra "administrador principal". (Regla Inferida a partir de D-007 y D-020, pregunta 21 sin respuesta; nombre Confirmado, D-032)
+  7. Dado un prestador, cuando el administrador le aplica "Revocar rol" y confirma, entonces solo pierde el rol y sus fichas publicadas dejan de aceptar solicitudes nuevas. (Confirmado, D-043)
+- **Estado:** Confirmado (criterio 6 Inferido)
+
+#### HU-006: Ingresar sin repetir el registro
+- **Historia:** Como prestador o administrador autorizado, quiero que el bot me reconozca por mi ID de Telegram, para entrar con facilidad sin repetir el registro.
+- **Fuente:** sección 2.3
+- **Criterios de aceptación:**
+  1. Dado un prestador autorizado, cuando abre el bot, entonces ve su menú de prestador sin que se le pida de nuevo el número de identidad. (Confirmado)
+  2. Dado un administrador autorizado, cuando abre el bot, entonces ve su menú de administrador. (Confirmado)
+  3. Dado un usuario sin rol autorizado, cuando abre el bot, entonces solo ve las opciones de visitante y la opción de registrarse como prestador. (Inferido) Una cuenta con rol de administrador no puede registrarse también como prestador. (Confirmado, D-038)
+  4. Dado un usuario que abre la Mini App, cuando se carga, entonces muestra las opciones que correspondan a su rol según el backend. (Inferido, sección 3.16)
+- **Estado:** Confirmado (criterio 3 parcialmente Inferido; criterio 4 Inferido)
+
+### Organización del contenido
+
+#### HU-007: Gestionar municipios
+- **Historia:** Como administrador, quiero crear y editar municipios, para organizar el contenido turístico por territorio.
+- **Fuente:** secciones 2.3, 3.1, 3.9
+- **Criterios de aceptación:**
+  1. Dado un administrador, cuando crea un municipio con su nombre e información general y confirma, entonces el municipio queda disponible para clasificar fichas y para la exploración del visitante. (Confirmado)
+  2. Dado un municipio con el mismo nombre ya existente, cuando se intenta crear otro, entonces el sistema lo rechaza sin crear duplicado. (Confirmado, sección 3.12)
+  3. Dado un municipio existente, cuando el administrador edita su información y confirma, entonces el cambio se refleja y queda registrado con fecha y responsable. (Confirmado, sección 3.12)
+  4. Los municipios iniciales son Manizales, Supía y Filadelfia, del departamento de Caldas (Confirmado, D-027). Vienen cargados por la semilla de referencia en todos los entornos, así que el administrador no los crea; las pruebas de creación usan un municipio distinto (Confirmado: semilla, D-027 y ADR 0011). "Zona" es un dato opcional del municipio, no una entidad (Confirmado, D-013).
+- **Estado:** Confirmado
+
+#### HU-008: Gestionar categorías y tipos de experiencia
+- **Historia:** Como administrador, quiero gestionar las categorías y los tipos de experiencia, para que el contenido se organice y el visitante pueda filtrarlo.
+- **Fuente:** secciones 2.3, 2.4, 3.9
+- **Criterios de aceptación:**
+  1. Dado un administrador, cuando crea una categoría o un tipo de experiencia y confirma, entonces queda disponible al registrar fichas y como filtro del visitante. (Confirmado, D-004)
+  2. Las categorías y los tipos de experiencia son listas cerradas: al registrar una ficha solo se elige entre los que creó el administrador, sin escribir uno nuevo. (Confirmado, D-004)
+  3. Dado un nombre ya existente, cuando se intenta crear otro igual, entonces el sistema lo rechaza. (Confirmado, sección 3.12)
+  4. Dado un administrador, cuando edita una categoría o tipo y confirma, entonces el cambio se refleja en las fichas que la usan. (Inferido)
+- **Estado:** Confirmado (criterio 4 Inferido)
+
+### Registro de contenido
+
+Campos obligatorios de toda ficha (Confirmado, D-003): nombre, municipio, categoría, descripción, horarios, contacto y enlace de Maps. Duplicado (Confirmado, D-003): mismo nombre en el mismo municipio. Los formularios largos de fichas están en la Mini App (Confirmado, D-002). Límites de caracteres (Confirmado, D-042): nombre 100, descripción 1500, horarios 300, contacto 200; los demás campos, Pendiente (arquitectura, Pendiente 4).
+
+#### HU-009: Registrar un atractivo turístico
+- **Historia:** Como administrador, quiero registrar la ficha de un sitio natural, cultural, histórico o patrimonial, para que el visitante lo descubra.
+- **Fuente:** secciones 3.2, 3.9
+- **Criterios de aceptación:**
+  1. Dado un administrador, cuando completa en la Mini App los campos obligatorios (nombre, municipio, categoría, descripción, horarios, contacto y enlace de Maps) y confirma, entonces el atractivo queda registrado. (Confirmado, D-002, D-003)
+  2. Dado un formulario con campos obligatorios vacíos o inválidos, cuando se intenta guardar, entonces el sistema indica qué campo falla y no guarda. (Confirmado, sección 3.12)
+  3. Dado un atractivo con el mismo nombre en el mismo municipio, cuando se intenta registrar, entonces el sistema lo rechaza como duplicado. (Confirmado, D-003)
+  4. El atractivo registrado por el administrador queda publicado al confirmar, sin flujo de validación. (Confirmado, D-005)
+- **Estado:** Confirmado
+
+#### HU-010: Registrar un establecimiento o alojamiento
+- **Historia:** Como prestador autorizado, quiero registrar la ficha de mi establecimiento (hotel, finca cafetera, alojamiento rural u otro servicio), para que, una vez aprobada, la vean los visitantes.
+- **Fuente:** secciones 2.3, 3.3
+- **Criterios de aceptación:**
+  1. Dado un prestador autorizado, cuando guarda en la Mini App una ficha nueva, entonces queda en estado borrador, asociada a su negocio, y no es visible al visitante. (Confirmado; canal, D-002)
+  2. Dado una ficha en borrador, cuando el prestador la envía a revisión y confirma, entonces pasa a estado pendiente y deja de ser editable hasta que el administrador decida. (Confirmado: estado pendiente; bloqueo de edición Inferido)
+  3. Dado un formulario con alguno de los campos obligatorios de D-003 vacío o inválido, cuando se intenta enviar a revisión, entonces el sistema indica qué falla y no la envía. (Confirmado, sección 3.12, D-003)
+  4. Dado una ficha con el mismo nombre en el mismo municipio que otra, cuando se intenta registrar, entonces se rechaza como duplicado. (Confirmado, D-003)
+  5. Un prestador puede tener varios negocios y registrar una ficha por cada uno. (Confirmado: varios negocios, D-006; una ficha por negocio, Inferido)
+  6. Tipos de establecimiento: lista cerrada administrada por el administrador en la Mini App con hotel, finca cafetera, alojamiento rural, restaurante y café; dato opcional al enviar a revisión. (Confirmado, D-040, D-041)
+  7. Dado una ficha que el prestador envía a revisión, cuando confirma el envío, entonces el sistema le pide declarar que tiene la autorización de los guías y contactos cuyos datos incluye, y sin esa declaración no la envía. Aplica también a las fichas de HU-011 y HU-012, que siguen el mismo flujo. (Confirmado, D-024)
+- **Estado:** Confirmado (criterios 2 y 5 parcialmente Inferido)
+
+#### HU-011: Registrar un restaurante, café o experiencia gastronómica
+- **Historia:** Como prestador autorizado, quiero registrar mi restaurante, café o experiencia gastronómica, para aparecer en el directorio gastronómico.
+- **Fuente:** secciones 2.4, 3.3, 3.4
+- **Criterios de aceptación:**
+  1. Dado un prestador, cuando registra una ficha de tipo de establecimiento restaurante o café, entonces sigue el mismo flujo de estados y los mismos campos obligatorios que HU-010 (borrador, pendiente, publicada, rechazada). (Confirmado, D-003, D-004)
+  2. Dado una ficha gastronómica publicada, cuando el visitante consulta el directorio gastronómico, entonces la ve. (Confirmado, sección 3.4)
+  3. El directorio gastronómico lo forman las fichas publicadas de establecimiento con tipo restaurante o café y las fichas publicadas de experiencia con el tipo de experiencia gastronómica "Sabores de Caldas", que carga la semilla. (Confirmado, sección 3.4; D-040, D-048, D-052)
+  4. Dado un prestador, cuando registra una experiencia con el tipo de experiencia "Sabores de Caldas", entonces sigue el mismo flujo de estados y los mismos campos obligatorios que HU-012. (Confirmado: flujo, sección 3.3; campos, D-003; tipo, D-048, D-052)
+  5. Dado una ficha de establecimiento sin tipo, o de otro tipo de establecimiento, o una experiencia con un tipo de experiencia no gastronómico, cuando se publica, entonces no aparece en el directorio gastronómico. (Confirmado, D-040, D-048)
+- **Estado:** Confirmado (D-048, D-052). La funcionalidad F017 depende de F018 y se construye después (D-058).
+
+#### HU-012: Registrar una ruta o experiencia
+- **Historia:** Como prestador autorizado, quiero registrar un recorrido, actividad o experiencia con su tipo de experiencia, para que los visitantes la encuentren.
+- **Fuente:** secciones 3.5, 3.9
+- **Criterios de aceptación:**
+  1. Dado un prestador, cuando registra una ruta o experiencia con su tipo de experiencia, elegido de la lista cerrada, entonces sigue el flujo de estados y los campos obligatorios de HU-010. (Confirmado: flujo, sección 3.3; lista cerrada, D-004; campos, D-003)
+  2. Los datos de guías se registran como datos de la ficha, no como usuarios. (Confirmado, D-014)
+- **Estado:** Confirmado
+
+#### HU-013: Registrar un evento (fuera de esta entrega, D-030)
+- **Historia:** Como administrador, quiero registrar festividades, actividades culturales, ferias y eventos turísticos con su fecha, para que aparezcan en la agenda.
+- **Fuente:** sección 3.6
+- **Criterios de aceptación** (para una entrega posterior):
+  1. Dado un administrador, cuando registra un evento con municipio, fecha y hora de inicio y fin y los demás campos obligatorios, y confirma, entonces queda en la agenda sin validación. (Confirmado: agenda, sección 3.6; registro por el administrador sin validación, D-005; campos propios del evento Pendiente)
+  2. Dado una fecha de fin anterior a la de inicio, cuando se intenta guardar, entonces el sistema la rechaza. (Confirmado, sección 3.12)
+  3. Las fechas se registran y muestran en hora de America/Bogota. (Inferido, convención del proyecto)
+- **Estado:** Fuera de esta entrega (D-030); sin funcionalidad en `feature_list.json`
+
+### Validación y versiones
+
+#### HU-014: Aprobar o rechazar una ficha
+- **Historia:** Como administrador, quiero aprobar o rechazar las fichas pendientes de los prestadores, para que solo el contenido validado llegue al visitante.
+- **Fuente:** sección 3.3
+- **Criterios de aceptación:**
+  1. Dado una ficha pendiente, cuando el administrador la aprueba en el bot y confirma, entonces pasa a publicada y aparece en las consultas del visitante. (Confirmado; canal, D-002)
+  2. Dado una ficha pendiente, cuando el administrador la rechaza, entonces el sistema le exige escribir un motivo y, al confirmar, la ficha pasa a rechazada. (Confirmado)
+  3. Dado un prestador, cuando intenta cambiar el estado de su ficha a publicada o rechazada (incluso enviando la petición directamente al backend), entonces el backend lo rechaza. (Confirmado)
+  4. Cada aprobación o rechazo queda registrado con fecha, responsable y motivo. (Confirmado, sección 3.12)
+  5. El prestador recibe un mensaje del bot con el resultado. (Inferido)
+- **Estado:** Confirmado (criterio 5 Inferido)
+
+#### HU-015: Consultar estado y motivo de rechazo
+- **Historia:** Como prestador, quiero ver el estado de mis fichas y el motivo de rechazo, para corregirlas.
+- **Fuente:** sección 3.3
+- **Criterios de aceptación:**
+  1. Dado un prestador, cuando consulta sus fichas, entonces ve el estado de cada una (borrador, pendiente, publicada, rechazada). (Confirmado)
+  2. Dado una ficha rechazada, cuando el prestador la abre, entonces ve el motivo escrito por el administrador. (Confirmado)
+  3. Dado una ficha rechazada que nunca se publicó, cuando el prestador la corrige y la reenvía, entonces vuelve a pendiente. (Inferido)
+- **Estado:** Confirmado (criterio 3 Inferido)
+
+#### HU-016: Editar una ficha publicada sin ocultarla
+- **Historia:** Como prestador, quiero editar una ficha ya publicada sin que desaparezca mientras se revisa, para no perder visibilidad.
+- **Fuente:** sección 3.3
+- **Criterios de aceptación:**
+  1. Dado una ficha publicada, cuando el prestador guarda cambios y los envía a revisión, entonces se crea una versión pendiente y el visitante sigue viendo la versión publicada anterior. (Confirmado)
+  2. Dado una versión pendiente, cuando el administrador la aprueba, entonces el visitante pasa a ver la nueva versión. (Confirmado)
+  3. Dado una versión pendiente, cuando el administrador la rechaza con motivo, entonces se descarta, se conserva la versión publicada y el prestador ve el motivo. (Confirmado)
+  4. El administrador ve, al revisar, qué cambia entre la versión publicada y la pendiente. (Inferido)
+  5. Despublicar o eliminar una ficha no está disponible en esta entrega. (Confirmado, D-014)
+- **Estado:** Confirmado (criterio 4 Inferido)
+
+### Galería y ubicación
+
+#### HU-017: Agregar fotografías a una ficha
+- **Historia:** Como prestador o administrador, quiero agregar fotografías a una ficha, para que el visitante vea el lugar.
+- **Fuente:** sección 3.7
+- **Criterios de aceptación:**
+  1. Dado una ficha propia, cuando el usuario sube una fotografía, entonces queda asociada a la ficha y se muestra al visitante solo cuando la versión que la contiene está publicada. (Confirmado: fotografías, sección 3.7; visibilidad según estado, sección 3.3)
+  2. Dado un archivo que no es imagen, cuando se sube, entonces se rechaza con un mensaje claro. (Confirmado, sección 3.12)
+  3. Dado una ficha que se enviará a aprobación con 10 fotografías, cuando se intenta agregar otra, entonces se rechaza con un mensaje claro. (Confirmado, D-031)
+  4. Dado una ficha cuyas fotografías suman 2 GB, cuando se intenta agregar una que supera ese total, entonces se rechaza con un mensaje claro. (Confirmado, D-031; se verifica con la prueba de integración de límites, porque con 10 fotos de 5 MB una ficha llega como máximo a 50 MB)
+  5. Los mismos límites aplican a las fichas de atractivos del administrador, que no pasan por aprobación. (Inferido)
+  6. Dado una fotografía de más de 5 MB, o una que haría superar la cuota global de 900 MB del almacén de fotos, cuando se sube, entonces se rechaza con un mensaje claro. (Confirmado, D-042)
+  7. Dado una foto de una ficha propia, cuando el usuario elige quitarla, entonces el sistema pide confirmación y, al confirmar, la foto deja de estar asociada a la ficha. (Confirmado: confirmación, sección 3.12)
+- **Estado:** Confirmado (criterio 5 Inferido)
+
+#### HU-018: Indicar y abrir la ubicación
+- **Historia:** Como prestador o administrador, quiero registrar la ubicación de una ficha con un enlace a Google Maps, para que el visitante sepa cómo llegar.
+- **Fuente:** sección 3.7
+- **Criterios de aceptación:**
+  1. Dado una ficha, cuando se registra un enlace de ubicación de Google Maps válido, entonces queda guardado. El enlace es campo obligatorio. (Confirmado, sección 3.7, D-003)
+  2. Dado un enlace que no es de Google Maps, cuando se intenta guardar, entonces se rechaza con un mensaje claro. (Inferido)
+  3. Dado una ficha publicada con ubicación, cuando el visitante pulsa el botón de ubicación, entonces se abre el enlace de Google Maps. (Confirmado)
+- **Estado:** Confirmado (criterio 2 Inferido)
+
+### Consulta del visitante
+
+#### HU-019: Explorar por municipio y categoría en el bot
+- **Historia:** Como visitante, quiero explorar la oferta por municipio y categoría con botones en el bot, para encontrar qué hacer sin registrarme.
+- **Fuente:** secciones 2.3, 3.9, 3.10
+- **Criterios de aceptación:**
+  1. Dado un visitante sin registro, cuando elige explorar, entonces el bot muestra los municipios disponibles como botones. (Confirmado)
+  2. Dado un municipio elegido, cuando el visitante elige una categoría, entonces el bot lista solo las fichas publicadas de ese municipio y categoría. (Confirmado)
+  3. Dado un municipio y categoría sin fichas publicadas, cuando el visitante los elige, entonces el bot lo informa y ofrece volver. (Confirmado, sección 3.12)
+  4. Ninguna ficha en borrador, pendiente o rechazada aparece en la lista. (Confirmado, sección 3.3)
+- **Estado:** Confirmado
+
+#### HU-020: Ver la ficha de detalle en el bot
+- **Historia:** Como visitante, quiero ver el detalle de una ficha, para conocer fotos, horarios, contacto y ubicación.
+- **Fuente:** secciones 2.3, 3.7, 3.9
+- **Criterios de aceptación:**
+  1. Dado una ficha publicada, cuando el visitante la abre, entonces el bot muestra sus fotografías, horarios, datos de contacto y un botón de ubicación. (Confirmado)
+  2. La ficha no muestra el número de identidad del prestador ni otros datos personales no destinados al público. (Confirmado, sección 3.15, D-011)
+- **Estado:** Confirmado
+
+#### HU-021: Filtrar por tipo de experiencia
+- **Historia:** Como visitante, quiero filtrar rutas y experiencias por tipo de experiencia, para encontrar las que me interesan.
+- **Fuente:** secciones 3.5, 3.9
+- **Criterios de aceptación:**
+  1. Dado un visitante, cuando elige un tipo de experiencia, entonces el bot lista solo las rutas y experiencias publicadas de ese tipo, opcionalmente dentro del municipio elegido. (Confirmado: organización por tipo de experiencia; combinación con municipio Inferido)
+- **Estado:** Confirmado
+
+#### HU-022: Consultar la agenda de eventos (fuera de esta entrega, D-030)
+- **Historia:** Como visitante, quiero ver la agenda de eventos, para planear mi visita.
+- **Fuente:** sección 3.6
+- **Criterios de aceptación** (para una entrega posterior):
+  1. Dado eventos registrados, cuando el visitante abre la agenda, entonces el bot muestra los eventos que no han terminado, ordenados por fecha de inicio, con fecha, hora y municipio. (Confirmado: agenda; regla de "no terminados" y orden Inferido)
+  2. Dado un municipio elegido, cuando el visitante filtra la agenda, entonces ve solo los eventos de ese municipio. (Inferido)
+- **Estado:** Fuera de esta entrega (D-030); sin funcionalidad en `feature_list.json`
+
+#### HU-023: Explorar el catálogo en la Mini App (fuera de esta entrega, D-030)
+- **Historia:** Como visitante, quiero abrir desde el bot un catálogo visual con fotos, para comparar opciones con más comodidad.
+- **Fuente:** sección 3.10; D-002
+- **Criterios de aceptación** (para una entrega posterior):
+  1. Dado un visitante en el bot, cuando pulsa el botón del catálogo, entonces se abre la Mini App dentro de Telegram con las fichas publicadas filtrables por municipio y categoría. (Confirmado: catálogo con fotos en la Mini App, D-002; filtros Inferido)
+  2. Dado una ficha en la Mini App, cuando el visitante la abre, entonces ve fotografías, horarios, contacto y el enlace de ubicación. (Inferido)
+- **Estado:** Fuera de esta entrega (D-030); sin funcionalidad en `feature_list.json`
+
+### Solicitudes
+
+#### HU-024: Enviar una solicitud de información o interés
+- **Historia:** Como visitante, quiero enviar una solicitud de información o de interés en una reserva desde una ficha, para que el prestador me contacte.
+- **Fuente:** sección 3.8
+- **Criterios de aceptación:**
+  1. Dado una ficha publicada de un prestador, cuando el visitante elige "Solicitar información", entonces el bot le pide nombre, fecha de interés, número de personas y mensaje, en ese formulario conversacional. (Confirmado)
+  2. Dado un visitante que no aceptó el aviso de privacidad, cuando envía /start o cualquier mensaje, entonces el bot le muestra el aviso antes de mostrar fichas o recolectar datos; sin aceptarlo no puede explorar ni enviar solicitudes. (Confirmado, sección 3.15, D-039)
+  3. Dado una fecha pasada o inválida o un número de personas que no es un entero mayor que cero, cuando se envía, entonces el bot lo rechaza y vuelve a pedir el dato. (Confirmado: validación, sección 3.12; regla concreta Inferido)
+  4. Dado el formulario completo, cuando el visitante confirma, entonces la solicitud queda en estado nueva, dirigida al negocio de la ficha, y el visitante recibe confirmación de envío que aclara que no es una reserva confirmada. (Confirmado: estado nueva, secciones 3.8 y 3.14; texto aclaratorio Inferido)
+  5. El bot propone como nombre el de la cuenta de Telegram del visitante, y el visitante puede cambiarlo. (Confirmado, D-010)
+  6. Las fichas de atractivos registrados por el administrador no ofrecen solicitud, porque no tienen prestador. (Inferido a partir de D-005)
+  7. Las fichas publicadas de un prestador que revocó su autorización no ofrecen "Solicitar información". (Confirmado, D-029)
+- **Estado:** Confirmado (criterio 3 y 4 parcialmente Inferido; criterio 6 Inferido)
+
+#### HU-025: Recibir la alerta de una solicitud
+- **Historia:** Como prestador, quiero recibir una alerta en Telegram al llegar una solicitud, para atenderla a tiempo.
+- **Fuente:** sección 3.8
+- **Criterios de aceptación:**
+  1. Dado una solicitud nueva, cuando se registra, entonces el prestador del negocio recibe un mensaje del bot con los datos de la solicitud y un botón para atenderla. (Confirmado: alerta; botón Inferido)
+  2. Ningún otro prestador recibe la alerta. (Confirmado, sección 3.12, D-011)
+- **Estado:** Confirmado
+
+#### HU-026: Responder y gestionar el estado de una solicitud
+- **Historia:** Como prestador, quiero responder la solicitud y marcarla como atendida o cerrada, para llevar control de lo que atiendo.
+- **Fuente:** sección 3.8
+- **Criterios de aceptación:**
+  1. Dado una solicitud nueva, cuando el prestador escribe una respuesta en texto libre y confirma, entonces el visitante la recibe por el bot. (Confirmado, D-010)
+  2. Dado una solicitud, cuando el prestador la marca atendida y luego cerrada, confirmando cada cambio, entonces el estado cambia en ese orden y queda registrado con fecha y responsable. (Confirmado: estados y que solo el prestador los cambia; registro, sección 3.12)
+  3. Dado un visitante o un administrador, cuando intenta cambiar el estado de una solicitud, entonces el backend lo rechaza. (Confirmado)
+  4. Dado un administrador u otro prestador, cuando pide los datos de una solicitud, entonces el backend los niega: solo los ve el prestador del negocio. (Confirmado, D-011)
+  5. Dado una solicitud cerrada, cuando el prestador intenta volver a nueva, entonces el sistema lo impide. (Inferido)
+  6. Dado un prestador, cuando consulta sus solicitudes, entonces las ve filtrables por estado, solo las de su negocio. (Confirmado: separación, sección 3.12; filtro Inferido)
+- **Estado:** Confirmado (criterios 5 y 6 parcialmente Inferido)
+
+### Transversales
+
+#### HU-027: Cancelar formularios y corregir entradas inválidas
+- **Historia:** Como usuario del bot, quiero cancelar un formulario en cualquier paso y recibir mensajes claros ante errores, para no quedar atrapado ni guardar datos a medias.
+- **Fuente:** sección 3.12
+- **Criterios de aceptación:**
+  1. Dado un formulario conversacional en curso, cuando el usuario elige cancelar, entonces el bot confirma la cancelación, no guarda nada del formulario y vuelve al menú. (Confirmado)
+  2. Dado una entrada inválida en un paso, cuando se envía, entonces el bot explica el error y repite solo ese paso. (Confirmado)
+  3. Dado un error del sistema, cuando ocurre, entonces el bot muestra un mensaje claro sin detalles técnicos ni datos personales. (Confirmado; detalle Inferido)
+- **Estado:** Confirmado
+
+#### HU-028: Consultar la trazabilidad de una ficha
+- **Historia:** Como administrador, quiero ver el historial de estados de una ficha con fechas y responsables, para auditar la publicación.
+- **Fuente:** sección 3.12
+- **Criterios de aceptación:**
+  1. Dado una ficha, cuando el administrador consulta su historial, entonces ve cada cambio de estado con fecha y hora (America/Bogota), responsable y motivo cuando hubo rechazo. (Confirmado: registro; consulta por el administrador Inferido)
+- **Estado:** Inferido
+
+#### HU-029: Reportes básicos (fuera de esta entrega, D-030)
+- **Historia:** Como administrador, quiero consultar reportes básicos de la operación, para apoyar decisiones.
+- **Fuente:** sección 3.12; D-009
+- **Criterios de aceptación** (para una entrega posterior): los reportes son fichas por estado y municipio, y solicitudes por estado (Confirmado, D-009). Los criterios detallados se escriben cuando la historia vuelva al alcance.
+- **Estado:** Fuera de esta entrega (D-030); no se crea su funcionalidad
+
+#### HU-030: Revocar mi autorización
+- **Historia:** Como usuario de Telegram (visitante, prestador o administrador), quiero revocar la autorización que di para el tratamiento de mis datos desde el inicio del bot o de la Mini App, para retirar mi consentimiento y que se eliminen mis datos.
+- **Fuente:** sección 3.15; D-018, D-019, D-020, D-021, D-023, D-029, D-032
+- **Criterios de aceptación:**
+  1. Dado un usuario que aceptó el aviso, cuando abre el inicio del bot o la pantalla inicial de la Mini App, entonces ve la opción "Revocar mi autorización" y, junto a ella, la frase "El número de identidad se usa solo para verificar tu identidad y atender tu solicitud de registro como prestador". (Confirmado, D-018, D-023)
+  2. Dado que el usuario elige la opción, cuando el sistema pide confirmación y el usuario cancela, entonces no cambia nada. (Confirmado, sección 3.12)
+  3. Dado que el usuario confirma, entonces se borra de inmediato la vinculación de su chat de Telegram y solo se conserva, sin número de identidad, la prueba de que autorizó y revocó (fecha y hora en America/Bogota, canal y versión del aviso). (Confirmado: borrador del aviso, D-008; plazo, D-021)
+  4. Dado un usuario que revocó, cuando vuelve a abrir el bot o la Mini App, entonces se le muestra de nuevo el aviso y debe aceptarlo para seguir; no se pide ni se envía ningún código. (Confirmado, D-018)
+  5. Dado un visitante que revoca, entonces conserva el uso del bot como visitante tras aceptar de nuevo el aviso, sus solicitudes se borran de inmediato y el prestador de cada una recibe un aviso de que ya no está disponible. (Confirmado, D-019)
+  6. Dado un prestador que revoca, entonces se borran su número de identidad y su registro, pierde el rol de prestador y sus fichas publicadas siguen visibles hasta el 31 de enero de 2027, pero dejan de ofrecer "Solicitar información". (Confirmado, D-019, D-021, D-029; despublicar está fuera de alcance, D-014)
+  7. Dado un prestador que revoca, entonces sus fichas no publicadas (borrador, pendiente, rechazada) quedan en el estado en que estaban y no son visibles al visitante. (Confirmado, D-029)
+  8. Dado un prestador que revoca, entonces las solicitudes que recibieron sus negocios se borran y cada visitante que las envió recibe por el bot el aviso del apartado 2.5 de `docs/05-aviso-privacidad.md`: "Una solicitud que enviaste ya no está disponible porque el prestador que la recibió retiró su autorización." (Confirmado: regla, D-029; redacción encargada al product-manager, D-049; texto aprobado, D-057)
+  9. Dado un administrador que revoca, entonces pierde el rol de administrador. Si es el administrador principal o el único administrador, el sistema no le permite revocar y le explica el motivo, nombrándolo "administrador principal" cuando corresponde. (Confirmado, D-020, D-032)
+- **Estado:** Confirmado
