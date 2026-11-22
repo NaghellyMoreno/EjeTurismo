@@ -13,6 +13,8 @@ const walk = (dir: string): string[] =>
 
 // Excepciones explícitas: públicas o con otro secreto (`/api/health` está fuera de /api/v1).
 const EXCEPTIONS = new Set(["GET /api/v1/privacy-notices/current", "POST /api/v1/telegram/webhook"]);
+// D-200: rutas de cron de F038; usan CRON_SECRET y no initData
+for (const key of ["GET /api/v1/internal/cron/retention", "GET /api/v1/internal/cron/maintenance"]) EXCEPTIONS.add(key);
 
 const templated = (path: string) => path.replace(/\/\{\w+\}/g, `/${UNKNOWN_ID}`);
 const routeFiles = walk(join(ROOT, "src/app/api/v1")).filter((f) => f.endsWith(`${sep}route.ts`));
