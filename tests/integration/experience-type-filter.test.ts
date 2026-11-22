@@ -148,9 +148,11 @@ describe("criterio 20: sin cambios de contrato", () => {
   // D-189: F032 agrega la segunda migración nueva (respuestas, historial y disparador de estado).
   const F030_MIGRATION = "supabase/migrations/20261121100000_f030_information_requests.sql";
   const F032_MIGRATION = "supabase/migrations/20261121110000_f032_information_request_replies.sql";
-  it("api/openapi.yaml y supabase/migrations no cambian respecto del commit de partida, salvo las migraciones de F030 y F032", () => {
+  // D-195: F037 agrega la tercera migración nueva (DELETE de solicitudes para eje_app).
+  const F037_MIGRATION = "supabase/migrations/20261121120000_f037_request_delete.sql";
+  it("api/openapi.yaml y supabase/migrations no cambian respecto del commit de partida, salvo las migraciones de F030, F032 y F037", () => {
     expect(() => execFileSync("git", ["diff", "--exit-code", "2c4843d", "--", "api/openapi.yaml"])).not.toThrow();
     const changes = execFileSync("git", ["diff", "--name-status", "2c4843d", "--", "supabase/migrations"]).toString().trim().split("\n").filter(Boolean);
-    expect(changes).toEqual([`A\t${F030_MIGRATION}`, `A\t${F032_MIGRATION}`]);
+    expect(changes).toEqual([`A\t${F030_MIGRATION}`, `A\t${F032_MIGRATION}`, `A\t${F037_MIGRATION}`]);
   });
 });
