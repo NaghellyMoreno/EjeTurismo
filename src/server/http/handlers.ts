@@ -285,7 +285,10 @@ export function revokeMyAuthorizationHandler(deps: Deps) {
       const actor = authenticate(request, deps);
       if (actor instanceof Response) return actor;
       const body: unknown = await request.json().catch(() => undefined);
-      return json(await revokeMyAuthorization(deps.db(), deps.config(), actor, body, "mini_app", deps.now()));
+      return json(await revokeMyAuthorization(deps.db(), deps.config(), actor, body, "mini_app", deps.now(), (ids) =>
+          scheduleDelivery(ids, { db: deps.db, now: deps.now, send: deps.send ?? telegramSender(deps.config()) }),
+        ),
+      );
     });
 }
 

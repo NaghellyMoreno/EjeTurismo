@@ -2,6 +2,7 @@ import { Api, GrammyError } from "grammy";
 import { after } from "next/server";
 import { attendData } from "@/bot/callback-ids";
 import { es } from "@/bot/texts/es";
+import { REQUEST_PROVIDER_REVOKED_TEXT, REQUEST_WITHDRAWN_TEXT } from "@/server/domain/request-revocation-notices";
 import { renderInformationRequestAlert } from "@/server/domain/information-request-alert";
 import { renderInformationRequestReply } from "@/server/domain/information-request-reply";
 import type { Config } from "@/server/config";
@@ -10,6 +11,7 @@ import { TEMPLATE_INFORMATION_REQUEST } from "@/server/services/information-requ
 import { TEMPLATE_INFORMATION_REQUEST_REPLY } from "@/server/services/provider-requests";
 import { TEMPLATE_LISTING_APPROVED, TEMPLATE_LISTING_REJECTED } from "@/server/services/listing-review";
 import { TEMPLATE_APPROVED, TEMPLATE_REJECTED } from "@/server/services/provider-review";
+import { TEMPLATE_REQUEST_PROVIDER_REVOKED, TEMPLATE_REQUEST_WITHDRAWN } from "@/server/services/self-revocation";
 import type { Db } from "@/server/services";
 
 // Envío de los avisos de `notification_outbox` (ADR 0007). Las filas se crean dentro de la transacción de la operación;
@@ -58,6 +60,8 @@ const TEXTS: Record<string, (payload: Payload) => string> = {
   [TEMPLATE_LISTING_APPROVED]: (p) => (p?.isEdit ? es.provider.editApproved : es.provider.listingApproved)(p?.listingName ?? ""),
   [TEMPLATE_INFORMATION_REQUEST]: alertText,
   [TEMPLATE_INFORMATION_REQUEST_REPLY]: (p) => renderInformationRequestReply(p?.listingName ?? "", p?.replyBody ?? ""),
+  [TEMPLATE_REQUEST_WITHDRAWN]: () => REQUEST_WITHDRAWN_TEXT,
+  [TEMPLATE_REQUEST_PROVIDER_REVOKED]: () => REQUEST_PROVIDER_REVOKED_TEXT,
   [TEMPLATE_LISTING_REJECTED]: (p) => (p?.isEdit ? es.provider.editRejected : es.provider.listingRejected)(p?.listingName ?? "", p?.reason ?? ""),
 };
 

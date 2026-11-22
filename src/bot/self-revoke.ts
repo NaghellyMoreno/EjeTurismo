@@ -2,6 +2,7 @@ import { type Context, InlineKeyboard } from "grammy";
 import type { Actor } from "@/server/auth/actor";
 import type { Config } from "@/server/config";
 import { AppError } from "@/server/errors";
+import { scheduleDelivery } from "@/server/notifications";
 import { logError } from "@/server/observability/logger";
 import { getSelfRevocationBlock, revokeMyAuthorization } from "@/server/services";
 import type { AccountContext, Db } from "@/server/services";
@@ -76,7 +77,9 @@ export async function handleSelfRevokeCallback(
     return;
   }
   try {
-    await revokeMyAuthorization(deps.db(), deps.config(), actor, { confirmed: true }, "bot", deps.now());
+    await revokeMyAuthorization(deps.db(), deps.config(), actor, { confirmed: true }, "bot", deps.now(), (ids) =>
+      scheduleDelivery(ids, { db: deps.db, now: deps.now, send: (chatId, text) => ctx.api.sendMessage(chatId, text) }),
+    );
     await send(ctx, es.selfRevoke.revoked);
   } catch (error) {
     if (error instanceof AppError && (error.code === "principal_admin_protected" || error.code === "last_admin_protected")) {

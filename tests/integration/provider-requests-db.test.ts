@@ -68,7 +68,7 @@ describe("criterio 12: el disparador de estado", () => {
 });
 
 describe("criterio 16: solo el disparador escribe el historial", () => {
-  it("eje_app no inserta, actualiza ni borra eventos; las demás columnas de la solicitud no se actualizan", async () => {
+  it("eje_app no inserta, actualiza ni borra eventos (el borrado de solicitudes lo concede F037); las demás columnas de la solicitud no se actualizan", async () => {
     await update("attended", world.accounts[P1]);
     const [event] = await eventRows(owner);
     expect(event).toMatchObject({ request_id: r1, from_status: "new", to_status: "attended", actor_account_id: world.accounts[P1] });
@@ -76,7 +76,6 @@ describe("criterio 16: solo el disparador escribe el historial", () => {
     await expect(app.query("update app.information_request_status_events set to_status = 'closed'")).rejects.toMatchObject({ code: "42501" });
     await expect(app.query("delete from app.information_request_status_events")).rejects.toMatchObject({ code: "42501" });
     await expect(app.query("update app.information_requests set message = 'otro'")).rejects.toMatchObject({ code: "42501" });
-    await expect(app.query("delete from app.information_requests")).rejects.toMatchObject({ code: "42501" });
     await expect(app.query("update app.information_request_replies set body = 'otro'")).rejects.toMatchObject({ code: "42501" });
   });
 
@@ -95,8 +94,10 @@ describe("criterio 24: migración aditiva y permisos mínimos", () => {
     readFileSync(resolve(process.cwd(), "supabase/migrations/20261121110000_f032_information_request_replies.sql"), "utf8")
       .split("\n").filter((line) => !line.trim().startsWith("--")).join("\n");
 
-  it("es la última migración y no hay drop, delete ni truncate", () => {
-    expect(readdirSync(resolve(process.cwd(), "supabase/migrations")).sort().at(-1)).toBe("20261121110000_f032_information_request_replies.sql");
+  it("es posterior a F030 y anterior a F037, y no hay drop, delete ni truncate", () => {
+    const files = readdirSync(resolve(process.cwd(), "supabase/migrations")).sort();
+    expect(files.at(-2)).toBe("20261121110000_f032_information_request_replies.sql");
+    expect(files.at(-1)).toBe("20261121120000_f037_request_delete.sql");
     expect(sql().replace(/on delete (cascade|set null)/gi, "")).not.toMatch(/\b(drop|delete|truncate)\b/i);
   });
 
