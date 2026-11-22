@@ -1,6 +1,6 @@
 # 0007. Tareas en segundo plano con bandeja de salida y `after()`, y tareas diarias con Vercel Cron
 
-- **Estado:** Propuesta (revisada en la iteración 1 de preparación: M-10, D-035, D-043; en la iteración 2: D-051; y en la iteración 3: m-09, F038)
+- **Estado:** Propuesta (revisada en la iteración 1 de preparación: M-10, D-035, D-043; en la iteración 2: D-051; en la iteración 3: m-09, F038; y en la revisión final: D-201)
 - **Fecha:** 2026-11-14
 - **Fuente:** secciones 3.8, 3.15 y 3.17; HU-025, HU-030; RNF-021; D-019, D-021, D-029, D-035, D-043; documentación de Vercel (Cron Jobs, Functions), de Next.js (`after`) y precios de Supabase
 
@@ -14,16 +14,17 @@
 ## Decisión
 **Bandeja de salida (`notification_outbox`).**
 - Cada mensaje a un tercero se inserta en `notification_outbox(recipient_telegram_user_id, template, payload, status, attempts, next_attempt_at)` dentro de la misma transacción de la operación que lo causa. Si la transacción falla, no hay mensaje; si el envío falla, la operación ya quedó registrada.
-- Después de responder, `after()` de Next.js (estable desde 15.1; en Vercel usa `waitUntil`) envía los mensajes pendientes de esa operación. Un error de Telegram marca el intento y programa reintento.
+- Después de responder, `after()` de Next.js (estable desde 15.1; en Vercel usa `waitUntil`) envía los mensajes pendientes de esa operación. Un error de Telegram suma el intento y deja la fila `pending` con `next_attempt_at`; ninguna tarea la reintenta, porque la ruta `cron/outbox` no se construye (D-093, D-197, D-201).
 - `payload` no contiene número de identidad. Las filas enviadas se borran a los pocos días en la tarea diaria; las de una persona que revoca se borran con su cuenta, salvo los avisos que su revocación genera para otros.
 - Respuesta 403 de Telegram (la persona bloqueó el bot): se marca `failed` sin reintentos.
 
 **Tareas diarias (`vercel.json` → `crons`), protegidas con `Authorization: Bearer ${CRON_SECRET}`:**
 | Tarea | Horario (UTC) | Qué hace |
 | --- | --- | --- |
-| `GET /api/v1/internal/cron/outbox` | `0 11 * * *` (6:00 a 6:59 Bogotá) | Reintenta mensajes pendientes con `next_attempt_at` vencido |
 | `GET /api/v1/internal/cron/maintenance` | `0 8 * * *` (3:00 a 3:59 Bogotá) | Borra de Blob los archivos que ninguna fila de `listing_photos` referencia (subidas no registradas, versiones `superseded` o `rejected` cuyas fotos no usa otra versión y fotos de fichas borradas por la eliminación), las subidas vencidas, los contadores de límites vencidos, los formularios del bot vencidos o abandonados y los `processed_updates` antiguos |
 | `GET /api/v1/internal/cron/retention` | `0 5 * * *` (0:00 a 0:59 Bogotá) | Si la fecha en America/Bogota es igual o posterior a `app.retention_settings.deadline` (2027-01-31) y la eliminación aún no se ejecutó, la ejecuta una vez |
+
+> Nota (D-201, revisión final H1): se retiró de esta tabla la tarea `GET /api/v1/internal/cron/outbox` (reintento de la bandeja de salida). No se construye, conforme a D-093 y D-197; el envío de la bandeja sigue siendo el único intento con `after()` descrito arriba.
 
 **Eliminación del 31 de enero de 2027 (D-021, D-043, RNF-021).**
 
@@ -65,8 +66,8 @@ Verificación (RNF-021):
 | Cron por minuto | Reintentos rápidos | No disponible en Hobby |
 
 ## Consecuencias
-- Más fácil: operaciones y mensajes consistentes; reintentos sin procesos permanentes.
-- Más difícil: en Hobby un mensaje fallido puede tardar hasta un día en reintentarse. Si la usuaria pasa a Pro, se cambia el horario a cada pocos minutos sin cambiar el diseño.
+- Más fácil: operaciones y mensajes consistentes, sin procesos permanentes.
+- Más difícil: un mensaje con error de Telegram no se reintenta; queda `pending` en la bandeja (riesgo aceptado en D-093). Construir el reintento sería una decisión nueva.
 - La migración futura de Cron Jobs a "Schedules" anunciada por Vercel puede exigir cambiar la configuración, no el código.
 - La eliminación la construye y la verifica F038 (prioridad 12, depende de F037), con `runRetentionJob` y `runMaintenanceJob`. Sus pasos coinciden con la "Verificación" de esta ADR: fecha límite en el día actual, alcance borrado, lo conservado intacto y segunda ejecución sin cambios.
 - `PRINCIPAL_ADMIN_TELEGRAM_ID` es un dato personal guardado en las variables de Vercel, fuera de la base, y la función de eliminación no lo borra. La responsable debe quitarlo o cambiarlo a mano el 31 de enero de 2027 si el plazo lo exige.

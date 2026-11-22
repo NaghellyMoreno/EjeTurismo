@@ -23,7 +23,7 @@ flowchart LR
     PAGES[Páginas de la Mini App]
     CRON["/api/v1/internal/cron/*<br/>Vercel Cron diario"]
     SVC[[Capa de servicios<br/>reglas + autorización]]
-    OUT[Bandeja de salida<br/>after + reintentos]
+    OUT[Bandeja de salida<br/>envío con after]
   end
   DB[(Supabase Free, sa-east-1<br/>esquema app, rol eje_app)]
   BLOB[(Vercel Blob privado, gru1<br/>fotografías)]
@@ -65,8 +65,8 @@ Reglas de la visión (Confirmado salvo indicación):
 | Autenticación (`src/server/auth`) | Validación HMAC de `initData`, construcción del actor, roles desde la base, administrador principal | `node:crypto` | 0003 |
 | Acceso a datos (`src/server/db`) | Conexión por el pooler en modo transacción, transacciones con `set_config` del actor, tipos generados | Kysely 0.29 + `pg` 8 | 0012, 0014 |
 | Almacenamiento de fotos (`src/server/storage`) | URLs firmadas de subida y lectura, verificación (`head` y firma de bytes), borrado | `@vercel/blob` 2.x (almacén privado) | 0009 |
-| Notificaciones (`src/server/notifications`) | Bandeja de salida transaccional, envío después de responder y reintentos | `after()` de Next.js, grammY `Api` | 0007, 0008 |
-| Tareas diarias (`src/server/jobs`) | Reintentos, mantenimiento y eliminación del 31 de enero de 2027 (D-043) | Vercel Cron | 0007 |
+| Notificaciones (`src/server/notifications`) | Bandeja de salida transaccional y envío después de responder, sin reintento automático (D-093, D-201) | `after()` de Next.js, grammY `Api` | 0007, 0008 |
+| Tareas diarias (`src/server/jobs`) | Mantenimiento y eliminación del 31 de enero de 2027 (D-043); no hay tarea de reintento de la bandeja (D-201) | Vercel Cron | 0007 |
 | Observabilidad (`src/server/observability`) | Logger estructurado con redacción de datos personales | TypeScript | 0005, 0006 |
 | Base de datos | Persistencia, restricciones que protegen invariantes, disparadores de transición e historial | Supabase PostgreSQL | 0002, 0004, 0006 |
 | Fotografías | Archivos de las fichas | Vercel Blob privado | 0009 |
@@ -236,7 +236,7 @@ Mecanismo de subida (ADR 0009): la Mini App pide una URL firmada `PUT` al backen
 - **Bot:** cada error de dominio tiene un texto en español (`src/bot/texts/es.ts`). Ante una entrada inválida se repite solo el paso (HU-027). Ante un error del sistema responde "Ocurrió un error. Intenta de nuevo en unos minutos.", sin detalles técnicos ni datos personales. `/cancelar` y el botón "Cancelar" están en todo formulario.
 - **Mini App:** muestra `detail` y marca los campos de `errors[]`. Si `initData` venció (401), pide reabrir la Mini App desde el bot (M12).
 - **Registros técnicos:** sin tipo ni número de documento de identidad, sin `initData`, sin textos de solicitudes ni mensajes y sin datos de la sesión. Se registran el identificador interno de la cuenta, el código de error y un identificador de correlación.
-- **Fallos de proveedores:** Telegram, con reintentos por la bandeja de salida (ADR 0007 y 0008); Blob, borrando el archivo si el registro falla, con la tarea diaria limpiando lo que quede sin referencia; base de datos, revirtiendo la transacción completa.
+- **Fallos de proveedores:** Telegram, con la bandeja de salida que registra el intento fallido sin reintentarlo (ADR 0007 y 0008; D-093, D-201); Blob, borrando el archivo si el registro falla, con la tarea diaria limpiando lo que quede sin referencia; base de datos, revirtiendo la transacción completa.
 
 ## Tareas programadas y en segundo plano
 | Tarea | Cuándo se ejecuta | Qué hace | Fuente |
@@ -258,7 +258,7 @@ src/
     api/health/route.ts           salud del backend, pública y sin versión (D-061)
     api/v1/**/route.ts            API HTTP
     api/v1/telegram/webhook/route.ts
-    api/v1/internal/cron/{outbox,maintenance,retention}/route.ts
+    api/v1/internal/cron/{maintenance,retention}/route.ts
   bot/                            menús, formularios (forms/), textos (texts/es.ts)
   server/
     config/ auth/ services/ domain/ db/ storage/ notifications/ jobs/ observability/
@@ -411,7 +411,7 @@ El bot no llama a la API por HTTP: usa el mismo servicio que el endpoint indicad
 | Copias del proveedor después del 31 de enero de 2027 | Datos retenidos fuera del plazo | Supabase Free no tiene copias automáticas (página de precios, 2026-11-14); las copias internas del proveedor no están documentadas por proyecto |
 | Registros de plataforma de Vercel (IP y metadatos de las peticiones) | Datos técnicos de personas que no aceptaron, fuera del control de la aplicación | La aplicación no los escribe ni los lee; su retención la fija el proveedor. Se informa a la usuaria |
 | `PRINCIPAL_ADMIN_TELEGRAM_ID` en las variables de Vercel | Dato personal que la función de eliminación no borra | La responsable lo quita o lo cambia a mano al llegar el plazo |
-| Precisión horaria de Vercel Cron en Hobby (±59 min) y una ejecución al día | Reintentos de mensajes lentos | Envío inmediato con `after()` y reintento diario |
+| Sin tarea de reintento de la bandeja de salida (D-093, D-201) | Un mensaje con error de Telegram no se reintenta y queda `pending` | Envío inmediato con `after()`; riesgo aceptado en D-093 |
 | Vercel anuncia la migración de Cron Jobs a "Schedules" | Cambio de configuración futuro | Las tareas son endpoints protegidos; solo cambia la programación |
 | Pérdida de `IDENTITY_ENCRYPTION_KEY` | Números de identidad ilegibles | La responsable guarda la clave también fuera de Vercel; rotación documentada |
 | La base local (PostgreSQL 17 de Homebrew, D-063) no replica el pooler, el SSL ni los roles internos de Supabase | Un error que solo aparece en la nube no se detecta en local | Roles de Supabase simulados por `supabase/local/bootstrap.sql`; misma versión mayor; cada migración va primero al proyecto de desarrollo (`pnpm db:push`); pruebas contra el pooler de desarrollo (ADR 0014) |

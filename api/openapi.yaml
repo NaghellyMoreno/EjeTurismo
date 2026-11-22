@@ -1348,22 +1348,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '500': { $ref: '#/components/responses/InternalError' }
 
-  /api/v1/internal/cron/outbox:
-    get:
-      tags: [Integraciones internas]
-      operationId: runOutboxRetryJob
-      summary: Reintentar mensajes pendientes de la bandeja de salida
-      security:
-        - cronSecret: []
-      x-roles: [vercel_cron]
-      responses:
-        '200':
-          description: Resultado del trabajo
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/JobResult' }
-        '401': { $ref: '#/components/responses/Unauthenticated' }
-        '500': { $ref: '#/components/responses/InternalError' }
+  # No existe ruta de reintento de la bandeja de salida (cron/outbox): no se construye (D-093, D-197, D-201; ADR 0007).
 
   /api/v1/internal/cron/maintenance:
     get:
@@ -2288,7 +2273,7 @@ components:
       type: object
       required: [job, ranAt, processed]
       properties:
-        job: { type: string, enum: [outbox, maintenance, retention] }
+        job: { type: string, enum: [maintenance, retention] }
         ranAt: { type: string, format: date-time }
         processed: { type: integer, minimum: 0 }
         skippedReason: { type: [string, 'null'], examples: ['retention_deadline_not_reached'] }

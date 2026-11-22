@@ -1,6 +1,6 @@
 # 0008. Integración con Telegram: bot con grammY por webhook, Mini App, modo de prueba y manejo de fallos
 
-- **Estado:** Propuesta (revisada en la iteración 1 de preparación: D-035, D-039, D-042)
+- **Estado:** Propuesta (revisada en la iteración 1 de preparación: D-035, D-039, D-042; y en la revisión final: D-201)
 - **Fecha:** 2026-11-14
 - **Fuente:** secciones 3.10, 3.16 y 3.17; D-002, D-035, D-039, D-042; HU-019 a HU-021, HU-024 a HU-027; Bot API 10.4 (9 de noviembre de 2026); documentación de grammY
 
@@ -37,7 +37,7 @@ Telegram es el canal principal (sección 3.10). El bot debe funcionar por webhoo
 **Fallos.**
 | Fallo | Manejo |
 | --- | --- |
-| Telegram no responde o 5xx | Reintento en la bandeja de salida; el usuario ve el resultado de su operación |
+| Telegram no responde o 5xx | La bandeja de salida registra el intento y deja el mensaje `pending`, sin reintento automático (D-093, D-201); el usuario ve el resultado de su operación |
 | 429 de Telegram (límite de envío) | Se respeta `retry_after` y se reprograma |
 | 403 (la persona bloqueó el bot) | Se marca fallido sin reintentos |
 | Error en un manejador | Mensaje claro en español sin datos técnicos (HU-027); registro técnico sin datos personales |
