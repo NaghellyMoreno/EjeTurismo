@@ -546,7 +546,7 @@
       "Con la identidad de un administrador, enviar un cambio de estado y verificar que responde acceso denegado",
       "Verificar que el estado de la solicitud no cambió"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F037",
