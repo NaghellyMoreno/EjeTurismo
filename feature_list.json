@@ -582,6 +582,6 @@
       "Verificar que se conservan municipios, listas cerradas, atractivos y el aviso (D-043)",
       "Ejecutar la tarea de nuevo y verificar que no cambia nada"
     ],
-    "passes": false
+    "passes": true
   }
 ]
