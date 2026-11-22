@@ -79,7 +79,7 @@ describe("prestador (criterios 1 a 5 y 35)", () => {
     await addProvider(PROV);
     await t.send(start(PROV));
     expect(t.texts()).toEqual([WELCOME, es.menu.providerAvailable]);
-    expect(keyboardOf(t.messages()[0])).toEqual([{ text: es.menu.myListings, callback_data: "ml:l" }, { text: es.menu.exploreButton, callback_data: "exp:m" }, { text: "Revocar mi autorización", callback_data: SELF_REVOKE_ASK }]);
+    expect(keyboardOf(t.messages()[0])).toEqual([{ text: es.menu.myListings, callback_data: "ml:l" }, { text: es.providerRequests.menuButton, callback_data: "rq:l:t1" }, { text: es.menu.exploreButton, callback_data: "exp:m" }, { text: "Revocar mi autorización", callback_data: SELF_REVOKE_ASK }]);
     expect(t.messages()[1].payload.reply_markup).toBeUndefined();
   });
 
@@ -98,7 +98,7 @@ describe("prestador (criterios 1 a 5 y 35)", () => {
     t.clear();
     await t.send(press(PROV, SELF_REVOKE_CANCEL));
     expect(t.texts()).toEqual([es.selfRevoke.cancelled, WELCOME, es.menu.providerAvailable]);
-    expect(buttonsOf(t.messages()[1].payload)).toEqual([es.menu.myListings, es.menu.exploreButton, es.selfRevoke.button]);
+    expect(buttonsOf(t.messages()[1].payload)).toEqual([es.menu.myListings, es.providerRequests.menuButton, es.menu.exploreButton, es.selfRevoke.button]);
     expect(await state()).toEqual(before);
   });
 

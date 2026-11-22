@@ -183,6 +183,19 @@ describe("criterio 13: cerrada mientras el formulario estaba abierto", () => {
 });
 
 describe("criterio 14: lista con filtros y paginación", () => {
+  it("el botón Mis solicitudes de B12 (menú de prestador) abre la lista B13 igual que /solicitudes", async () => {
+    await say(P1, "/start");
+    const menuButton = t.messages().flatMap((m) => buttons(m)).find((b) => b.text === T.menuButton);
+    expect(menuButton).toBeDefined();
+    t.clear();
+    await press(P1, menuButton!.callback_data!);
+    const viaButton = last().payload.text;
+    t.clear();
+    await say(P1, "/solicitudes");
+    expect(viaButton).toBe(T.listTitle);
+    expect(last().payload.text).toBe(viaButton);
+  });
+
   it("filtra por estado, ordena de la más reciente a la más antigua, 8 por página con Ver más; Volver lleva al menú", async () => {
     const base = { listingId: world.l1.listingId, businessId: world.l1.businessId, visitorAccountId: world.accounts[V] };
     await owner.query("delete from app.information_requests");

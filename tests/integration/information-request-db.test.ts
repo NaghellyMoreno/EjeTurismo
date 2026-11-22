@@ -100,11 +100,14 @@ describe("criterio 24: tabla y restricciones", () => {
 });
 
 describe("criterio 28: permisos y migración aditiva", () => {
-  it("eje_app solo tiene select e insert sobre la tabla, también por columna", async () => {
+  // F032 (D-192): eje_app suma solo `update (status, updated_at)`, sin delete ni truncate ni otras columnas.
+  it("eje_app solo tiene select e insert sobre la tabla, y update solo de status y updated_at (F032)", async () => {
     const grants = (await owner.query("select privilege_type from information_schema.role_table_grants where table_schema = 'app' and table_name = 'information_requests' and grantee = 'eje_app'")).rows.map((r) => r.privilege_type).sort();
     expect(grants).toEqual(["INSERT", "SELECT"]);
-    expect((await owner.query("select count(*) from information_schema.column_privileges where table_schema = 'app' and table_name = 'information_requests' and grantee = 'eje_app' and privilege_type in ('UPDATE', 'DELETE')")).rows[0].count).toBe("0");
-    await expect(app.query("update app.information_requests set status = 'closed'")).rejects.toMatchObject({ code: "42501" });
+    const columns = (await owner.query("select column_name from information_schema.column_privileges where table_schema = 'app' and table_name = 'information_requests' and grantee = 'eje_app' and privilege_type = 'UPDATE' order by column_name")).rows.map((r) => r.column_name);
+    expect(columns).toEqual(["status", "updated_at"]);
+    expect((await owner.query("select count(*) from information_schema.column_privileges where table_schema = 'app' and table_name = 'information_requests' and grantee = 'eje_app' and privilege_type = 'DELETE'")).rows[0].count).toBe("0");
+    await expect(app.query("update app.information_requests set message = 'x'")).rejects.toMatchObject({ code: "42501" });
     await expect(app.query("delete from app.information_requests")).rejects.toMatchObject({ code: "42501" });
     await expect(app.query("truncate app.information_requests")).rejects.toMatchObject({ code: "42501" });
   });

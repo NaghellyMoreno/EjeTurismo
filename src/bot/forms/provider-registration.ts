@@ -28,7 +28,7 @@ import { handleAuthorizeUpdate, isAuthCallback, isAuthorizeAdminSession } from "
 import { EXPLORE_START, handleExploreCallback, isExploreCallback } from "../explore";
 import { isCancelCommand, SessionConflictError } from "../common";
 import { handleInformationRequestUpdate, isInformationRequestCallback } from "../information-request";
-import { handleProviderRequestsUpdate, isProviderRequestsCallback, isRequestsCommand } from "../provider-requests";
+import { handleProviderRequestsUpdate, isProviderRequestsCallback, isRequestsCommand, MY_REQUESTS } from "../provider-requests";
 import { handleHistoryCallback, isHistoryCallback } from "../history";
 import { handleReviewCallback, handleReviewUpdate, isMyListingsCallback, isReviewCallback, isReviewSession, MY_LISTINGS, showMyListings } from "../review";
 import { addSelfRevokeButton, handleSelfRevokeCallback, isSelfRevokeCallback, withSelfRevoke } from "../self-revoke";
@@ -106,7 +106,7 @@ async function showMenu(ctx: Context, info: AccountContext) {
   if (isAdmin(info)) return send(ctx, withSelfRevoke(es.menu.welcome), addSelfRevokeButton(exploreRow(adminKeyboard())));
   // Mínimo de B02 para el prestador (D-090, D-091); el menú completo es de F005.
   if (info.roles.includes("provider")) {
-    await send(ctx, withSelfRevoke(es.menu.welcome), addSelfRevokeButton(exploreRow(new InlineKeyboard().text(es.menu.myListings, MY_LISTINGS).row())));
+    await send(ctx, withSelfRevoke(es.menu.welcome), addSelfRevokeButton(exploreRow(new InlineKeyboard().text(es.menu.myListings, MY_LISTINGS).row().text(es.providerRequests.menuButton, MY_REQUESTS).row())));
     return send(ctx, es.menu.providerAvailable);
   }
   // B05: con el registro pendiente, el estado ocupa el lugar del menú. Se ofrece revocar la autorización (F034 y F035).
