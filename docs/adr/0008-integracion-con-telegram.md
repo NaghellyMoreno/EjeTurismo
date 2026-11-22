@@ -1,6 +1,6 @@
 # 0008. Integración con Telegram: bot con grammY por webhook, Mini App, modo de prueba y manejo de fallos
 
-- **Estado:** Propuesta (revisada en la iteración 1 de preparación: D-035, D-039, D-042; y en la revisión final: D-201)
+- **Estado:** Propuesta (revisada en la iteración 1 de preparación: D-035, D-039, D-042; y en la revisión final: D-201 y D-202)
 - **Fecha:** 2026-11-14
 - **Fuente:** secciones 3.10, 3.16 y 3.17; D-002, D-035, D-039, D-042; HU-019 a HU-021, HU-024 a HU-027; Bot API 10.4 (9 de noviembre de 2026); documentación de grammY
 
@@ -13,7 +13,7 @@ Telegram es el canal principal (sección 3.10). El bot debe funcionar por webhoo
 **Webhook.**
 - Ruta `POST /api/v1/telegram/webhook` con `webhookCallback(bot, 'std/http', { secretToken })` (ADR 0003).
 - **Primera respuesta sin aviso aceptado (D-039).** El adaptador busca la cuenta por `from.id` (solo lectura). Si no existe o no tiene la versión vigente, cualquier mensaje, comando o botón recibe B01, el aviso con "Acepto" y "No acepto" (y "Revocar mi autorización" si la cuenta aceptó una versión anterior, ADR 0005). No hay exploración, menús ni formularios antes de aceptar. En ese camino no se escribe nada: ni `processed_updates`, ni sesión, ni contador. Repetir el aviso no tiene efectos, y "Acepto" es idempotente (`INSERT ... ON CONFLICT`).
-- Idempotencia de actualizaciones de cuentas existentes: antes de procesar, `INSERT INTO processed_updates(update_id) ON CONFLICT DO NOTHING`. Si ya existía, se responde 200 sin repetir efectos (Telegram reenvía si no recibe respuesta a tiempo). La tabla guarda solo `update_id` y la fecha, sin el ID de Telegram, y la tarea diaria la limpia.
+- Idempotencia de actualizaciones de cuentas existentes: antes de procesar, `INSERT INTO processed_updates(update_id) ON CONFLICT DO NOTHING`. Si ya existía, se responde 200 sin repetir efectos (Telegram reenvía si no recibe respuesta a tiempo). La tabla guarda solo `update_id` y la fecha, sin el ID de Telegram. En esta etapa ninguna tarea diaria la limpia (D-197; nota de D-202 en ADR 0007): sus filas se conservan hasta la eliminación del 31 de enero de 2027 (D-043).
 - Límite por cuenta: las actualizaciones de una cuenta cuentan en `rate_limit_counters` (`bot_update`, ADR 0006). Si se supera, el bot responde que espere unos minutos y no procesa la acción.
 - El trabajo lento (mensajes a terceros) se saca de la respuesta con la bandeja de salida (ADR 0007). Tiempo de grammY por defecto (10 s) con `onTimeout: 'throw'` (recomendación de grammY); la idempotencia evita duplicados si Telegram reintenta.
 - Registro del webhook por script (`pnpm bot:set-webhook`) con `allowed_updates: ["message", "callback_query"]` y `drop_pending_updates` en el primer registro.

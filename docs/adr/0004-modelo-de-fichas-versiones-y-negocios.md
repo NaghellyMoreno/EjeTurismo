@@ -66,7 +66,8 @@ Directorio gastronómico (sección 3.4; D-004, D-040, D-048):
 
 ## Consecuencias
 - Más fácil: la versión publicada nunca se modifica en sitio; el historial y la comparación entre versiones (HU-016 criterio 4) salen de comparar dos filas.
-- Más difícil: copiar fotos (referencias) al crear un borrador; limpiar fotos huérfanas de versiones descartadas (ADR 0007).
+- Más difícil: copiar fotos (referencias) al crear un borrador; el mantenimiento diario solo borra de Blob los archivos que ninguna fila de `listing_photos` referencia; las fotos de versiones `superseded` o `rejected` se conservan porque sus filas siguen referenciándolas (ADR 0007).
+  > Nota (D-203, alineación con D-197): se corrigió esta línea, que decía "limpiar fotos huérfanas de versiones descartadas", para que coincida con la ADR 0007 y con el mantenimiento que construyó F038.
 - Al revocar un prestador, `businesses.provider_account_id` queda nulo: sus fichas no publicadas no las puede editar nadie y nunca son visibles; las publicadas siguen visibles hasta la eliminación del 31 de enero de 2027, que borra las fichas de prestadores con sus fotos (D-043).
 - Un prestador que no elige tipo de establecimiento no aparece en el directorio gastronómico, aunque su ficha sea de un restaurante. Es efecto de D-040 (tipo opcional). Se propone que el formulario M05 lo advierta junto al campo (texto Inferido).
 - Las experiencias gastronómicas entran al directorio sin cambios en el esquema de fichas: basta con la fila sembrada "Sabores de Caldas" (D-048, D-052). F017, paso 5, crea fichas `route_experience`, que es la capacidad de F018; por eso F017 depende de F018, que se construye antes (F018 con prioridad 6 y F017 con prioridad 7, D-058).

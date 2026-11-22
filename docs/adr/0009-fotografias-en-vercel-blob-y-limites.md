@@ -1,6 +1,6 @@
 # 0009. Fotografías en un almacén privado de Vercel Blob con subida directa por URL prefirmada; viabilidad de D-031
 
-- **Estado:** Propuesta (límites fijados por D-042 y plan por D-035; revisada en la iteración 1 de preparación: M-11, m-05)
+- **Estado:** Propuesta (límites fijados por D-042 y plan por D-035; revisada en la iteración 1 de preparación: M-11, m-05; y en la revisión final: D-202)
 - **Fecha:** 2026-11-14
 - **Fuente:** secciones 3.3, 3.7 y 3.17; HU-017, HU-020; RNF-024; D-013, D-028, D-031, D-035, D-042; documentación oficial de Vercel Blob, Vercel Functions y Bot API
 
@@ -67,7 +67,9 @@ Con 5 MB por foto y 10 fotos, una versión ocupa como máximo 50 MB. El tope de 
 - Bot: el servicio público entrega URLs prefirmadas `GET` solo para fotos de versiones publicadas; Telegram las descarga (ADR 0008).
 - El token de firma (`issueSignedToken`) se reutiliza hasta poco antes de su vencimiento para no llamar a la API de control en cada petición.
 
-**Copias entre versiones.** Al crear un borrador desde la versión publicada, `listing_photos` se copia apuntando al mismo archivo; el archivo solo se borra cuando ninguna versión viva lo usa (tarea diaria, ADR 0007).
+**Copias entre versiones.** Al crear un borrador desde la versión publicada, `listing_photos` se copia apuntando al mismo archivo; el archivo solo se borra cuando ninguna fila de `listing_photos` lo referencia, de cualquier versión y estado (tarea diaria de mantenimiento, ADR 0007). Por eso los archivos de versiones `superseded` o `rejected` se conservan mientras existan sus filas.
+
+> Nota (D-202, alineación con D-197): en esta etapa el mantenimiento diario solo borra de Blob los archivos sin referencia en `listing_photos` y conserva los de subidas vigentes (`photo_uploads` sin `registered_at` y con `expires_at` posterior a la ejecución). No borra filas de `photo_uploads`: las vencidas dejan de contar para la cuota global (fila `photo_uploads` del documento 03), pero la fila se conserva hasta la eliminación del 31 de enero de 2027, que borra solo las de fichas de prestador (D-198). Limpiar esas filas queda fuera de esta etapa.
 
 **Cuota global.** `BLOB_STORAGE_QUOTA_BYTES` (900 000 000 en producción, D-042) se compara con la suma de `size_bytes` de las fotos vivas y de las subidas en curso antes de emitir una URL de subida. Los archivos que referencian varias versiones se cuentan una sola vez, por `blob_pathname`.
 
