@@ -529,7 +529,7 @@
       "Abrir la lista de solicitudes del prestador, filtrar por estado y verificar que la solicitud aparece como cerrada (filtro Inferido)",
       "Verificar que cada cambio de estado quedó registrado con fecha, hora y responsable"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F033",
