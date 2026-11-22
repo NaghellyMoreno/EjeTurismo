@@ -96,8 +96,10 @@ describe("criterio 24: migración aditiva y permisos mínimos", () => {
 
   it("es posterior a F030 y anterior a F037, y no hay drop, delete ni truncate", () => {
     const files = readdirSync(resolve(process.cwd(), "supabase/migrations")).sort();
-    expect(files.at(-2)).toBe("20261121110000_f032_information_request_replies.sql");
-    expect(files.at(-1)).toBe("20261121120000_f037_request_delete.sql");
+    expect(files.at(-3)).toBe("20261121110000_f032_information_request_replies.sql");
+    expect(files.at(-2)).toBe("20261121120000_f037_request_delete.sql");
+    // D-197: F038 agrega la migración siguiente.
+    expect(files.at(-1)).toBe("20261121130000_f038_retention.sql");
     expect(sql().replace(/on delete (cascade|set null)/gi, "")).not.toMatch(/\b(drop|delete|truncate)\b/i);
   });
 

@@ -238,7 +238,7 @@ export interface ListingPhotosTable {
 export interface PhotoUploadsTable {
   id: Generated<string>;
   version_id: string;
-  requested_by_account_id: string;
+  requested_by_account_id: string | null;
   pathname: string;
   declared_size: number;
   content_type: PhotoContentType;

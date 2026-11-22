@@ -30,6 +30,8 @@
     "test": "vitest run --passWithNoTests",
     "test:e2e": "playwright test",
     "notice:publish": "node scripts/notice-publish.ts",
+    "purge:dry-run": "node scripts/purge.ts --dry-run",
+    "purge:run": "node scripts/purge.ts --run",
     "bot:set-webhook": "node scripts/bot-set-webhook.ts"
   },
   "dependencies": {

@@ -1,4 +1,4 @@
-import { get, issueSignedToken, presignUrl, del, type IssuedSignedToken } from "@vercel/blob";
+import { get, issueSignedToken, presignUrl, del, list, type IssuedSignedToken } from "@vercel/blob";
 import type { PhotoStorage, StoredFile } from "./types";
 
 // Almacén privado de Vercel Blob (ADR 0009). Las credenciales salen del entorno (`BLOB_READ_WRITE_TOKEN` o `VERCEL_OIDC_TOKEN` con `BLOB_STORE_ID`).
@@ -61,5 +61,16 @@ export class BlobStorage implements PhotoStorage {
 
   async delete(pathname: string): Promise<void> {
     await del(pathname);
+  }
+
+  async list(): Promise<string[]> {
+    const pathnames: string[] = [];
+    let cursor: string | undefined;
+    do {
+      const page = await list({ cursor, limit: 1000 });
+      pathnames.push(...page.blobs.map((blob) => blob.pathname));
+      cursor = page.hasMore ? page.cursor : undefined;
+    } while (cursor);
+    return pathnames;
   }
 }

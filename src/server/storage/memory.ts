@@ -47,6 +47,10 @@ export class MemoryStorage implements PhotoStorage {
     this.objects.delete(pathname);
   }
 
+  async list(): Promise<string[]> {
+    return [...this.objects.keys()];
+  }
+
   // PUT del navegador: acepta el archivo con el tipo y el tamaño con que se firmó la URL.
   receiveUpload(token: string, bytes: Uint8Array, contentType: string, now = Date.now()): { status: number } {
     const grant = this.uploads.get(token);

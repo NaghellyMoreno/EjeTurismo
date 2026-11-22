@@ -1,9 +1,11 @@
+import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import type { components } from "@/shared/api/schema";
 import type { Actor } from "@/server/auth/actor";
 import { assertConsented } from "@/server/auth/consent-guard";
 import { parseAuthorization, verifyInitData } from "@/server/auth/init-data";
 import { scheduleDelivery, telegramSender } from "@/server/notifications";
+import { runMaintenanceJob, runRetentionJob } from "@/server/jobs";
 import { logError } from "@/server/observability/logger";
 import { AppError } from "@/server/errors";
 import {
@@ -575,5 +577,33 @@ export function changeInformationRequestStatusHandler(deps: Deps) {
       const { requestId } = await context.params;
       const body: unknown = await request.json().catch(() => undefined);
       return json(await changeInformationRequestStatus(deps.db(), actor, requestId, body, deps.now()));
+    });
+}
+
+// Tareas programadas (`Authorization: Bearer <CRON_SECRET>`, ADR 0007). Si el secreto no está definido, se niega todo (falla cerrado).
+function isCronAuthorized(request: Request, deps: Deps): boolean {
+  const secret = (deps.cronSecret ? deps.cronSecret() : process.env.CRON_SECRET) ?? "";
+  const match = /^Bearer (.+)$/.exec(request.headers.get("authorization") ?? "");
+  if (!secret || !match) return false;
+  const given = Buffer.from(match[1]);
+  const expected = Buffer.from(secret);
+  return given.length === expected.length && timingSafeEqual(given, expected);
+}
+
+// GET /api/v1/internal/cron/retention (runRetentionJob): eliminación del 31 de enero de 2027 (D-043).
+export function runRetentionJobHandler(deps: Deps) {
+  return (request: Request) =>
+    guarded("job.retention_failed", async () => {
+      if (!isCronAuthorized(request, deps)) return unauthenticated();
+      return json(await runRetentionJob(deps.db(), deps.now()));
+    });
+}
+
+// GET /api/v1/internal/cron/maintenance (runMaintenanceJob): borra de Blob los archivos sin referencia.
+export function runMaintenanceJobHandler(deps: Deps) {
+  return (request: Request) =>
+    guarded("job.maintenance_failed", async () => {
+      if (!isCronAuthorized(request, deps)) return unauthenticated();
+      return json(await runMaintenanceJob(deps.db(), deps.now(), deps.storage?.()));
     });
 }

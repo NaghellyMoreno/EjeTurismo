@@ -11,4 +11,6 @@ export interface PhotoStorage {
   inspect(pathname: string): Promise<StoredFile | null>;
   createReadUrl(pathname: string, expiresAt: Date): Promise<string>;
   delete(pathname: string): Promise<void>;
+  // Todos los archivos del almacén (F038: la tarea de mantenimiento borra los que ninguna foto referencia).
+  list(): Promise<string[]>;
 }

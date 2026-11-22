@@ -13,6 +13,8 @@ export interface Deps {
   // Almacén de fotografías; por defecto, el que decide `getStorage()` (Vercel Blob, o el doble en memoria con STORAGE_DRIVER=memory).
   storage?: () => PhotoStorage;
   send?: Sender;
+  // Secreto de las tareas programadas (`CRON_SECRET`); por defecto, el del entorno. Sin él, las rutas internas niegan todo.
+  cronSecret?: () => string | undefined;
 }
 
 export const defaultDeps: Deps = { config: getConfig, db: getDb, now: () => new Date() };
