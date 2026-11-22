@@ -1,7 +1,6 @@
 {
   "regions": ["gru1"],
   "crons": [
-    { "path": "/api/v1/internal/cron/outbox", "schedule": "0 11 * * *" },
     { "path": "/api/v1/internal/cron/maintenance", "schedule": "0 8 * * *" },
     { "path": "/api/v1/internal/cron/retention", "schedule": "0 5 * * *" }
   ]
