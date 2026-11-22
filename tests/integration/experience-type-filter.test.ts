@@ -153,7 +153,9 @@ describe("criterio 20: sin cambios de contrato", () => {
   // D-197: F038 agrega la cuarta migración nueva (plazo de eliminación y función de borrado).
   const F038_MIGRATION = "supabase/migrations/20261121130000_f038_retention.sql";
   it("api/openapi.yaml y supabase/migrations no cambian respecto del commit de partida, salvo las migraciones de F030, F032, F037 y F038", () => {
-    expect(() => execFileSync("git", ["diff", "--exit-code", "2c4843d", "--", "api/openapi.yaml"])).not.toThrow();
+    // D-201: el único cambio admitido en openapi.yaml es el commit 9cd8a4d (retiro de cron/outbox).
+    expect(() => execFileSync("git", ["diff", "--exit-code", "2c4843d", "9cd8a4d~1", "--", "api/openapi.yaml"])).not.toThrow();
+    expect(() => execFileSync("git", ["diff", "--exit-code", "9cd8a4d", "--", "api/openapi.yaml"])).not.toThrow();
     const changes = execFileSync("git", ["diff", "--name-status", "2c4843d", "--", "supabase/migrations"]).toString().trim().split("\n").filter(Boolean);
     expect(changes).toEqual([`A\t${F030_MIGRATION}`, `A\t${F032_MIGRATION}`, `A\t${F037_MIGRATION}`, `A\t${F038_MIGRATION}`]);
   });

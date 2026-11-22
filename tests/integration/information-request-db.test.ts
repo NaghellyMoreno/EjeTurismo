@@ -36,7 +36,9 @@ const insert = (pool: Pool, over: Partial<Record<string, unknown>> = {}) => {
 
 describe("criterio 24: tabla y restricciones", () => {
   it("api/openapi.yaml no cambia respecto del commit de partida cdda8ac", () => {
-    expect(() => execFileSync("git", ["diff", "--exit-code", "cdda8ac", "--", "api/openapi.yaml"], { stdio: "pipe" })).not.toThrow();
+    // D-201: el único cambio admitido en openapi.yaml es el commit 9cd8a4d (retiro de cron/outbox).
+    expect(() => execFileSync("git", ["diff", "--exit-code", "cdda8ac", "9cd8a4d~1", "--", "api/openapi.yaml"], { stdio: "pipe" })).not.toThrow();
+    expect(() => execFileSync("git", ["diff", "--exit-code", "9cd8a4d", "--", "api/openapi.yaml"], { stdio: "pipe" })).not.toThrow();
   });
 
   it("columnas y tipos de docs/03-arquitectura.md", async () => {
