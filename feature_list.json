@@ -567,7 +567,7 @@
       "Con la identidad de un visitante, enviar directamente al backend una solicitud para esa ficha y verificar que se rechaza y no se crea (Inferido a partir de D-029)",
       "Verificar que la ficha en borrador y la pendiente de A conservan su estado y no aparecen en ninguna consulta del visitante (D-029)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "F038",
