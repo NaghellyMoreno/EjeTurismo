@@ -175,3 +175,69 @@ export const listingEditTexts = {
   stillVisible: "Los visitantes siguen viendo la versión publicada hasta que el administrador apruebe tu cambio.",
   rejectedEditNote: "El administrador rechazó tu último cambio. Se conserva la versión publicada. Corrígelo y envíalo de nuevo.",
 } as const;
+
+// D-206: textos del prototipo interactivo aprobados tal como están en él (barra inferior, inicio por rol y pasos del formulario).
+export const shellTexts = {
+  goHome: "Volver al inicio",
+  navLabel: "Navegación principal",
+  nav: { home: "Inicio", listings: "Fichas", catalogs: "Catálogos", create: "Crear", account: "Cuenta" },
+} as const;
+
+export const providerHomeTexts = {
+  kicker: "ESPACIO DEL PRESTADOR",
+  hero: "Tus experiencias merecen ser descubiertas.",
+  create: "Crear una ficha",
+  published: "Publicadas",
+  pending: "En revisión",
+  drafts: "Borradores",
+  myListings: "Mis fichas",
+  seeAll: "Ver todas →",
+  howTitle: "¿Cómo se publica una ficha?",
+  howText: "Completa la información, guárdala como borrador y envíala a revisión. La aprobación se realiza en el bot de Telegram.",
+} as const;
+
+export const adminHomeTexts = {
+  kicker: "ADMINISTRACIÓN DE CONTENIDOS",
+  hero: "Organiza los paisajes y lugares de Caldas.",
+  create: "Nuevo atractivo",
+  section: "Gestión de contenidos",
+  attraction: "Nuevo atractivo",
+  attractionHint: "Publicación directa",
+  municipalities: "Municipios",
+  municipalitiesHint: (count: number) => `${count} disponibles`,
+  categories: "Categorías",
+  categoriesHint: "Listas cerradas",
+  experienceTypes: "Tipos de experiencia",
+  experienceTypesHint: "Incluye Sabores de Caldas",
+  telegramTitle: "Acciones en Telegram",
+  telegramSubtitle: "Validaciones y permisos",
+  telegramText: "La aprobación de fichas, la autorización de prestadores, la revocación de roles y la consulta de trazabilidad se realizan mediante el bot.",
+} as const;
+
+export const visitorHomeTexts = {
+  kicker: "Exploración turística",
+  hero: "Descubre Caldas desde Telegram.",
+} as const;
+
+export const wizardTexts = {
+  stepOf: (step: number, total: number) => `Paso ${step} de ${total}`,
+  steps: ["Tipo de ficha", "Información", "Guardar borrador", "Fotografías", "Revisar"],
+  next: "Continuar →",
+  previous: "← Anterior",
+} as const;
+
+// D-206: pestaña Cuenta. Nombre de Telegram, rol, registro de prestador y aviso aceptado; sin ID de Telegram ni número de identidad.
+export const accountTexts = {
+  kicker: "Privacidad y acceso",
+  title: "Mi autorización",
+  name: "Nombre",
+  role: "Rol",
+  roles: { principal: "Administrador principal", admin: "Administrador", provider: "Prestador", none: "Sin rol" },
+  registration: "Registro de prestador",
+  registrationStatus: { none: "Sin registro", pending: "Pendiente de autorización", approved: "Aprobado", rejected: "Rechazado" },
+  notice: "Aviso de privacidad aceptado",
+  noticeValue: (version: string, date: string) => `Versión ${version}, ${date}`,
+  showNotice: "Ver aviso de privacidad",
+  hideNotice: "Ocultar aviso de privacidad",
+  revokeTitle: "Revocar mi autorización",
+} as const;

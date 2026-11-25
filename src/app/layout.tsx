@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Script from "next/script";
 import type { ReactNode } from "react";
+import { MiniAppShell } from "@/miniapp/shell";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -16,11 +16,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         {/* Lo entrega Telegram; define window.Telegram.WebApp con el initData firmado. */}
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
-        <header className="brand">
-          {/* SVG vectorial: se sirve tal cual, sin pasar por el optimizador de imágenes. */}
-          <Image src="/logo.svg" alt="Eje Turismo" width={64} height={64} priority unoptimized />
-        </header>
-        {children}
+        {/* Logo, barra inferior y botón de volver de Telegram (D-206). */}
+        <MiniAppShell>{children}</MiniAppShell>
       </body>
     </html>
   );

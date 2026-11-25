@@ -5,6 +5,7 @@ import { makeProvider } from "../factories/review";
 import { ownerPool, resetDb } from "../helpers/db";
 import { CONTACT, MAPS_URL } from "../helpers/listing-data";
 import { signInitData } from "../helpers/telegram";
+import { toStep } from "./wizard";
 
 // F017, criterios 1, 2 y 13: restaurante, café y Sabores de Caldas en M05, M07, M04 y M08 de la Mini App.
 const A6 = 900007031;
@@ -38,6 +39,7 @@ async function open(page: Page, path: string) {
 }
 
 async function fillCommon(page: Page, name: string) {
+  await toStep(page, 2);
   await page.getByLabel("Nombre", { exact: true }).fill(name);
   await page.getByLabel("Municipio", { exact: true }).selectOption(municipalityOne);
   await page.getByLabel("Categoría", { exact: true }).selectOption(categoryOne);
@@ -56,8 +58,11 @@ async function saveDraft(page: Page) {
 test("1: crear un restaurante y un café con su tipo; aparecen en M04 como borrador y M08 muestra el tipo", async ({ page }) => {
   for (const [name, type] of [["Restaurante Prueba", "Restaurante"], ["Café Prueba", "Café"]]) {
     await open(page, "/fichas/nueva");
+    await toStep(page, 2);
     await expect(page.getByTestId("listing-name")).toBeVisible();
+    await toStep(page, 1);
     await page.getByTestId("listing-kind-establishment").click();
+    await toStep(page, 2);
     await fillCommon(page, name);
     await page.getByTestId("listing-establishment-type").selectOption({ label: type });
     await saveDraft(page);
@@ -76,15 +81,20 @@ test("2: el envío pide la declaración; sin marcarla no se envía y con ella la
     if (request.method() === "POST" && new URL(request.url()).pathname.endsWith("/submission")) submissions++;
   });
   await open(page, "/fichas/nueva");
+  await toStep(page, 2);
   await expect(page.getByTestId("listing-name")).toBeVisible();
+  await toStep(page, 1);
   await page.getByTestId("listing-kind-establishment").click();
+  await toStep(page, 2);
   await fillCommon(page, "Restaurante Prueba");
   await page.getByTestId("listing-establishment-type").selectOption({ label: "Restaurante" });
+  await toStep(page, 5);
   await page.getByTestId("listing-submit").click();
   await page.getByTestId("listing-submit-yes").click();
   await expect(page.getByTestId("listing-error-thirdPartyAuthorizationDeclared")).toBeVisible();
   expect(submissions).toBe(0);
-  expect((await owner.query("select status from app.listing_versions")).rows).toEqual([]);
+  // D-206: el borrador se guarda en el paso 3, antes de las fotos; sin la declaración no pasa a revisión.
+  expect((await owner.query("select status from app.listing_versions")).rows).toEqual([{ status: "draft" }]);
 
   await page.getByTestId("listing-declaration").check();
   await page.getByTestId("listing-submit-yes").click();
@@ -98,8 +108,11 @@ test("2: el envío pide la declaración; sin marcarla no se envía y con ella la
 
 test("13: la experiencia Sabores de Caldas se elige, se guarda, M08 muestra el tipo y el envío la deja pendiente", async ({ page }) => {
   await open(page, "/fichas/nueva");
+  await toStep(page, 2);
   await expect(page.getByTestId("listing-name")).toBeVisible();
+  await toStep(page, 1);
   await page.getByTestId("listing-kind-route_experience").click();
+  await toStep(page, 2);
   await fillCommon(page, "Sabores de prueba");
   const options = await page.getByTestId("listing-experience-type").locator("option").allTextContents();
   expect(options).toContain("Sabores de Caldas");
@@ -110,6 +123,7 @@ test("13: la experiencia Sabores de Caldas se elige, se guarda, M08 muestra el t
   await expect(page.getByTestId("listing-experience-type")).toHaveText("Sabores de Caldas");
 
   await open(page, `/fichas/${id}/editar`);
+  await toStep(page, 5);
   await page.getByTestId("listing-submit").click();
   await page.getByTestId("listing-declaration").check();
   await page.getByTestId("listing-submit-yes").click();

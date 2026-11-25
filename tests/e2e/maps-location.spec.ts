@@ -5,6 +5,7 @@ import { makeProvider } from "../factories/review";
 import { ownerPool, resetDb } from "../helpers/db";
 import { CONTACT, ESTABLISHMENT_ONE, MAPS_URL } from "../helpers/listing-data";
 import { signInitData, tma } from "../helpers/telegram";
+import { toStep } from "./wizard";
 
 // F021, criterio 3: el rechazo del enlace de Google Maps se ve junto al campo, en M05 (crear y editar).
 const A6 = 900007031;
@@ -39,6 +40,7 @@ async function open(page: Page, path: string) {
   await page.goto(path);
 }
 async function fillAll(page: Page) {
+  await toStep(page, 2);
   await page.getByLabel("Nombre", { exact: true }).fill(ESTABLISHMENT_ONE);
   await page.getByLabel("Municipio", { exact: true }).selectOption(world.municipalityOne);
   await page.getByLabel("Categoría", { exact: true }).selectOption(world.categoryOne);
@@ -59,6 +61,7 @@ async function saveAndExpectRejection(page: Page) {
 
 test("crear: el enlace que no es de Google Maps se rechaza junto al campo y no crea la ficha", async ({ page }) => {
   await open(page, "/fichas/nueva");
+  await toStep(page, 2);
   await expect(page.getByTestId("listing-name")).toBeVisible();
   await fillAll(page);
   await saveAndExpectRejection(page);

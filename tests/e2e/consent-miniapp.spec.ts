@@ -9,7 +9,7 @@ import { grantAdminRole, makeProvider } from "../factories/review";
 import { ownerPool, resetDb } from "../helpers/db";
 import { signInitData } from "../helpers/telegram";
 
-// F036: aviso (M01), inicio con revocar (M02) y confirmación (M03) en la Mini App, con `Telegram.WebApp` simulado.
+// F036: aviso (M01), inicio (M02), revocar en la pestaña Cuenta (D-206) y confirmación (M03) en la Mini App, con `Telegram.WebApp` simulado.
 // Cuentas ficticias propias del e2e (no se importan helpers de integración: arrastran next/server).
 const NEW_PERSON = 900000371;
 const NO_ROLE = 900000372;
@@ -77,6 +77,15 @@ const settled = async (page: Page) => {
   await expect(page.getByText(miniappTexts.loading)).toHaveCount(0);
 };
 const writes = (requests: string[]) => requests.filter((r) => !r.startsWith("GET "));
+// D-206: «Revocar mi autorización» y la frase de D-023 están en la pestaña Cuenta, no en el inicio (M02).
+async function toAccount(page: Page) {
+  await page.getByTestId("nav-cuenta").click();
+  await accountSettled(page);
+}
+const accountSettled = async (page: Page) => {
+  await expect(page.getByTestId("account-title")).toBeVisible();
+  await expect(page.getByText(miniappTexts.loading)).toHaveCount(0);
+};
 
 const body = (page: Page) => page.getByTestId("notice-body");
 const accept = (page: Page) => page.getByRole("button", { name: es.notice.accept, exact: true });
@@ -84,7 +93,7 @@ const decline = (page: Page) => page.getByRole("button", { name: es.notice.decli
 const revokeButton = (page: Page) => page.getByRole("button", { name: es.selfRevoke.button, exact: true });
 const yes = (page: Page) => page.getByRole("button", { name: es.selfRevoke.confirmButton, exact: true });
 const no = (page: Page) => page.getByRole("button", { name: es.selfRevoke.cancelButton, exact: true });
-const homeText = (page: Page) => page.getByTestId("miniapp-home").innerText();
+const homeText = (page: Page) => page.getByRole("main").innerText();
 
 async function currentNoticeText(): Promise<string> {
   const row = (await rows("select body_markdown, declaration_text, published_at from app.privacy_notice_versions where is_current"))[0];
@@ -344,19 +353,21 @@ test.describe("paso 5: el botón y la frase en M02", () => {
     },
   ];
   for (const v of [...variants, ...protectedVariants]) {
-    test(`17: ${v.name} ve el botón y la frase de D-023 junto a su vista`, async ({ page }) => {
+    test(`17: ${v.name} ve el botón y la frase de D-023 en la pestaña Cuenta (D-206)`, async ({ page }) => {
       await v.seed();
       await open(page, as(v.id));
+      if ("view" in v) {
+        const view = v.view as keyof typeof homeViewText;
+        await expect(page.getByTestId(view)).toHaveText(homeViewText[view]);
+      }
+      await expect(revokeButton(page)).toHaveCount(0);
+      await toAccount(page);
       const note = (await rows("select revocation_note from app.privacy_notice_versions where is_current"))[0].revocation_note as string;
       await expect(page.getByTestId("self-revoke-note")).toHaveText(es.selfRevoke.note);
       // D-143: la frase de D-023 se muestra con punto final, igual que revocation_note del aviso vigente.
       expect(note).toBe(es.selfRevoke.note);
       await expect(revokeButton(page)).toBeVisible();
       await expect(accept(page)).toHaveCount(0);
-      if ("view" in v) {
-        const view = v.view as keyof typeof homeViewText;
-        await expect(page.getByTestId(view)).toHaveText(homeViewText[view]);
-      }
     });
   }
 
@@ -380,6 +391,7 @@ test.describe("paso 5: el botón y la frase en M02", () => {
   test("19 y 38: colores, contraste, foco y teclado de los botones de revocar y de aceptar", async ({ page }) => {
     await createAccount(owner, NO_ROLE);
     await open(page, as(NO_ROLE));
+    await toAccount(page);
     const style = (testId: string) =>
       page.getByTestId(testId).evaluate((el) => {
         const s = getComputedStyle(el);
@@ -400,10 +412,10 @@ test.describe("paso 5: el botón y la frase en M02", () => {
     expect(contrast(button.background, button.color)).toBeGreaterThanOrEqual(4.5);
     const note = await style("self-revoke-note");
     expect(note.color).toBe("rgb(31, 58, 51)");
-    expect(note.behind).toBe("rgb(177, 211, 185)");
+    expect(note.behind).toBe("rgb(255, 255, 255)");
     expect(contrast(note.color, note.behind)).toBeGreaterThanOrEqual(4.5);
-    // Teclado: Tab hasta el botón (único control), foco visible y Enter lo activa.
-    await page.keyboard.press("Tab");
+    // Teclado: Tab hasta el botón (D-206: antes están el logo y «Ver aviso de privacidad»), foco visible y Enter lo activa.
+    for (let i = 0; i < 10 && !(await revokeButton(page).evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press("Tab");
     await expect(revokeButton(page)).toBeFocused();
     expect((await style("self-revoke-button")).outlineStyle).not.toBe("none");
     await page.keyboard.press("Enter");
@@ -433,6 +445,9 @@ test.describe("paso 5: el botón y la frase en M02", () => {
       return Boolean(h.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING) && buttons.every((b) => Boolean(region.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING));
     });
     expect(headingFirst).toBe(true);
+    // D-206: el primer control es el logo de la barra superior, que lleva al inicio.
+    await page.keyboard.press("Tab");
+    await expect(page.getByTestId("brand-home")).toBeFocused();
     const focused: string[] = [];
     for (let i = 0; i < 3; i++) {
       await page.keyboard.press("Tab");
@@ -445,10 +460,12 @@ test.describe("paso 5: el botón y la frase en M02", () => {
 // ---- Paso 6 y 7: cancelar y confirmar ---------------------------------------------------------------------------------
 test.describe("paso 6: cancelar no cambia nada", () => {
   for (const v of variants) {
-    test(`20 a 22: ${v.name}: la confirmación dice lo que se pierde y Cancelar vuelve al inicio sin cambios`, async ({ page }) => {
+    test(`20 a 22: ${v.name}: la confirmación dice lo que se pierde y Cancelar vuelve a Cuenta sin cambios`, async ({ page }) => {
       await v.seed();
       const before = await snapshot();
       const requests = await open(page, as(v.id));
+      await expect(page.getByTestId(v.view)).toBeVisible();
+      await toAccount(page);
       await revokeButton(page).click();
       await expect(page.getByTestId("self-revoke-confirm")).toHaveText(v.confirm);
       await expect(yes(page)).toBeVisible();
@@ -457,7 +474,7 @@ test.describe("paso 6: cancelar no cambia nada", () => {
       expect(await snapshot()).toEqual(before);
       await no(page).click();
       await expect(page.getByTestId("flash")).toHaveText(es.selfRevoke.cancelled);
-      await expect(page.getByTestId(v.view)).toBeVisible();
+      await expect(page.getByTestId("account-data")).toBeVisible();
       await expect(revokeButton(page)).toBeVisible();
       expect(writes(requests)).toEqual([]);
       expect(await snapshot()).toEqual(before);
@@ -478,6 +495,7 @@ test.describe("paso 7: confirmar y mismos efectos que el bot", () => {
     await createAccount(owner, NO_ROLE);
     await owner.query("insert into app.bot_sessions (account_id, data) select id, '{}' from app.accounts where telegram_user_id = $1", [NO_ROLE]);
     const requests = await open(page, as(NO_ROLE));
+    await toAccount(page);
     await revokeButton(page).click();
     const started = Date.now();
     const [response] = await Promise.all([page.waitForResponse((r) => r.url().endsWith("/api/v1/consents/revocations")), yes(page).click()]);
@@ -485,8 +503,9 @@ test.describe("paso 7: confirmar y mismos efectos que el bot", () => {
     const result = (await response.json()) as { message: string };
     await expect(page.getByTestId("self-revoke-done")).toHaveText(result.message);
     expect(result.message).toBe(es.selfRevoke.revoked);
-    await expect(page.getByTestId("miniapp-home").getByRole("button")).toHaveCount(0);
-    await expect(page.getByTestId("miniapp-home").getByRole("link")).toHaveCount(0);
+    await expect(page.getByRole("main").getByRole("button")).toHaveCount(0);
+    await expect(page.getByRole("main").getByRole("link")).toHaveCount(0);
+    await expect(page.getByTestId("bottom-nav")).toHaveCount(0);
     expect(requests.filter((r) => r === "POST /api/v1/consents/revocations")).toHaveLength(1);
     await noTrace(NO_ROLE);
     const events = await rows("select channel, notice_version, occurred_at from app.consent_events where event = 'revoked'");
@@ -504,6 +523,8 @@ test.describe("paso 7: confirmar y mismos efectos que el bot", () => {
     expect(await mentions(stored.enc as string)).toBeGreaterThan(0);
     await open(page, as(PROVIDER));
     expect(await homeText(page)).not.toMatch(new RegExp(`${NUMBER}|cédula|documento`, "i"));
+    await toAccount(page);
+    expect(await homeText(page)).not.toMatch(new RegExp(`${NUMBER}|cédula|documento`, "i"));
     await revokeButton(page).click();
     expect(await homeText(page)).not.toContain(NUMBER);
     await yes(page).click();
@@ -520,6 +541,7 @@ test.describe("paso 7: confirmar y mismos efectos que el bot", () => {
       await v.seed();
       const others = await rows("select * from app.role_grants where telegram_user_id = $1", [OTHER_ADMIN]);
       await open(page, as(v.id));
+      await toAccount(page);
       await revokeButton(page).click();
       await yes(page).click();
       await expect(page.getByTestId("self-revoke-done")).toHaveText(es.selfRevoke.revoked);
@@ -529,7 +551,7 @@ test.describe("paso 7: confirmar y mismos efectos que el bot", () => {
     }
   });
 
-  test("27: principal (con y sin fila), único administrador y principal único: se muestra el motivo, vuelve el inicio y no cambia nada", async ({ page }) => {
+  test("27: principal (con y sin fila), único administrador y principal único: se muestra el motivo, vuelve a Cuenta y no cambia nada", async ({ page }) => {
     const cases: { name: string; seed: () => Promise<void>; id: number; text: string; view: string }[] = [
       { name: "principal sin fila", id: PERSON_PRINCIPAL, text: es.selfRevoke.principalProtected, view: "role-admin", seed: async () => void (await createAccount(owner, PERSON_PRINCIPAL)) },
       {
@@ -570,10 +592,12 @@ test.describe("paso 7: confirmar y mismos efectos que el bot", () => {
       await c.seed();
       const before = await snapshot();
       await open(page, as(c.id));
+      await expect(page.getByTestId(c.view), c.name).toBeVisible();
+      await toAccount(page);
       await revokeButton(page).click();
       await yes(page).click();
       await expect(page.getByTestId("flash"), c.name).toHaveText(c.text);
-      await expect(page.getByTestId(c.view), c.name).toBeVisible();
+      await expect(page.getByTestId("account-data"), c.name).toBeVisible();
       await expect(revokeButton(page), c.name).toBeVisible();
       expect(await accountOf(c.id), c.name).toBeDefined();
       expect(await snapshot(), c.name).toEqual(before);
@@ -583,6 +607,7 @@ test.describe("paso 7: confirmar y mismos efectos que el bot", () => {
   test("28: 401 muestra la sesión vencida; 500 muestra selfRevoke.error, la cuenta queda intacta y se puede reintentar", async ({ page }) => {
     await createAccount(owner, NO_ROLE);
     await open(page, as(NO_ROLE));
+    await toAccount(page);
     const before = await snapshot();
     await page.route("**/api/v1/consents/revocations", (route) => route.fulfill(problem(500, "internal_error")));
     await revokeButton(page).click();
@@ -598,7 +623,7 @@ test.describe("paso 7: confirmar y mismos efectos que el bot", () => {
     expect(await snapshot()).toEqual(before);
     await page.unroute("**/api/v1/consents/revocations");
     await page.reload();
-    await settled(page);
+    await accountSettled(page);
     await revokeButton(page).click();
     await yes(page).click();
     await expect(page.getByTestId("self-revoke-done")).toBeVisible();
@@ -607,6 +632,7 @@ test.describe("paso 7: confirmar y mismos efectos que el bot", () => {
   test("29: doble clic en Sí, revocar envía una sola petición y deja un solo evento revoked", async ({ page }) => {
     await createAccount(owner, NO_ROLE);
     const requests = await open(page, as(NO_ROLE));
+    await toAccount(page);
     await revokeButton(page).click();
     await yes(page).dblclick();
     await expect(page.getByTestId("self-revoke-done")).toBeVisible();
@@ -622,6 +648,7 @@ test("30: tras revocar, volver a abrir muestra M01 sin el botón; Acepto crea un
   await createAccount(owner, OTHER_ADMIN);
   await grantAdminRole(owner, OTHER_ADMIN);
   await open(page, as(ADMIN));
+  await toAccount(page);
   await revokeButton(page).click();
   await yes(page).click();
   await expect(page.getByTestId("self-revoke-done")).toBeVisible();
@@ -712,7 +739,10 @@ test("32: ninguna pantalla pide un código ni muestra fecha, número, ID, nombre
   await settled(page);
   await check("M01 sin cuenta");
   await accept(page).click();
+  await expect(page.getByTestId("register-hint")).toBeVisible();
   await check("M02");
+  // D-206: la pestaña Cuenta muestra el nombre y la fecha del aviso aceptado (aprobado por la usuaria); su confirmación no.
+  await toAccount(page);
   await revokeButton(page).click();
-  await check("confirmación M02");
+  await check("confirmación en Cuenta");
 });

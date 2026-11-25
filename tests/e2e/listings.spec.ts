@@ -5,6 +5,7 @@ import { makeProvider } from "../factories/review";
 import { ownerPool, resetDb } from "../helpers/db";
 import { CONTACT, ESTABLISHMENT_ONE, ESTABLISHMENT_TWO, MAPS_URL } from "../helpers/listing-data";
 import { signInitData, tma } from "../helpers/telegram";
+import { toStep } from "./wizard";
 
 // F013, criterios 33 a 43: M04, M05, M07, M08 y M12 con los textos de la tabla "Textos nuevos", comparados por igualdad exacta.
 const A6 = 900007031;
@@ -80,6 +81,7 @@ async function createViaApi(request: import("@playwright/test").APIRequestContex
 }
 
 async function fillAll(page: Page, name = ESTABLISHMENT_ONE, extra: Partial<Record<"contact" | "municipalityId", string>> = {}) {
+  await toStep(page, 2);
   await page.getByLabel("Nombre", { exact: true }).fill(name);
   await page.getByLabel("Municipio", { exact: true }).selectOption(extra.municipalityId ?? world.municipalityOne);
   await page.getByLabel("Categoría", { exact: true }).selectOption(world.categoryOne);
@@ -96,7 +98,8 @@ const visitorList = async (request: import("@playwright/test").APIRequestContext
 test.describe("33: acceso", () => {
   test("el prestador ve el enlace y abre M04", async ({ page }) => {
     await open(page, as(A6), "/");
-    await expect(page.getByTestId("listings-link")).toHaveText("Mis fichas");
+    // D-206: en el inicio del prototipo el acceso a M04 es «Ver todas →», junto al título «Mis fichas».
+    await expect(page.getByTestId("listings-link")).toHaveText("Ver todas →");
     await page.getByTestId("listings-link").click();
     await expect(page.getByTestId("listing-title")).toHaveText("Mis fichas");
   });
@@ -153,6 +156,7 @@ test.describe("35 y 36: crear el borrador y cancelar", () => {
   test("guardar abre el diálogo; Cancelar no envía; Confirmar envía un solo POST (doble clic) y el visitante no la ve", async ({ page, request }) => {
     const seen = counter(page);
     await open(page, as(A6), "/fichas/nueva");
+    await toStep(page, 2);
     await expect(page.getByTestId("listing-name")).toBeVisible();
     await fillAll(page);
     await page.getByTestId("listing-save").click();
@@ -180,6 +184,7 @@ test.describe("35 y 36: crear el borrador y cancelar", () => {
     const headers = tma(as(A6));
     const names = async (path: string) => ((await (await request.get(path, { headers })).json()) as { name: string }[]).map((i) => i.name);
     await open(page, as(A6), "/fichas/nueva");
+    await toStep(page, 2);
     await expect(page.getByTestId("listing-name")).toBeVisible();
     const expected: Array<[string, string, string]> = [
       ["listing-municipality", "/api/v1/municipalities", "Elige una opción"],
@@ -200,6 +205,7 @@ test.describe("35 y 36: crear el borrador y cancelar", () => {
   test("36: Cancelar vuelve a M04 sin peticiones de escritura; lo mismo al cerrar el diálogo", async ({ page }) => {
     const seen = counter(page);
     await open(page, as(A6), "/fichas/nueva");
+    await toStep(page, 2);
     await page.getByLabel("Nombre", { exact: true }).fill(ESTABLISHMENT_ONE);
     await page.getByTestId("listing-cancel").click();
     await expect(page.getByTestId("listing-empty")).toBeVisible();
@@ -221,13 +227,20 @@ test.describe("37: campo vacío al enviar", () => {
   test("cada campo vacío muestra su texto junto al campo, sin diálogo y sin enviar", async ({ page }) => {
     const seen = counter(page);
     await open(page, as(A6), "/fichas/nueva");
+    await toStep(page, 2);
     await expect(page.getByTestId("listing-name")).toBeVisible();
     for (const [label, field, message] of REQUIRED) {
       await fillAll(page);
       const control = page.getByLabel(label, { exact: true });
       if (label === "Municipio" || label === "Categoría") await control.selectOption("");
       else await control.fill("");
-      await page.getByTestId("listing-submit").click();
+      if (field === "name" || field === "municipalityId") {
+        // D-206: sin nombre ni municipio no se guarda el borrador que necesita el paso de fotos; el aviso sale al guardar.
+        await page.getByTestId("listing-save").click();
+      } else {
+        await toStep(page, 5);
+        await page.getByTestId("listing-submit").click();
+      }
       const error = page.getByTestId(`listing-error-${field}`);
       await expect(error).toHaveText(message);
       await expect(error).toHaveAttribute("role", "alert");
@@ -241,12 +254,14 @@ test.describe("37: campo vacío al enviar", () => {
     await expect(page.getByTestId("listing-error-name")).toHaveText("El nombre es obligatorio.");
     await expect(page.getByTestId("listing-error")).toHaveText("Revisa los campos marcados.");
     expect(seen.submissions).toBe(0);
-    expect(await count("listings")).toBe(0);
+    // D-206: para llegar a «Revisar» el borrador se guarda antes (paso 3); no se envía a revisión.
+    expect(await count("listings")).toBe(1);
   });
 
   test("un contacto de solo espacios llega al servidor, que responde 422 y la pantalla muestra su mensaje", async ({ page }) => {
     await open(page, as(A6), "/fichas/nueva");
     await fillAll(page, ESTABLISHMENT_ONE, { contact: "   " });
+    await toStep(page, 5);
     await page.getByTestId("listing-submit").click();
     await page.getByLabel(/Declaro que tengo la autorización/).check();
     await page.getByTestId("listing-submit-yes").click();
@@ -260,6 +275,7 @@ test.describe("38 y 39: declaración, envío y ficha pendiente", () => {
     const seen = counter(page);
     await open(page, as(A6), "/fichas/nueva");
     await fillAll(page);
+    await toStep(page, 5);
     await page.getByTestId("listing-submit").click();
     await expect(page.getByTestId("listing-submit-dialog")).toBeVisible();
     await expect(page.getByTestId("listing-submit-dialog")).toContainText("Vas a enviar «Establecimiento Ficticio Uno» a revisión. Mientras esté pendiente no podrás editarla. ¿Confirmas?");
@@ -273,8 +289,10 @@ test.describe("38 y 39: declaración, envío y ficha pendiente", () => {
 
     await page.getByTestId("listing-submit-no").click();
     expect(seen.submissions).toBe(0);
-    expect(await count("listings")).toBe(0);
+    // D-206: el borrador ya se guardó en el paso 3; cancelar el envío no lo manda a revisión.
+    expect(await count("listings")).toBe(1);
 
+    await toStep(page, 5);
     await page.getByTestId("listing-submit").click();
     await declaration.check();
     await page.getByTestId("listing-submit-yes").dblclick();
@@ -362,7 +380,9 @@ test.describe("41: error del backend y sesión vencida", () => {
     const id = await createViaApi(request, A6, ESTABLISHMENT_ONE);
     await failWith500(page, (url) => url.endsWith("/submission"));
     await open(page, as(A6), `/fichas/${id}/editar`);
+    await toStep(page, 2);
     await expect(page.getByTestId("listing-name")).toBeVisible();
+    await toStep(page, 5);
     await page.getByTestId("listing-submit").click();
     await page.getByLabel(/Declaro que tengo la autorización/).check();
     await page.getByTestId("listing-submit-yes").click();
@@ -422,11 +442,18 @@ test.describe("42 y 43: accesibilidad, identidad visual y textos", () => {
     await expect(page.getByTestId("listing-working")).toBeVisible();
     await audit("M08");
     await open(page, as(A6), "/fichas/nueva");
+    await toStep(page, 2);
     for (const label of ["Nombre", "Municipio", "Categoría", "Tipo de establecimiento (opcional)", "Descripción", "Horarios", "Contacto", "Enlace de Google Maps"]) {
       await expect(page.getByLabel(label, { exact: true })).toBeVisible();
     }
+    // D-206: sin nombre ni municipio el aviso sale al guardar; los otros cinco campos, al enviar desde «Revisar».
+    await page.getByTestId("listing-save").click();
+    for (const field of ["name", "municipalityId"]) await expect(page.getByTestId(`listing-error-${field}`)).toHaveAttribute("role", "alert");
+    await page.getByLabel("Nombre", { exact: true }).fill("Ficha con campos vacíos");
+    await page.getByLabel("Municipio", { exact: true }).selectOption(world.municipalityOne);
+    await toStep(page, 5);
     await page.getByTestId("listing-submit").click();
-    for (const field of ["name", "municipalityId", "categoryId", "description", "schedule", "contact", "mapsUrl"]) {
+    for (const field of ["categoryId", "description", "schedule", "contact", "mapsUrl"]) {
       await expect(page.getByTestId(`listing-error-${field}`)).toHaveAttribute("role", "alert");
     }
     await audit("M05 con errores");
@@ -435,6 +462,7 @@ test.describe("42 y 43: accesibilidad, identidad visual y textos", () => {
     await expect(page.getByTestId("listing-confirm-yes")).toBeVisible();
     await audit("M05 diálogo de guardar");
     await page.getByTestId("listing-confirm-no").click();
+    await toStep(page, 5);
     await page.getByTestId("listing-submit").click();
     await expect(page.getByLabel("Declaro que tengo la autorización de los guías y contactos cuyos datos incluyo en esta ficha.")).toBeVisible();
     await page.getByTestId("listing-submit-yes").click();

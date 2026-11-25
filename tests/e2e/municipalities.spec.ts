@@ -128,7 +128,8 @@ test("28: sin rol de administrador no hay enlace y /municipios muestra el aviso"
     expect(calls).toEqual({ POST: 0, PATCH: 0 });
   }
   await open(page, adminData(), "/");
-  await expect(page.getByTestId("municipalities-link")).toHaveText(miniappTexts.adminMunicipalitiesLink);
+  // D-206: tarjeta con los textos del prototipo; conserva el nombre accesible aprobado.
+  await expect(page.getByTestId("municipalities-link")).toHaveAccessibleName(miniappTexts.adminMunicipalitiesLink);
   await page.goto("/municipios");
   await expect(page.getByTestId("municipalities-screen")).toBeVisible();
 });

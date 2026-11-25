@@ -194,7 +194,8 @@ test.describe("23: solo las listas del servidor", () => {
 test.describe("25: acceso", () => {
   test("el administrador ve el enlace y abre M09 desde el inicio", async ({ page }) => {
     await open(page, adminData(), "/");
-    await expect(page.getByTestId("attractions-link")).toHaveText("Registrar atractivo");
+    // D-206: tarjeta con los textos del prototipo; conserva el nombre accesible aprobado.
+    await expect(page.getByTestId("attractions-link")).toHaveAccessibleName("Registrar atractivo");
     await page.getByTestId("attractions-link").click();
     await expect(page.getByTestId("attraction-title")).toHaveText("Registrar atractivo");
     await expect(page.getByTestId("attraction-name")).toBeVisible();

@@ -1,10 +1,12 @@
 "use client";
 
+import { ArrowLeft, Check, House, Route } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import type { components } from "@/shared/api/schema";
-import { listingTexts as t, miniappTexts } from "./texts";
+import { PhotoPanel } from "./photos-screen";
+import { useBackHandler } from "./shell";
+import { listingTexts as t, miniappTexts, wizardTexts as w } from "./texts";
 import { type Api, useProviderSession } from "./use-provider-session";
 
 type Municipality = components["schemas"]["Municipality"];
@@ -28,12 +30,15 @@ type Lists = { municipalities: Municipality[]; categories: CatalogItem[]; types:
 type Step = "loading" | "ready" | "locked" | "forbidden" | "submitted";
 type Dialog = null | "save" | "submit";
 type Outcome = { ok: true; id: string } | { ok: false };
+// D-206: pasos del formulario. 1 Tipo (solo al crear), 2 Información, 3 Guardar borrador, 4 Fotografías y 5 Revisar y enviar.
+// Las fotos van después de guardar porque el backend las asocia a un borrador que ya existe.
+type WizardStep = 1 | 2 | 3 | 4 | 5;
+const TOTAL_STEPS = 5;
 
 // M05 y M07 (F013): formulario de la ficha de establecimiento y envío a revisión. Municipio, categoría y tipo se eligen solo de
 // las listas del servidor. Solo comprueba que los campos no estén vacíos; los espacios, los límites y el enlace los decide el
 // servidor. Ninguna petición sale sin confirmar (invariante 8).
 export function ListingFormScreen({ listingId }: { listingId?: string }) {
-  const router = useRouter();
   const { session, setSession, client } = useProviderSession();
   const [step, setStep] = useState<Step>("loading");
   const [lists, setLists] = useState<Lists>({ municipalities: [], categories: [], types: [], experienceTypes: [], failed: false });
@@ -46,8 +51,16 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
   const idRef = useRef<string | undefined>(listingId);
+  // Id de la ficha guardada, para el paso de fotos (estado y no ref, porque se usa al dibujar).
+  const [savedId, setSavedId] = useState<string | undefined>(listingId);
   // La clase se elige solo al crear (F018, P1); al editar queda fija con la de la ficha.
   const [kind, setKind] = useState<Kind>("establishment");
+  const firstStep: WizardStep = listingId ? 2 : 1;
+  const [wizard, setWizard] = useState<WizardStep>(firstStep);
+  const goTo = (next: WizardStep) => {
+    setWizard(next);
+    window.scrollTo?.({ top: 0 });
+  };
 
   useEffect(() => {
     if (session.kind !== "ready") return;
@@ -115,6 +128,7 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
     for (const item of items ?? []) if (isErrorKey(item.field) && !fromServer[item.field]) fromServer[item.field] = item.message;
     setErrors(fromServer);
     setSummary(t.invalid);
+    if (Object.keys(fromServer).some((key) => key !== "thirdPartyAuthorizationDeclared")) setWizard(2);
   };
 
   // Crea la ficha (POST) o reemplaza el borrador (PUT). Muestra el error que corresponda y devuelve si salió bien.
@@ -132,10 +146,14 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
       const id = result.data?.id;
       if (id) {
         idRef.current = id;
+        setSavedId(id);
         return { ok: true, id };
       }
     } else if (response.status === 409) {
-      if ((result.error as { code?: string } | undefined)?.code === "duplicate") setErrors({ name: t.duplicate });
+      if ((result.error as { code?: string } | undefined)?.code === "duplicate") {
+        setErrors({ name: t.duplicate });
+        setWizard(2);
+      }
       else setStep("locked");
     } else if (response.status === 422) showServerErrors((result.error as { errors?: FieldError[] } | undefined)?.errors);
     else setSummary(genericError);
@@ -165,6 +183,8 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
         setErrors({});
         setSummary(null);
         setSaved(true);
+        // Desde el paso "Guardar borrador" se sigue a las fotos; desde "Información" se queda en el mismo paso.
+        setWizard((current) => (current === 3 ? 4 : current));
       }
     }, t.genericError);
 
@@ -199,6 +219,7 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
     setSummary(Object.keys(missing).length > 0 ? t.invalid : null);
     setSaved(false);
     if (Object.keys(missing).length === 0) setDialog("save");
+    else setWizard(2);
   }
 
   function onSubmit() {
@@ -212,7 +233,7 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
     if (Object.keys(missing).length === 0) {
       setDeclared(false);
       setDialog("submit");
-    }
+    } else setWizard(2);
   }
 
   const row = (field: Field, label: string, control: (props: { id: string; "aria-invalid"?: true; "aria-describedby"?: string }) => ReactNode) => {
@@ -244,10 +265,46 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
       </select>
     ));
 
+  // El gesto de volver cierra el diálogo abierto o retrocede un paso antes de salir del formulario.
+  useBackHandler(session.kind === "ready" && step === "ready" && (dialog !== null || wizard > firstStep), () => {
+    if (busy) return true;
+    if (dialog !== null) setDialog(null);
+    else if (wizard > firstStep) goTo((wizard - 1) as WizardStep);
+    else return false;
+    return true;
+  });
+
   const name = draft.name.trim();
   const isRoute = kind === "route_experience";
+  const nameOf = (items: { id: string; name: string }[], id: string) => items.find((item) => item.id === id)?.name ?? "";
+  const canContinue = wizard === 1 || wizard === 2 || wizard === 4 || (wizard === 3 && saved && savedId !== undefined);
+
+  const review = (
+    <div className="review" data-testid="listing-review">
+      <b>{draft.name || "—"}</b>
+      <p>
+        {nameOf(lists.municipalities, draft.municipalityId) || "—"} · {isRoute ? t.form.kindRoute : t.form.kindEstablishment}
+      </p>
+      <p>
+        <b>{t.form.categoryLabel}:</b> {nameOf(lists.categories, draft.categoryId) || "—"}
+      </p>
+      <p>
+        <b>{t.form.scheduleLabel}:</b> {draft.schedule || "—"}
+      </p>
+      <p>
+        <b>{t.form.contactLabel}:</b> {draft.contact || "—"}
+      </p>
+      <button type="button" className="textlink" data-testid="listing-review-edit" onClick={() => goTo(2)}>
+        {w.steps[1]} →
+      </button>
+    </div>
+  );
+
   return (
     <main className="screen">
+      <Link href="/fichas" className="back-link" data-testid="listing-cancel">
+        <ArrowLeft size={14} aria-hidden="true" /> {t.form.cancel}
+      </Link>
       <h1 data-testid="listing-title">{listingId ? t.form.titleEdit : isRoute ? t.form.titleNewRoute : t.form.titleNew}</h1>
       <div aria-live="polite">
         {(session.kind === "loading" || (session.kind === "ready" && step === "loading")) && <p>{miniappTexts.loading}</p>}
@@ -255,27 +312,40 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
         {(session.kind === "forbidden" || (session.kind === "ready" && step === "forbidden")) && <p data-testid="listing-forbidden" role="alert">{t.forbidden}</p>}
         {session.kind === "ready" && step === "locked" && <p data-testid="listing-locked">{t.locked}</p>}
         {session.kind === "ready" && step === "submitted" && (
-          <section>
+          <section className="plain centered">
+            <div className="success-graphic" aria-hidden="true">
+              <Check size={36} />
+            </div>
             <p data-testid="listing-submitted">{t.submitted}</p>
-            <p className="actions"><Link href="/fichas" data-testid="listing-back">{t.detail.back}</Link></p>
+            <p className="actions"><Link href="/fichas" className="primary" data-testid="listing-back">{t.detail.back}</Link></p>
           </section>
         )}
         {session.kind === "ready" && step === "ready" && (
-          <section className="attraction-form listing-form">
+          <section className="attraction-form listing-form plain">
+            <div className="step-caption">
+              <span data-testid="wizard-step">{w.stepOf(wizard, TOTAL_STEPS)}</span>
+              <span>{w.steps[wizard - 1]}</span>
+            </div>
+            <div className="steps" aria-hidden="true">
+              {w.steps.map((label, index) => (
+                <span key={label} className={`step${index + 1 < wizard ? " done" : ""}${index + 1 === wizard ? " active" : ""}`} />
+              ))}
+            </div>
             {lists.failed && <p data-testid="listing-lists-error" role="alert">{t.listsError}</p>}
-            {saved && <p data-testid="listing-saved">{t.saved}</p>}
+            {saved && <p className="notice" data-testid="listing-saved">{t.saved}</p>}
             <form onSubmit={onSave} noValidate>
-              {!listingId && (
+              {wizard === 1 && (
                 <div className="field" role="radiogroup" aria-labelledby="listing-kind-legend">
-                  <p id="listing-kind-legend">{t.form.kindLegend}</p>
-                  <div className="actions">
-                    {(["establishment", "route_experience"] as const).map((option) => (
+                  <h2 id="listing-kind-legend">{t.form.kindLegend}</h2>
+                  {(["establishment", "route_experience"] as const).map((option) => {
+                    const Icon = option === "establishment" ? House : Route;
+                    return (
                       <button
                         key={option}
                         type="button"
                         role="radio"
                         aria-checked={kind === option}
-                        className={kind === option ? "primary" : "secondary"}
+                        className={`pick-card ${kind === option ? "primary" : "secondary"}`}
                         data-testid={`listing-kind-${option}`}
                         onClick={() => {
                           setKind(option);
@@ -284,47 +354,83 @@ export function ListingFormScreen({ listingId }: { listingId?: string }) {
                           setSaved(false);
                         }}
                       >
-                        {option === "establishment" ? t.form.kindEstablishment : t.form.kindRoute}
+                        <span className="pick-icon" aria-hidden="true">
+                          <Icon size={22} />
+                        </span>
+                        <b>{option === "establishment" ? t.form.kindEstablishment : t.form.kindRoute}</b>
+                        <span className="dot" aria-hidden="true" />
                       </button>
+                    );
+                  })}
+                </div>
+              )}
+              {wizard === 2 && (
+                <>
+                  {text("name", t.form.nameLabel, "listing-name")}
+                  {list("municipalityId", t.form.municipalityLabel, "listing-municipality", lists.municipalities, t.form.selectPlaceholder)}
+                  {list("categoryId", t.form.categoryLabel, "listing-category", lists.categories, t.form.selectPlaceholder)}
+                  {isRoute
+                    ? list("experienceTypeId", t.form.experienceTypeLabel, "listing-experience-type", lists.experienceTypes, t.form.experienceTypePlaceholder)
+                    : list("establishmentTypeId", t.form.establishmentTypeLabel, "listing-establishment-type", lists.types, t.form.noType)}
+                  {row("description", t.form.descriptionLabel, (props) => (
+                    <textarea {...props} data-testid="listing-description" rows={4} value={draft.description} onChange={(event) => change("description", event.target.value)} />
+                  ))}
+                  {text("schedule", t.form.scheduleLabel, "listing-schedule")}
+                  {text("contact", t.form.contactLabel, "listing-contact")}
+                  {text("mapsUrl", t.form.mapsUrlLabel, "listing-maps-url")}
+                  {isRoute &&
+                    row("guidesInfo", t.form.guidesInfoLabel, (props) => (
+                      <>
+                        <textarea
+                          {...props}
+                          data-testid="listing-guides-info"
+                          rows={3}
+                          aria-describedby={[props["aria-describedby"], "listing-field-guidesInfo-hint"].filter(Boolean).join(" ")}
+                          value={draft.guidesInfo}
+                          onChange={(event) => change("guidesInfo", event.target.value)}
+                        />
+                        <p id="listing-field-guidesInfo-hint">{t.form.guidesInfoHint}</p>
+                      </>
                     ))}
+                </>
+              )}
+              {(wizard === 3 || wizard === 5) && review}
+              {summary && <p data-testid="listing-error" role="alert">{summary}</p>}
+              {dialog === null && (
+                <div className="sticky-actions">
+                  {wizard === 3 && !saved && <button type="submit" className="primary block" data-testid="listing-save" disabled={busy}>{t.form.saveDraft}</button>}
+                  {wizard === 5 && <button type="button" className="primary block" data-testid="listing-submit" disabled={busy} onClick={onSubmit}>{t.form.submit}</button>}
+                  {wizard < 5 && canContinue && (
+                    <button type="button" className="lime block" data-testid="wizard-next" disabled={busy} onClick={() => goTo((wizard + 1) as WizardStep)}>
+                      {w.next}
+                    </button>
+                  )}
+                  <div className="buttonrow">
+                    {wizard > firstStep && (
+                      <button type="button" className="secondary" data-testid="wizard-previous" disabled={busy} onClick={() => goTo((wizard - 1) as WizardStep)}>
+                        {w.previous}
+                      </button>
+                    )}
+                    {wizard === 2 && <button type="submit" className="secondary" data-testid="listing-save" disabled={busy}>{t.form.saveDraft}</button>}
                   </div>
                 </div>
               )}
-              {text("name", t.form.nameLabel, "listing-name")}
-              {list("municipalityId", t.form.municipalityLabel, "listing-municipality", lists.municipalities, t.form.selectPlaceholder)}
-              {list("categoryId", t.form.categoryLabel, "listing-category", lists.categories, t.form.selectPlaceholder)}
-              {isRoute
-                ? list("experienceTypeId", t.form.experienceTypeLabel, "listing-experience-type", lists.experienceTypes, t.form.experienceTypePlaceholder)
-                : list("establishmentTypeId", t.form.establishmentTypeLabel, "listing-establishment-type", lists.types, t.form.noType)}
-              {row("description", t.form.descriptionLabel, (props) => (
-                <textarea {...props} data-testid="listing-description" rows={4} value={draft.description} onChange={(event) => change("description", event.target.value)} />
-              ))}
-              {text("schedule", t.form.scheduleLabel, "listing-schedule")}
-              {text("contact", t.form.contactLabel, "listing-contact")}
-              {text("mapsUrl", t.form.mapsUrlLabel, "listing-maps-url")}
-              {isRoute &&
-                row("guidesInfo", t.form.guidesInfoLabel, (props) => (
-                  <>
-                    <textarea
-                      {...props}
-                      data-testid="listing-guides-info"
-                      rows={3}
-                      aria-describedby={[props["aria-describedby"], "listing-field-guidesInfo-hint"].filter(Boolean).join(" ")}
-                      value={draft.guidesInfo}
-                      onChange={(event) => change("guidesInfo", event.target.value)}
-                    />
-                    <p id="listing-field-guidesInfo-hint">{t.form.guidesInfoHint}</p>
-                  </>
-                ))}
-              {summary && <p data-testid="listing-error" role="alert">{summary}</p>}
-              {dialog === null && (
-                <div className="actions">
-                  <button type="submit" className="primary" data-testid="listing-save" disabled={busy}>{t.form.saveDraft}</button>
-                  <button type="button" className="primary" data-testid="listing-submit" disabled={busy} onClick={onSubmit}>{t.form.submit}</button>
-                  <button type="button" className="secondary" data-testid="listing-cancel" onClick={() => router.push("/fichas")}>{t.form.cancel}</button>
-                </div>
-              )}
             </form>
+            {wizard === 4 && savedId && (
+              <PhotoPanel listingId={savedId} session={session} setSession={setSession} client={client} embedded />
+            )}
+            {wizard === 4 && dialog === null && (
+              <div className="sticky-actions">
+                <button type="button" className="lime block" data-testid="wizard-next-photos" onClick={() => goTo(5)}>
+                  {w.next}
+                </button>
+                <div className="buttonrow">
+                  <button type="button" className="secondary" data-testid="wizard-previous-photos" onClick={() => goTo(3)}>
+                    {w.previous}
+                  </button>
+                </div>
+              </div>
+            )}
             {dialog === "save" && (
               <div role="alertdialog" aria-labelledby="listing-confirm-text">
                 <p id="listing-confirm-text" data-testid="listing-confirm">{t.confirmSave(name)}</p>

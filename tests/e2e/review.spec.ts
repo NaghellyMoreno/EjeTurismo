@@ -5,6 +5,7 @@ import { makeProvider } from "../factories/review";
 import { ownerPool, resetDb } from "../helpers/db";
 import { CONTACT, ESTABLISHMENT_ONE, MAPS_URL } from "../helpers/listing-data";
 import { signInitData, tma } from "../helpers/telegram";
+import { toStep } from "./wizard";
 
 // F014, criterios 10, 11 y 25 (Mini App): M04, M05 y M08 con una ficha rechazada, pendiente y publicada.
 const A6 = 900007031;
@@ -104,6 +105,7 @@ test.describe("criterio 11: corregir y reenviar", () => {
     await page.getByTestId("listing-correct").click();
     await expect(page.getByLabel("Nombre", { exact: true })).toHaveValue(ESTABLISHMENT_ONE);
     await page.getByLabel("Horarios", { exact: true }).fill("Lunes a sábado de 9:00 a 18:00");
+    await toStep(page, 5);
     await page.getByTestId("listing-submit").click();
     await page.getByTestId("listing-declaration").check();
     await page.getByTestId("listing-submit-yes").click();

@@ -5,6 +5,7 @@ import { makeProvider } from "../factories/review";
 import { ownerPool, resetDb } from "../helpers/db";
 import { CONTACT, ESTABLISHMENT_ONE, MAPS_URL } from "../helpers/listing-data";
 import { signInitData, tma } from "../helpers/telegram";
+import { toStep } from "./wizard";
 
 // F015, criterios 5, 9b, 10b y 13a (Mini App): editar una ficha publicada sin ocultarla.
 const A6 = 900007031;
@@ -81,6 +82,7 @@ test.describe("criterio 5: editar el horario desde la Mini App", () => {
     await page.getByTestId("listing-save").click();
     await page.getByTestId("listing-confirm-yes").click();
     await expect(page.getByTestId("listing-saved")).toBeVisible();
+    await toStep(page, 5);
     await page.getByTestId("listing-submit").click();
     await expect(page.getByTestId("listing-declaration")).toBeVisible();
     await page.getByTestId("listing-submit-no").click();
@@ -89,6 +91,7 @@ test.describe("criterio 5: editar el horario desde la Mini App", () => {
     await expect(page.getByTestId("listing-pending-note")).toHaveCount(0);
 
     await open(page, as(A6), `/fichas/${id}/editar`);
+    await toStep(page, 5);
     await page.getByTestId("listing-submit").click();
     await page.getByTestId("listing-declaration").check();
     await page.getByTestId("listing-submit-yes").click();
@@ -136,6 +139,7 @@ test.describe("criterios 9b y 10b: edición rechazada", () => {
     await page.getByTestId("listing-save").click();
     await page.getByTestId("listing-confirm-yes").click();
     await expect(page.getByTestId("listing-saved")).toBeVisible();
+    await toStep(page, 5);
     await page.getByTestId("listing-submit").click();
     await page.getByTestId("listing-declaration").check();
     await page.getByTestId("listing-submit-yes").click();

@@ -1,6 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
 import type { Pool } from "pg";
-import { es } from "@/bot/texts/es";
 import { makeProvider } from "../factories/review";
 import { ownerPool, resetDb } from "../helpers/db";
 import { signInitData } from "../helpers/telegram";
@@ -44,11 +43,12 @@ test("18: en / el prestador ve solo role-provider, sin enlaces ni botones", asyn
   await open(page, "/");
   const home = page.getByTestId("miniapp-home");
   await expect(page.getByTestId("role-provider")).toHaveText("Desde aquí creas y editas tus fichas y las envías a revisión. Las solicitudes de los visitantes las atiendes en el bot, con el botón «Mis solicitudes».");
-  // F013: el prestador ve un único enlace, "Mis fichas"; ninguno de administrador.
-  await expect(home.getByRole("link")).toHaveCount(1);
-  await expect(page.getByTestId("listings-link")).toHaveText("Mis fichas");
-  // F036 (criterio 40): M02 trae el botón de revocar; no hay otro botón.
-  await expect(home.getByRole("button")).toHaveText([es.selfRevoke.button]);
+  // D-206: el inicio del prestador tiene «Crear una ficha» y «Ver todas →» (Mis fichas); ninguno de administrador.
+  await expect(home.getByRole("link")).toHaveCount(2);
+  await expect(page.getByTestId("home-create")).toHaveAttribute("href", "/fichas/nueva");
+  await expect(page.getByTestId("listings-link")).toHaveAttribute("href", "/fichas");
+  // D-206: el botón de revocar pasó a la pestaña Cuenta; el inicio no tiene botones.
+  await expect(home.getByRole("button")).toHaveCount(0);
   await absent(page, ["role-admin", "municipalities-link", "catalog-link", "register-hint", "registration-pending", "role-revoked", "consent-required", "session-error"]);
   const text = await page.locator("body").innerText();
   for (const word of ["Administrar municipios", "Categorías y tipos", "Registros pendientes"]) expect(text).not.toContain(word);
@@ -62,7 +62,8 @@ test("19: /municipios muestra municipalities-forbidden y no pide municipios", as
     "municipality-name", "municipality-save", "municipality-confirm", "municipality-confirm-accept",
   ]);
   expect(requests.filter((r) => r.includes("/api/v1/municipalities"))).toEqual([]);
-  expect(requests).toEqual(["GET /api/v1/me"]);
+  // D-206: la barra inferior también lee getMe para elegir sus pestañas.
+  expect(requests).toEqual(["GET /api/v1/me", "GET /api/v1/me"]);
 });
 
 test("20: /catalogos muestra catalog-forbidden y no pide las listas", async ({ page }) => {

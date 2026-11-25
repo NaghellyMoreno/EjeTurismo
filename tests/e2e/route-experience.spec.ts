@@ -5,6 +5,7 @@ import { makeProvider } from "../factories/review";
 import { ownerPool, resetDb } from "../helpers/db";
 import { CONTACT, MAPS_URL } from "../helpers/listing-data";
 import { signInitData, tma } from "../helpers/telegram";
+import { toStep } from "./wizard";
 
 // F018, criterios 9, 10, 12, 31 y 32: la ruta o experiencia en M05, M07, M04 y M08 de la Mini App.
 const A6 = 900007031;
@@ -41,7 +42,10 @@ async function open(page: Page, path: string) {
 }
 
 async function fillRoute(page: Page, withType = true) {
+  await toStep(page, 1);
   await page.getByTestId("listing-kind-route_experience").click();
+  await toStep(page, 2);
+  await toStep(page, 2);
   await page.getByLabel("Nombre", { exact: true }).fill(ROUTE);
   await page.getByLabel("Municipio", { exact: true }).selectOption(municipalityOne);
   await page.getByLabel("Categoría", { exact: true }).selectOption(categoryOne);
@@ -55,6 +59,7 @@ async function fillRoute(page: Page, withType = true) {
 
 test("9: crear una ruta con tipo y guía; aparece en M04 como borrador y M08 muestra tipo y guía", async ({ page }) => {
   await open(page, "/fichas/nueva");
+  await toStep(page, 2);
   await expect(page.getByTestId("listing-name")).toBeVisible();
   await fillRoute(page);
   await expect(page.getByTestId("listing-title")).toHaveText("Nueva ficha de ruta o experiencia");
@@ -80,13 +85,16 @@ test("10: enviar desde el formulario con la declaración deja la ficha pendiente
     if (request.method() === "POST" && new URL(request.url()).pathname.endsWith("/submission")) submissions++;
   });
   await open(page, "/fichas/nueva");
+  await toStep(page, 2);
   await expect(page.getByTestId("listing-name")).toBeVisible();
   await fillRoute(page);
+  await toStep(page, 5);
   await page.getByTestId("listing-submit").click();
   await page.getByTestId("listing-submit-yes").click();
   await expect(page.getByTestId("listing-error-thirdPartyAuthorizationDeclared")).toHaveText("Debes declarar que tienes la autorización de los guías y contactos.");
   expect(submissions).toBe(0);
-  expect((await owner.query("select status from app.listing_versions")).rows).toEqual([]);
+  // D-206: el borrador se guarda en el paso 3, antes de las fotos; sin la declaración no pasa a revisión.
+  expect((await owner.query("select status from app.listing_versions")).rows).toEqual([{ status: "draft" }]);
 
   await page.getByTestId("listing-declaration").check();
   await page.getByTestId("listing-submit-yes").click();
@@ -100,8 +108,10 @@ test("10: enviar desde el formulario con la declaración deja la ficha pendiente
 
 test("12: enviar una ruta sin tipo muestra el error junto al selector y la ficha sigue en borrador", async ({ page }) => {
   await open(page, "/fichas/nueva");
+  await toStep(page, 2);
   await expect(page.getByTestId("listing-name")).toBeVisible();
   await fillRoute(page, false);
+  await toStep(page, 5);
   await page.getByTestId("listing-submit").click();
   const error = page.getByTestId("listing-error-experienceTypeId");
   await expect(error).toHaveText("Elige un tipo de experiencia.");
@@ -123,10 +133,14 @@ test("31: la elección de clase aparece solo al crear y el tipo y la guía solo 
   await expect(page.getByTestId("listing-kind-route_experience")).toBeVisible();
   await expect(page.getByTestId("listing-experience-type")).toHaveCount(0);
   await expect(page.getByTestId("listing-guides-info")).toHaveCount(0);
+  await toStep(page, 1);
   await page.getByTestId("listing-kind-route_experience").click();
+  await toStep(page, 2);
   await expect(page.getByTestId("listing-experience-type")).toBeVisible();
   await expect(page.getByTestId("listing-guides-info")).toBeVisible();
+  await toStep(page, 1);
   await page.getByTestId("listing-kind-establishment").click();
+  await toStep(page, 2);
   await expect(page.getByTestId("listing-experience-type")).toHaveCount(0);
   await expect(page.getByTestId("listing-guides-info")).toHaveCount(0);
 
@@ -147,19 +161,26 @@ test("31: la elección de clase aparece solo al crear y el tipo y la guía solo 
 
 test("32: el selector y el campo de guías tienen etiqueta asociada y el error del selector está enlazado con aria-describedby", async ({ page }) => {
   await open(page, "/fichas/nueva");
+  await toStep(page, 2);
   await expect(page.getByTestId("listing-name")).toBeVisible();
+  await toStep(page, 1);
   await page.getByTestId("listing-kind-route_experience").click();
+  await toStep(page, 2);
   await expect(page.getByLabel("Tipo de experiencia", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Datos del guía (opcional)", { exact: true })).toBeVisible();
   for (const testId of ["listing-experience-type", "listing-guides-info"]) {
     const labelText = await page.getByTestId(testId).evaluate((el) => (el.id ? document.querySelector(`label[for="${el.id}"]`)?.textContent ?? "" : ""));
     expect(labelText.trim().length, testId).toBeGreaterThan(0);
   }
+  // D-206: para llegar a «Revisar» el borrador se guarda, y eso pide nombre y municipio.
+  await page.getByLabel("Nombre", { exact: true }).fill(ROUTE);
+  await page.getByLabel("Municipio", { exact: true }).selectOption(municipalityOne);
+  await toStep(page, 5);
   await page.getByTestId("listing-submit").click();
+  const error = page.getByTestId("listing-error-experienceTypeId");
+  await expect(error).toBeVisible();
   const select = page.getByTestId("listing-experience-type");
   const describedBy = await select.getAttribute("aria-describedby");
   expect(describedBy).toBeTruthy();
-  const error = page.getByTestId("listing-error-experienceTypeId");
-  await expect(error).toBeVisible();
   expect(describedBy!.split(" ")).toContain(await error.getAttribute("id"));
 });

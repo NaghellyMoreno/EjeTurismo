@@ -60,7 +60,8 @@ test("24: el administrador autorizado y el principal ven solo role-admin", async
     await open(page, signInitData({ userId: id }));
     await expectOnly(page, "role-admin");
     // F010 (D-120): el inicio del administrador agrega el enlace a M10 y conserva el texto de role-admin.
-    await expect(page.getByTestId("municipalities-link")).toHaveText("Administrar municipios");
+    // D-206: el enlace es una tarjeta con los textos del prototipo; conserva el nombre accesible aprobado.
+    await expect(page.getByTestId("municipalities-link")).toHaveAccessibleName("Administrar municipios");
   }
 });
 
@@ -68,8 +69,8 @@ test("25: sin rol y sin registro ve solo register-hint, sin botón ni enlace", a
   await createAccount(owner, NO_ROLE);
   await open(page, signInitData({ userId: NO_ROLE }));
   await expectOnly(page, "register-hint");
-  // F036 (criterio 40): M02 trae el botón de revocar; no hay otro botón ni enlace.
-  await expect(page.getByTestId("miniapp-home").getByRole("button")).toHaveText([es.selfRevoke.button]);
+  // D-206: el botón de revocar pasó a la pestaña Cuenta; el inicio no tiene botones ni enlaces.
+  await expect(page.getByTestId("miniapp-home").getByRole("button")).toHaveCount(0);
   await expect(page.getByTestId("miniapp-home").getByRole("link")).toHaveCount(0);
 });
 

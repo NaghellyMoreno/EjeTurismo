@@ -48,7 +48,8 @@ test.describe("acceso desde el inicio (criterios 6 y 29)", () => {
     for (const id of [ADMIN, PERSON_PRINCIPAL]) {
       await open(page, signInitData({ userId: id }));
       await expect(page.getByTestId("role-admin")).toBeVisible();
-      await expect(page.getByTestId("catalog-link")).toHaveText("Categorías y tipos");
+      // D-206: tarjeta con los textos del prototipo; conserva el nombre accesible aprobado.
+      await expect(page.getByTestId("catalog-link")).toHaveAccessibleName("Categorías y tipos");
     }
     await page.getByTestId("catalog-link").click();
     await expect(page.getByTestId("catalog-title")).toHaveText("Categorías y tipos");

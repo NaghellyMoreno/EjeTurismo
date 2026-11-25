@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { components } from "@/shared/api/schema";
 import { listingTexts, miniappTexts } from "./texts";
 import { photoTexts as t } from "@/lib/photo-texts";
-import { useProviderSession } from "./use-provider-session";
+import { type Api, type Session, useProviderSession } from "./use-provider-session";
 
 type Listing = components["schemas"]["ManagedListing"];
 type Version = components["schemas"]["ListingVersion"];
@@ -25,6 +25,28 @@ function editableVersion(listing: Listing): Version | null {
 // llamadas inútiles; el backend vuelve a comprobar tipo, tamaño, límites y permisos (invariante 1).
 export function PhotosScreen({ listingId }: { listingId: string }) {
   const { session, setSession, client } = useProviderSession({ allowAdmin: true });
+  return (
+    <main className="screen">
+      <h1 data-testid="photos-title">{t.title}</h1>
+      <PhotoPanel listingId={listingId} session={session} setSession={setSession} client={client} />
+    </main>
+  );
+}
+
+// Fotos de una ficha (M06). La usa también el paso "Fotografías" del formulario por pasos (D-206), con `embedded`.
+export function PhotoPanel({
+  listingId,
+  session,
+  setSession,
+  client,
+  embedded = false,
+}: {
+  listingId: string;
+  session: Session;
+  setSession: (next: Session) => void;
+  client: () => Api | null;
+  embedded?: boolean;
+}) {
   const [loaded, setLoaded] = useState<Loaded>({ kind: "loading" });
   const [message, setMessage] = useState<{ kind: "error" | "info"; text: string } | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
@@ -126,9 +148,7 @@ export function PhotosScreen({ listingId }: { listingId: string }) {
   const full = photos.length >= MAX_PHOTOS;
 
   return (
-    <main className="screen">
-      <h1 data-testid="photos-title">{t.title}</h1>
-      <section className="photo-list" aria-live="polite">
+      <section className={embedded ? "photo-list plain" : "photo-list"} aria-live="polite">
         {session.kind === "loading" && <p>{miniappTexts.loading}</p>}
         {session.kind === "session-error" && <p data-testid="session-error">{miniappTexts.sessionExpired}</p>}
         {session.kind === "forbidden" && <p data-testid="photos-forbidden" role="alert">{listingTexts.forbidden}</p>}
@@ -174,7 +194,7 @@ export function PhotosScreen({ listingId }: { listingId: string }) {
                 </li>
               ))}
             </ul>
-            {listing.kind !== "attraction" && (
+            {listing.kind !== "attraction" && !embedded && (
               <p className="actions">
                 <Link href={`/fichas/${listing.id}`} data-testid="photos-back">{listingTexts.detail.title}</Link>
               </p>
@@ -182,6 +202,5 @@ export function PhotosScreen({ listingId }: { listingId: string }) {
           </>
         )}
       </section>
-    </main>
   );
 }

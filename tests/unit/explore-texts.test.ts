@@ -78,6 +78,11 @@ describe("criterio 17: menús existentes", () => {
   // D-204: pruebas que exigían menu.providerAvailable.
   for (const file of ["tests/bot/provider-requests.test.ts", "tests/bot/provider-no-admin.test.ts", "tests/bot/listing-isolation.test.ts", "tests/unit/listing-isolation-texts.test.ts", "tests/unit/miniapp-home.test.ts", "tests/e2e/home.spec.ts", "tests/e2e/provider-no-admin.spec.ts"]) ALLOWED.add(file);
 
+  // D-206 (autorizado por la usuaria): pruebas e2e de la Mini App ajustadas a la barra inferior, la pestaña Cuenta, el inicio del
+  // prototipo y el formulario por pasos. Se permite borrar líneas en ellas, pero no bajar el número de it( o test(.
+  const D206 = new Set(["attraction", "catalog", "consent-miniapp", "home", "listing-edit-published", "listings", "maps-location", "municipalities", "provider-no-admin", "review"].map((name) => `tests/e2e/${name}.spec.ts`));
+  for (const file of D206) ALLOWED.add(file);
+
   const F032_GUARDS = new Set(["tests/helpers/protected-operations.ts", "tests/helpers/role-denial.ts", "tests/integration/review-database.test.ts", "tests/unit/f013-matrix.test.ts", "tests/unit/init-data-coverage.test.ts", "tests/unit/role-routes-structure.test.ts", "tests/integration/role-access-denied.test.ts", "tests/integration/provider-no-admin.test.ts", "tests/integration/experience-type-filter.test.ts"]);
   const F032_REMOVED = [
     "registrationId: (ID|id), grantId", "Operaciones de rol con ruta", "ADMIN_OPERATION_IDS, \"createListing\"", "UNROUTED_OPERATION_IDS", "listMyBusinessInformationRequests", "^-\\];",
@@ -118,7 +123,8 @@ describe("criterio 17: menús existentes", () => {
       const f032 = F032_GUARDS.has(file) ? `|${F032_REMOVED}` : "";
       // D-204: el bot ya no envía menu.providerAvailable después del menú del prestador; se retiran sus aserciones.
       const d204 = "|providerAvailable|Ya tienes el rol de prestador|providerMenu = \\[noRoleMenu|reply_markup\\).toBeUndefined";
-      const allowedRemoved = new RegExp(`Revocar mi autorización|registerButton|selfRevoke\\.button|myListings|revoke\\.button|MENU_BUTTONS|buttons|keyboardOf${f018}${d175}${f030}${f185}${f032}${d204}`, "i");
+      const d206 = D206.has(file) ? "|." : "";
+      const allowedRemoved = new RegExp(`Revocar mi autorización|registerButton|selfRevoke\\.button|myListings|revoke\\.button|MENU_BUTTONS|buttons|keyboardOf${f018}${d175}${f030}${f185}${f032}${d204}${d206}`, "i");
       for (const l of removed) expect(l, `${file}: ${l}`).toMatch(allowedRemoved);
     }
   });

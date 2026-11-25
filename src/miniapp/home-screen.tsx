@@ -1,13 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { es } from "@/bot/texts/es";
 import { createApiClient } from "@/shared/api/client";
 import type { components } from "@/shared/api/schema";
-import { homeTitle, homeView, homeViewText, protectedText, revokeConfirmText } from "./home";
+import { homeTitle, protectedText, revokeConfirmText } from "./home";
+import { HomePanel } from "./home-panels";
 import { noticeText } from "./notice";
-import { attractionTexts, catalogTexts, listingTexts, miniappTexts } from "./texts";
+import { useBackHandler, useShell } from "./shell";
+import { miniappTexts } from "./texts";
 
 type Me = components["schemas"]["Me"];
 type Api = ReturnType<typeof createApiClient>;
@@ -45,10 +46,12 @@ async function stateFor(api: Api, me: Me): Promise<State> {
 // M01, M02, M03 y M12: lee `getMe` con el `initData` de Telegram en cada apertura; no guarda nada de la cuenta en el navegador.
 // La Mini App no decide nada: aceptar y revocar pasan por el servidor, que verifica la firma y las reglas (invariante 1).
 export function HomeScreen() {
+  const shell = useShell();
   const [state, setState] = useState<State>({ kind: "loading" });
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
   const apiRef = useRef<Api | null>(null);
+  const [api, setApi] = useState<Api | null>(null);
 
   useEffect(() => {
     const webApp = (
@@ -71,6 +74,7 @@ export function HomeScreen() {
       .GET("/api/v1/me")
       .then(async ({ data, response }) => {
         if (response.status === 401) return set({ kind: "session-error" });
+        if (!cancelled) setApi(api);
         set(data ? await stateFor(api, data) : { kind: "notice-error" });
       })
       .catch(() => set({ kind: "notice-error" }));
@@ -98,7 +102,10 @@ export function HomeScreen() {
       try {
         const { data, response } = await api.POST("/api/v1/consents", { body: { noticeVersion: current.version, accepted: true, channel: "mini_app" } });
         if (response.status === 401) return { kind: "session-error" };
-        if (data) return { kind: "home", me: data };
+        if (data) {
+          shell.setMe(data);
+          return { kind: "home", me: data };
+        }
         // La versión vigente cambió: se pide de nuevo el aviso vigente y no se guarda nada.
         if (response.status === 409) {
           const notice = await fetchNotice(api);
@@ -115,7 +122,10 @@ export function HomeScreen() {
       try {
         const { data, error, response } = await api.POST("/api/v1/consents/revocations", { body: { confirmed: true } });
         if (response.status === 401) return { kind: "session-error" };
-        if (data) return { kind: "revoked", message: data.message };
+        if (data) {
+          shell.setMe(null);
+          return { kind: "revoked", message: data.message };
+        }
         // 409: el motivo del servidor y vuelve al inicio sin cambios.
         const reason = response.status === 409 ? protectedText(error?.code) : null;
         if (reason) return backHome(current, reason);
@@ -131,10 +141,20 @@ export function HomeScreen() {
       ? { kind: "notice", me: current.me, text: current.text, version: current.version, flash }
       : { kind: "home", me: current.me, flash };
 
+  // El gesto de volver tras rechazar el aviso o en la confirmación regresa al aviso, como sus botones.
+  useBackHandler(state.kind === "declined" || state.kind === "confirm", () => {
+    if (state.kind === "declined") setState({ kind: "notice", me: state.me, text: state.text, version: state.version });
+    else if (state.kind === "confirm" && state.text && state.version)
+      setState({ kind: "notice", me: state.me, text: state.text, version: state.version, flash: es.selfRevoke.cancelled });
+    else if (state.kind === "confirm") setState({ kind: "home", me: state.me, flash: es.selfRevoke.cancelled });
+    return true;
+  });
+
+  const isHome = state.kind === "home";
   return (
     <main className="screen">
-      <h1 id="miniapp-title">{homeTitle}</h1>
-      <section data-testid="miniapp-home" aria-live="polite">
+      <h1 id="miniapp-title" className={isHome ? "sr-only" : undefined}>{homeTitle}</h1>
+      <section data-testid="miniapp-home" className={isHome ? "plain" : undefined} aria-live="polite">
         {state.kind === "loading" && <p>{miniappTexts.loading}</p>}
         {state.kind === "session-error" && <p data-testid="session-error">{miniappTexts.sessionExpired}</p>}
         {state.kind === "notice-error" && <p data-testid="notice-error">{miniappTexts.noticeError}</p>}
@@ -178,44 +198,9 @@ export function HomeScreen() {
         )}
         {state.kind === "home" && (
           <>
-            {state.flash && <p data-testid="flash">{state.flash}</p>}
-            <p data-testid={homeView(state.me)}>{homeViewText[homeView(state.me)]}</p>
-            {homeView(state.me) === "role-admin" && (
-              <>
-                <p>
-                  <Link href="/municipios" data-testid="municipalities-link">
-                    {miniappTexts.adminMunicipalitiesLink}
-                  </Link>
-                </p>
-                <p>
-                  <Link href="/catalogos" data-testid="catalog-link">
-                    {catalogTexts.link}
-                  </Link>
-                </p>
-                <p>
-                  <Link href="/atractivos" data-testid="attractions-link">
-                    {attractionTexts.link}
-                  </Link>
-                </p>
-              </>
-            )}
-            {homeView(state.me) === "role-provider" && (
-              <p>
-                <Link href="/fichas" data-testid="listings-link">
-                  {listingTexts.homeLink}
-                </Link>
-              </p>
-            )}
-            {state.me.consent.canRevoke && (
-              <>
-                <p data-testid="self-revoke-note">{es.selfRevoke.note}</p>
-                <div className="actions">
-                  <button type="button" className="primary" data-testid="self-revoke-button" onClick={() => setState({ kind: "confirm", me: state.me })}>
-                    {es.selfRevoke.button}
-                  </button>
-                </div>
-              </>
-            )}
+            {state.flash && <p className="notice" data-testid="flash">{state.flash}</p>}
+            {/* D-206: el botón de revocar y la frase de D-023 están en la pestaña Cuenta. */}
+            <HomePanel me={state.me} api={api} />
           </>
         )}
         {state.kind === "confirm" && (
