@@ -70,7 +70,7 @@ export function ListingDetailScreen({ id }: { id: string }) {
         {session.kind === "ready" && loaded.kind === "forbidden" && <p data-testid="listing-forbidden" role="alert">{t.forbidden}</p>}
         {session.kind === "ready" && loaded.kind === "ready" && (
           <>
-            <p data-testid="listing-status">{t.status[loaded.listing.displayStatus]}</p>
+            <p><span className={`badge badge-${loaded.listing.displayStatus}`} data-testid="listing-status">{t.status[loaded.listing.displayStatus]}</span></p>
             {!loaded.listing.hasPublishedVersion && <p data-testid="listing-not-published">{t.detail.notPublished}</p>}
             {loaded.listing.displayStatus === "pending" && <p data-testid="listing-pending-note">{review.pendingNote}</p>}
             {loaded.listing.hasPublishedVersion && working && <p data-testid="listing-still-visible">{edit.stillVisible}</p>}

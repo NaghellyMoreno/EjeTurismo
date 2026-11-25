@@ -51,7 +51,7 @@ export function ListingsScreen() {
                   <li key={item.id} data-testid={`listing-row-${item.id}`}>
                     <Link href={`/fichas/${item.id}`} data-testid={`listing-open-${item.id}`}>{item.name}</Link>
                     <span data-testid={`listing-municipality-${item.id}`}>{item.municipality.name}</span>
-                    <span data-testid={`listing-status-${item.id}`}>{t.status[item.displayStatus]}</span>
+                    <span className={`badge badge-${item.displayStatus}`} data-testid={`listing-status-${item.id}`}>{t.status[item.displayStatus]}</span>
                   </li>
                 ))}
               </ul>

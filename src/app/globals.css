@@ -1,4 +1,5 @@
-/* Identidad visual del proyecto: solo modo claro y solo estos colores (CLAUDE.md). */
+/* Identidad visual del proyecto: solo modo claro y solo estos colores (CLAUDE.md). Diseño adaptado del prototipo
+   interactivo de la usuaria (D-204): tarjetas redondeadas, encabezado de marca y botones amplios, sin colores fuera de la paleta. */
 :root {
   --color-primary: #659287;
   --color-primary-dark: #3f6b5f;
@@ -7,122 +8,156 @@
   --color-background: #e6f2dd;
   --color-accent: #c1ff72;
   --color-text: #1f3a33;
+  --radius-card: 1rem;
+  --radius-control: 0.8rem;
+  --shadow-card: 0 4px 14px var(--color-soft);
   color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
   background: var(--color-background);
   color: var(--color-text);
-  font-family: system-ui, sans-serif;
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.5;
 }
 
-/* Logo en la parte superior de todas las pantallas de la Mini App. */
+/* Barra superior con el logo, en todas las pantallas de la Mini App. */
 .brand {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
-  justify-content: center;
-  padding: 1rem 1rem 0;
+  align-items: center;
+  padding: 0.625rem 1rem;
+  background: #fff;
+  border-bottom: 1px solid var(--color-soft);
 }
 
 .brand img {
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: 0.75rem;
 }
 
 .screen {
   max-width: 32rem;
   margin: 0 auto;
-  padding: 1rem;
+  padding: 1rem 1rem 2rem;
 }
 
+/* Título de cada pantalla como cabecera de marca: blanco sobre el primario oscuro, con anillos decorativos. */
 .screen h1 {
+  position: relative;
+  overflow: hidden;
   margin: 0 0 1rem;
-  padding: 0.75rem 1rem;
+  padding: 1.375rem 1.25rem;
   background: var(--color-primary-dark);
   color: #fff;
-  font-size: 1.25rem;
-  border-radius: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  border-radius: 1.4rem;
+}
+
+.screen h1::after {
+  content: "";
+  position: absolute;
+  right: -2.5rem;
+  top: -3rem;
+  width: 9rem;
+  height: 9rem;
+  border: 1px solid var(--color-primary);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5rem var(--color-primary-dark), 0 0 0 calc(1.5rem + 1px) var(--color-primary);
+  pointer-events: none;
+}
+
+.screen h2 {
+  margin: 1rem 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 .screen section {
   padding: 1rem;
+  background: #fff;
+  border: 1px solid var(--color-soft);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* M02: el inicio va sobre el verde suave, como el bloque destacado del prototipo. */
+.screen [data-testid="miniapp-home"] {
   background: var(--color-soft);
-  border-radius: 0.5rem;
+  border-color: var(--color-soft);
+}
+
+.screen section section {
+  margin-top: 1rem;
+  box-shadow: none;
 }
 
 .screen p {
-  margin: 0;
-  line-height: 1.5;
-}
-
-/* M11: listas cerradas (F011). Botones con texto blanco sobre el primario oscuro. */
-.screen .catalog-list {
-  margin-bottom: 1rem;
-}
-
-.screen .catalog-list ul {
   margin: 0 0 0.75rem;
-  padding: 0;
-  list-style: none;
+  line-height: 1.6;
 }
 
-.screen .catalog-list li button {
-  width: 100%;
-  margin-bottom: 0.25rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--color-background);
+.screen p:last-child {
+  margin-bottom: 0;
+}
+
+/* Accesos del inicio (Mis fichas, Municipios, Categorías y tipos, Registrar atractivo) como tarjetas. */
+.screen [data-testid="miniapp-home"] p > a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  background: #fff;
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--radius-card);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.screen [data-testid="miniapp-home"] p > a::after {
+  content: "›";
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+/* Botones: base clara con borde y variante primaria con texto blanco sobre el primario oscuro. */
+.screen button {
+  min-height: 2.75rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
   color: var(--color-text);
-  border: 1px solid var(--color-primary);
-  border-radius: 0.5rem;
-  text-align: left;
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--radius-control);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }
 
-.screen .catalog-list li button[aria-pressed="true"] {
-  background: var(--color-secondary);
+.screen button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-.screen .catalog-list label {
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-.screen .catalog-list input {
-  display: block;
-  box-sizing: border-box;
-  width: 100%;
-  margin-top: 0.25rem;
-  padding: 0.5rem;
-  border: 1px solid var(--color-primary);
-  border-radius: 0.5rem;
-  color: var(--color-text);
-}
-
-.screen .catalog-list button[data-testid="catalog-save"],
-.screen .catalog-list button[data-testid="catalog-confirm"] {
-  padding: 0.5rem 1rem;
-  background: var(--color-primary-dark);
-  color: #fff;
-  border: 0;
-  border-radius: 0.5rem;
-}
-
-.screen .catalog-list button[data-testid="catalog-cancel"] {
-  margin-left: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: var(--color-background);
-  color: var(--color-text);
-  border: 1px solid var(--color-primary);
-  border-radius: 0.5rem;
-}
-
-.screen [role="alert"] {
-  margin-top: 0.5rem;
-  font-weight: 600;
-}
-
-/* M01, M02 y M03 (F036): aviso de privacidad y revocar la autorización. Texto plano con saltos de línea. */
-.screen .notice-text {
-  white-space: pre-wrap;
-  margin-bottom: 1rem;
+.screen button:focus-visible,
+.screen input:focus-visible,
+.screen select:focus-visible,
+.screen textarea:focus-visible,
+.screen a:focus-visible {
+  outline: 3px solid var(--color-text);
+  outline-offset: 2px;
 }
 
 .screen .actions {
@@ -132,148 +167,349 @@ body {
   margin-top: 1rem;
 }
 
+.screen .actions > * {
+  flex: 1 1 auto;
+}
+
 .screen .actions button.primary {
-  padding: 0.5rem 1rem;
   background: var(--color-primary-dark);
   color: #fff;
-  border: 0;
-  border-radius: 0.5rem;
-}
-
-.screen .actions button.secondary {
-  padding: 0.5rem 1rem;
-  background: var(--color-background);
-  color: var(--color-text);
-  border: 1px solid var(--color-primary);
-  border-radius: 0.5rem;
-}
-
-.screen .actions button:disabled {
-  opacity: 0.7;
-}
-
-.screen .actions button:focus-visible {
-  outline: 3px solid var(--color-text);
-  outline-offset: 2px;
-}
-
-/* M09: formulario del atractivo (F012). Solo colores de la paleta; botones con texto blanco sobre el primario oscuro. */
-.screen .attraction-form .field {
-  margin-bottom: 0.75rem;
-}
-
-.screen .attraction-form label {
-  display: block;
-}
-
-.screen .attraction-form input,
-.screen .attraction-form select,
-.screen .attraction-form textarea {
-  display: block;
-  box-sizing: border-box;
-  width: 100%;
-  margin-top: 0.25rem;
-  padding: 0.5rem;
-  background: #fff;
-  border: 1px solid var(--color-primary);
-  border-radius: 0.5rem;
-  color: var(--color-text);
-  font: inherit;
-}
-
-.screen .attraction-form input[aria-invalid="true"] {
   border-color: var(--color-primary-dark);
-  border-width: 2px;
 }
 
-.screen .attraction-form button.primary,
-.screen .attraction-form button.secondary {
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font: inherit;
+.screen button.primary,
+.screen button[type="submit"],
+.screen button[data-testid="municipality-new"],
+.screen button[data-testid="municipality-confirm-accept"],
+.screen button[data-testid="catalog-confirm"] {
+  background: var(--color-primary-dark);
+  color: #fff;
+  border-color: var(--color-primary-dark);
 }
 
-.screen .attraction-form button.primary {
+.screen button.secondary {
+  background: #fff;
+  color: var(--color-text);
+  border-color: var(--color-secondary);
+}
+
+/* Selector de tipo de ficha (radio): la opción elegida se marca con el primario oscuro. */
+.screen [role="radiogroup"] .actions button {
+  flex: 1 1 10rem;
+  text-align: left;
+}
+
+/* Enlaces: color de texto; los que parecen botón, blanco sobre el primario oscuro, y los demás de .actions como botón claro. */
+.screen a {
+  color: var(--color-text);
+}
+
+.screen a.primary,
+.screen .actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-control);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.screen a.primary {
   background: var(--color-primary-dark);
   color: #fff;
   border: 1px solid var(--color-primary-dark);
 }
 
-.screen .attraction-form button.secondary {
-  background: var(--color-background);
+.screen .actions a:not(.primary) {
+  background: #fff;
   color: var(--color-text);
-  border: 1px solid var(--color-primary);
+  border: 1px solid var(--color-secondary);
 }
 
-.screen .attraction-form button:focus-visible,
-.screen .attraction-form input:focus-visible,
-.screen .attraction-form select:focus-visible,
-.screen .attraction-form textarea:focus-visible {
-  outline: 3px solid var(--color-text);
-  outline-offset: 2px;
+/* Campos de formulario. */
+.screen label {
+  display: block;
+  font-weight: 700;
 }
 
-.screen .attraction-form [role="alertdialog"] {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: var(--color-background);
-  border: 1px solid var(--color-primary);
-  border-radius: 0.5rem;
-}
-
-/* M04 y M08 (F013): lista y detalle de fichas. Enlaces con el color de texto; los que parecen botón, blanco sobre el primario oscuro. */
-.screen a {
+.screen input,
+.screen select,
+.screen textarea {
+  display: block;
+  width: 100%;
+  min-height: 2.75rem;
+  margin-top: 0.375rem;
+  padding: 0.625rem 0.75rem;
+  background: #fff;
   color: var(--color-text);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--radius-control);
+  font: inherit;
+  font-weight: 400;
 }
 
-.screen a.primary {
+.screen textarea {
+  resize: vertical;
+}
+
+.screen input:focus,
+.screen select:focus,
+.screen textarea:focus {
+  border-color: var(--color-primary-dark);
+}
+
+.screen input[aria-invalid="true"],
+.screen select[aria-invalid="true"],
+.screen textarea[aria-invalid="true"] {
+  border-color: var(--color-primary-dark);
+  border-width: 2px;
+}
+
+.screen .field {
+  margin-bottom: 1rem;
+}
+
+.screen .listing-form input[type="checkbox"] {
   display: inline-block;
-  padding: 0.5rem 1rem;
-  background: var(--color-primary-dark);
-  color: #fff;
-  border-radius: 0.5rem;
-  text-decoration: none;
+  width: 1.125rem;
+  min-height: 0;
+  height: 1.125rem;
+  margin: 0 0.5rem 0 0;
+  vertical-align: middle;
+  accent-color: var(--color-primary-dark);
 }
 
-.screen a:focus-visible {
-  outline: 3px solid var(--color-text);
-  outline-offset: 2px;
+/* Mensajes de error y avisos. Los avisos sueltos de la pantalla van en una tarjeta con borde lateral. */
+.screen [role="alert"] {
+  margin-top: 0.5rem;
+  font-weight: 600;
 }
 
+.screen section > [role="alert"],
+.screen section > [role="status"] {
+  padding: 0.75rem 0.875rem;
+  background: #fff;
+  border: 1px solid var(--color-soft);
+  border-left: 4px solid var(--color-primary-dark);
+  border-radius: var(--radius-control);
+}
+
+/* Confirmaciones: tarjeta destacada sobre el fondo claro. */
+.screen [role="alertdialog"] {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--color-background);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--radius-card);
+}
+
+.screen [role="alertdialog"] button + button {
+  margin-left: 0.5rem;
+}
+
+/* M01, M02 y M03 (F036): aviso de privacidad y revocar la autorización. Texto plano con saltos de línea. */
+.screen .notice-text {
+  white-space: pre-wrap;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #fff;
+  border-radius: var(--radius-control);
+}
+
+/* M11: listas cerradas (F011). */
+.screen .catalog-list {
+  margin-bottom: 1rem;
+}
+
+.screen .catalog-list ul,
+.screen [data-testid="municipality-list"] {
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.screen .catalog-list li button {
+  width: 100%;
+  margin-bottom: 0.375rem;
+  text-align: left;
+  font-weight: 600;
+}
+
+.screen .catalog-list li button[aria-pressed="true"] {
+  background: var(--color-secondary);
+  border-color: var(--color-secondary);
+}
+
+.screen .catalog-list form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.screen .catalog-list div button + button {
+  margin-left: 0.5rem;
+}
+
+/* M10: municipios (F010). */
+.screen [data-testid="municipality-list"] {
+  margin-top: 1rem;
+}
+
+.screen [data-testid="municipality-item"] {
+  margin-bottom: 0.5rem;
+  padding: 0.75rem;
+  background: #fff;
+  border: 1px solid var(--color-soft);
+  border-radius: var(--radius-card);
+}
+
+.screen [data-testid="municipality-item"] button {
+  margin-right: 0.5rem;
+}
+
+.screen [data-testid="municipality-form"] label {
+  margin-bottom: 1rem;
+}
+
+.screen [data-testid="municipality-form"] > button + button {
+  margin-left: 0.5rem;
+}
+
+/* M04 y M08 (F013): lista y detalle de fichas como tarjetas. */
 .screen .listing-list ul {
   margin: 0 0 1rem;
   padding: 0;
   list-style: none;
 }
 
-.screen .listing-list li {
-  display: flex;
-  flex-direction: column;
+.screen .listing-list li[data-testid^="listing-row-"] {
+  position: relative;
+  display: grid;
   gap: 0.25rem;
-  margin-bottom: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  justify-items: start;
+  margin-bottom: 0.625rem;
+  padding: 0.875rem 2.25rem 0.875rem 1rem;
+  background: #fff;
+  border: 1px solid var(--color-soft);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.screen .listing-list li[data-testid^="listing-row-"]::after {
+  content: "›";
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.25rem;
+}
+
+.screen .listing-list li[data-testid^="listing-row-"] a {
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.screen .listing-list li[data-testid^="listing-row-"] a::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-card);
+}
+
+.screen .listing-list li[data-testid^="listing-row-"] span {
+  font-size: 0.8125rem;
+}
+
+/* Insignias de estado de la ficha. */
+.screen .badge {
+  display: inline-block;
+  padding: 0.2rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--color-text);
+  border: 1px solid transparent;
+}
+
+.screen .listing-list li .badge {
+  font-size: 0.75rem;
+}
+
+.screen .badge-published {
+  background: var(--color-accent);
+}
+
+.screen .badge-pending {
+  background: var(--color-soft);
+}
+
+.screen .badge-rejected {
+  background: #fff;
+  border-color: var(--color-primary-dark);
+}
+
+.screen .badge-draft {
   background: var(--color-background);
-  border: 1px solid var(--color-primary);
-  border-radius: 0.5rem;
+  border-color: var(--color-secondary);
+}
+
+.screen .listing-list [data-testid="listing-rejection"] {
+  margin-bottom: 1rem;
+  padding: 0.875rem;
+  background: var(--color-background);
+  border-left: 4px solid var(--color-primary-dark);
+  border-radius: var(--radius-control);
+}
+
+.screen .listing-list [data-testid="listing-rejection"] h2 {
+  margin-top: 0;
+}
+
+.screen .listing-list dl {
+  margin: 0 0 1rem;
+}
+
+.screen .listing-list dl > div {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.625rem 0;
+  border-bottom: 1px solid var(--color-soft);
 }
 
 .screen .listing-list dt {
-  font-weight: 600;
+  flex: 0 0 7rem;
+  font-weight: 700;
 }
 
 .screen .listing-list dd {
-  margin: 0 0 0.5rem;
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
-.screen .listing-form input[type="checkbox"] {
-  display: inline-block;
-  width: auto;
-  margin: 0 0.5rem 0 0;
+.screen [data-testid="listing-photos"] {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
 }
 
-/* M06: fotos de la ficha (F020). Solo colores de la paleta. */
+.screen [data-testid="listing-photos"] li {
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--radius-control);
+}
+
+.screen [data-testid="listing-photos"] img {
+  display: block;
+  width: 100%;
+  height: 5.25rem;
+  object-fit: cover;
+}
+
+/* M06: fotos de la ficha (F020). */
 .screen .photo-list ul {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
   gap: 0.75rem;
   margin: 1rem 0 0;
   padding: 0;
@@ -281,14 +517,23 @@ body {
 }
 
 .screen .photo-list li {
-  padding: 0.75rem;
+  padding: 0.5rem;
   background: var(--color-background);
-  border-radius: 0.5rem;
+  border: 1px solid var(--color-soft);
+  border-radius: var(--radius-card);
 }
 
 .screen .photo-list img {
   display: block;
-  max-width: 100%;
+  width: 100%;
   height: auto;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-control);
+}
+
+.screen .photo-list li .actions {
+  margin-top: 0.5rem;
+}
+
+.screen .listing-form label:has(input[type="checkbox"]) {
+  font-weight: 400;
 }
