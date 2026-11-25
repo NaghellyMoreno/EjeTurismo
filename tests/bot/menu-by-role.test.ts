@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { es } from "@/bot/texts/es";
 import { createAccount, createOldVersionAccount, PERSON_PRINCIPAL } from "../factories/accounts";
 import { createRegistration, grantAdminRole, makeProvider, namedAccount, NUMBER_1, pendingFor } from "../factories/review";
-import { buttonsOf, createTestBot, noRoleMenu, pendingMenu, ADMIN_MENU_BUTTONS, adminMenu, providerMenu } from "../helpers/bot";
+import { buttonsOf, createTestBot, noRoleMenu, pendingMenu, ADMIN_MENU_BUTTONS, adminMenu, providerMenu, retiredProviderNotice } from "../helpers/bot";
 import { ownerPool, resetDb } from "../helpers/db";
 import { failingDb } from "../helpers/failing-db";
 import { callbackUpdate, textUpdate } from "../helpers/telegram";
@@ -86,7 +86,7 @@ describe("paso 1: el prestador no repite el registro (criterios 1 a 5)", () => {
     await makeProvider(owner, PROVIDER);
     await owner.query("update app.role_grants set revoked_at = now() where telegram_user_id = $1", [PROVIDER]);
     await t.send(start(PROVIDER));
-    expect(t.texts()).not.toContain(es.menu.providerAvailable);
+    expect(t.texts()).not.toContain(retiredProviderNotice);
     expect(t.texts()).toEqual([noRoleMenu]);
   });
 });
@@ -100,7 +100,7 @@ describe("paso 2: el administrador ve su menú (criterios 6 a 9)", () => {
     await t.send(start(ADMIN));
     expect(t.texts()).toEqual([adminMenu]);
     expect(allButtons()).toEqual(adminButtons);
-    expect(t.texts()).not.toContain(es.menu.providerAvailable);
+    expect(t.texts()).not.toContain(retiredProviderNotice);
   });
 
   it.each([

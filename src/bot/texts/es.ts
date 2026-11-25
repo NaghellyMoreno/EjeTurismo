@@ -15,8 +15,6 @@ export const es = {
     // B02, menú mínimo (D-068, D-071). El botón de registro solo lo ven cuentas sin rol y sin registro (D-074).
     welcome: "Te damos la bienvenida a Eje Turismo.\n\nComandos disponibles:\n/start: mostrar este menú",
     registerButton: "Registrarme como prestador",
-    // Mínimo de B02 para quien ya tiene el permiso de prestador (D-090, D-091); el menú completo es de F005.
-    providerAvailable: "Ya tienes el rol de prestador. Las opciones de prestador estarán disponibles pronto.",
     // F014: botón B06 del administrador y botón B12 del prestador.
     reviews: "Fichas por revisar",
     history: "Historial de fichas",

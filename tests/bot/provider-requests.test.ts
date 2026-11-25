@@ -237,7 +237,7 @@ describe("criterio 14: lista con filtros y paginación", () => {
     expect(t.texts()).toEqual([T.emptyFiltered]);
     t.clear();
     await press(P1, back);
-    expect(t.texts()).toEqual([es.menu.welcome + "\n\n" + es.selfRevoke.note, es.menu.providerAvailable]);
+    expect(t.texts()).toEqual([es.menu.welcome + "\n\n" + es.selfRevoke.note]);
     expect(t.messages()[0].payload.text).toContain(es.menu.welcome);
   });
 });

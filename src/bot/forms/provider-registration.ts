@@ -104,10 +104,9 @@ const isAdmin = (info: AccountContext) => info.isPrincipalAdmin || info.roles.in
 async function showMenu(ctx: Context, info: AccountContext) {
   // B06 mínimo (D-091, D-102): el administrador ve "Registros pendientes" y "Autorizar administrador"; el menú completo es de F005 y siguientes.
   if (isAdmin(info)) return send(ctx, withSelfRevoke(es.menu.welcome), addSelfRevokeButton(exploreRow(adminKeyboard())));
-  // Mínimo de B02 para el prestador (D-090, D-091); el menú completo es de F005.
+  // B02 del prestador: Mis fichas, Mis solicitudes, Explorar y revocar; sin el aviso provisional de F003 (D-204).
   if (info.roles.includes("provider")) {
-    await send(ctx, withSelfRevoke(es.menu.welcome), addSelfRevokeButton(exploreRow(new InlineKeyboard().text(es.menu.myListings, MY_LISTINGS).row().text(es.providerRequests.menuButton, MY_REQUESTS).row())));
-    return send(ctx, es.menu.providerAvailable);
+    return send(ctx, withSelfRevoke(es.menu.welcome), addSelfRevokeButton(exploreRow(new InlineKeyboard().text(es.menu.myListings, MY_LISTINGS).row().text(es.providerRequests.menuButton, MY_REQUESTS).row())));
   }
   // B05: con el registro pendiente, el estado ocupa el lugar del menú. Se ofrece revocar la autorización (F034 y F035).
   if (info.registrationStatus === "pending") return send(ctx, withSelfRevoke(es.provider.pending), addSelfRevokeButton());

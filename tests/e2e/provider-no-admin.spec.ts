@@ -43,7 +43,7 @@ const absent = async (page: Page, ids: string[]) => {
 test("18: en / el prestador ve solo role-provider, sin enlaces ni botones", async ({ page }) => {
   await open(page, "/");
   const home = page.getByTestId("miniapp-home");
-  await expect(page.getByTestId("role-provider")).toHaveText("Ya tienes el rol de prestador. Las opciones de prestador estarán disponibles pronto.");
+  await expect(page.getByTestId("role-provider")).toHaveText("Desde aquí creas y editas tus fichas y las envías a revisión. Las solicitudes de los visitantes las atiendes en el bot, con el botón «Mis solicitudes».");
   // F013: el prestador ve un único enlace, "Mis fichas"; ninguno de administrador.
   await expect(home.getByRole("link")).toHaveCount(1);
   await expect(page.getByTestId("listings-link")).toHaveText("Mis fichas");

@@ -97,7 +97,7 @@ describe("criterio 15: A6 no se autoriza administrador desde el bot", () => {
 });
 
 describe("criterio 16: menú del prestador", () => {
-  it("/start antes y después de las 23 pulsaciones: solo welcome y providerAvailable, sin opciones de administrador", async () => {
+  it("/start antes y después de las 23 pulsaciones: solo welcome, sin opciones de administrador", async () => {
     const outgoing: Array<Record<string, unknown>> = [];
     const start = async () => {
       t.clear();

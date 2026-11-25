@@ -13,7 +13,6 @@ describe("criterio 23a: textos reutilizados letra por letra", () => {
     expect(es.myListings.empty).toBe("Todavía no tienes fichas. Crea una desde la Mini App.");
     expect(es.myListings.title).toBe("Tus fichas");
     expect(es.admin.forbidden).toBe("No tienes permiso para hacer esta acción.");
-    expect(es.menu.providerAvailable).toBe("Ya tienes el rol de prestador. Las opciones de prestador estarán disponibles pronto.");
   });
 
   it("esta funcionalidad no agrega claves ni líneas a los archivos de textos", () => {

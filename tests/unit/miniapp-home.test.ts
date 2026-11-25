@@ -33,8 +33,7 @@ describe("M02: la vista sale solo de getMe (criterios 23 a 28)", () => {
 
 describe("textos de la Mini App (criterios 23 a 29 y 31)", () => {
   it("coinciden con los aprobados", () => {
-    expect(homeViewText["role-provider"]).toBe("Ya tienes el rol de prestador. Las opciones de prestador estarán disponibles pronto.");
-    expect(homeViewText["role-provider"]).toBe(es.menu.providerAvailable);
+    expect(homeViewText["role-provider"]).toBe("Desde aquí creas y editas tus fichas y las envías a revisión. Las solicitudes de los visitantes las atiendes en el bot, con el botón «Mis solicitudes».");
     expect(homeViewText["role-admin"]).toBe("Eres administrador. Las opciones de administración se usan desde el bot de Telegram.");
     expect(homeViewText["register-hint"]).toBe(
       "Para registrarte como prestador, escribe /start en el bot de Telegram y pulsa «Registrarme como prestador».",

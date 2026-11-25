@@ -75,12 +75,11 @@ afterEach(async () => {
 });
 
 describe("prestador (criterios 1 a 5 y 35)", () => {
-  it("1: /start muestra menu.welcome con la frase y el botón; providerAvailable aparte y sin cambios", async () => {
+  it("1: /start muestra menu.welcome con la frase y el botón; sin el aviso provisional (D-204)", async () => {
     await addProvider(PROV);
     await t.send(start(PROV));
-    expect(t.texts()).toEqual([WELCOME, es.menu.providerAvailable]);
+    expect(t.texts()).toEqual([WELCOME]);
     expect(keyboardOf(t.messages()[0])).toEqual([{ text: es.menu.myListings, callback_data: "ml:l" }, { text: es.providerRequests.menuButton, callback_data: "rq:l:t1" }, { text: es.menu.exploreButton, callback_data: "exp:m" }, { text: "Revocar mi autorización", callback_data: SELF_REVOKE_ASK }]);
-    expect(t.messages()[1].payload.reply_markup).toBeUndefined();
   });
 
   it("2 y 3: pedir muestra confirmProvider con dos botones sin cambios; cancelar reenvía el menú y conserva el permiso", async () => {
@@ -97,7 +96,7 @@ describe("prestador (criterios 1 a 5 y 35)", () => {
     expect(await state()).toEqual(before);
     t.clear();
     await t.send(press(PROV, SELF_REVOKE_CANCEL));
-    expect(t.texts()).toEqual([es.selfRevoke.cancelled, WELCOME, es.menu.providerAvailable]);
+    expect(t.texts()).toEqual([es.selfRevoke.cancelled, WELCOME]);
     expect(buttonsOf(t.messages()[1].payload)).toEqual([es.menu.myListings, es.providerRequests.menuButton, es.menu.exploreButton, es.selfRevoke.button]);
     expect(await state()).toEqual(before);
   });

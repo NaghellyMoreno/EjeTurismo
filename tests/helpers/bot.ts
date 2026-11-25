@@ -60,5 +60,7 @@ export const adminMenu = noRoleMenu;
 export const ADMIN_MENU_BUTTONS = [es.admin.pendingButton, es.menu.reviews, es.menu.history, es.admin.authorizeButton, es.revoke.button, es.menu.exploreButton, es.selfRevoke.button];
 // F014: el menú del prestador agrega "Mis fichas" antes de "Revocar mi autorización".
 export const PROVIDER_MENU_BUTTONS = [es.menu.myListings, es.menu.exploreButton, es.selfRevoke.button];
-export const providerMenu = [noRoleMenu, es.menu.providerAvailable];
+// D-204: el prestador ya no recibe el aviso provisional de F003 después del menú; se conserva para comprobar que no vuelve.
+export const retiredProviderNotice = "Ya tienes el rol de prestador. Las opciones de prestador estarán disponibles pronto.";
+export const providerMenu = [noRoleMenu];
 export const pendingMenu = `${es.provider.pending}\n\n${es.selfRevoke.note}`;

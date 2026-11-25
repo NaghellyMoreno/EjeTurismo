@@ -5,7 +5,7 @@ import {
   ADMIN_A, ADMIN_B, ADMIN_NO_ACCOUNT, admin, grantId, NO_ROLE, nameOf, OLD_NOTICE, oldNoticePerson, PENDING, pendingPerson,
   person, PRINCIPAL, principal, PROVIDER_A, PROVIDER_B, provider, REVOKED_ADMIN, revokedAdmin, snapshot,
 } from "../factories/revocation";
-import { buttonsOf, createTestBot, noRoleMenu, type ApiCall, ADMIN_MENU_BUTTONS } from "../helpers/bot";
+import { buttonsOf, createTestBot, noRoleMenu, type ApiCall, ADMIN_MENU_BUTTONS, retiredProviderNotice } from "../helpers/bot";
 import { ownerPool, resetDb } from "../helpers/db";
 import { callbackUpdate, textUpdate } from "../helpers/telegram";
 
@@ -172,7 +172,7 @@ describe("cancelar y confirmar (criterios 9 a 12)", () => {
     expect(await tablesState()).toEqual(before);
     t.clear();
     await t.send(start(PROVIDER_A));
-    expect(t.texts()).toContain(es.menu.providerAvailable);
+    expect(t.messages().flatMap((m) => buttonsOf(m.payload))).toContain(es.menu.myListings);
 
     t.clear();
     await t.send(press(ADMIN_A, confirm(id)));
@@ -203,7 +203,7 @@ describe("cancelar y confirmar (criterios 9 a 12)", () => {
     await t.send(start(PROVIDER_A));
     expect(t.texts()).toEqual([noRoleMenu]);
     expect(buttonsOf(t.messages()[0].payload)).toEqual([es.menu.exploreButton, es.selfRevoke.button]);
-    expect(t.texts()).not.toContain(es.menu.providerAvailable);
+    expect(t.texts()).not.toContain(retiredProviderNotice);
   });
 });
 

@@ -98,11 +98,10 @@ describe("B06 y B02 mínimos (criterios 1, 15 y 22)", () => {
     }
   });
 
-  it("el prestador recibe menu.welcome y menu.providerAvailable, sin botón de registro ni provider.pending", async () => {
+  it("el prestador recibe menu.welcome sin el aviso provisional (D-204), sin botón de registro ni provider.pending", async () => {
     await makeProvider(owner, USER_APPROVE);
     await t.send(start(USER_APPROVE));
     expect(t.texts()).toEqual(providerMenu);
-    expect(es.menu.providerAvailable).toBe("Ya tienes el rol de prestador. Las opciones de prestador estarán disponibles pronto.");
     expect(t.messages().flatMap((m) => buttonsOf(m.payload))).toEqual([es.menu.myListings, es.providerRequests.menuButton, es.menu.exploreButton, es.selfRevoke.button]);
     expect(t.texts()).not.toContain(es.provider.pending);
   });

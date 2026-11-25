@@ -75,6 +75,9 @@ describe("criterio 17: menús existentes", () => {
   // protegidas y de acceso denegado, TRUNCATE y el criterio 20 de F024).
   for (const file of ["tests/helpers/role-denial.ts", "tests/unit/role-routes-structure.test.ts", "tests/integration/role-access-denied.test.ts", "tests/integration/provider-no-admin.test.ts", "tests/integration/experience-type-filter.test.ts"]) ALLOWED.add(file);
 
+  // D-204: pruebas que exigían menu.providerAvailable.
+  for (const file of ["tests/bot/provider-requests.test.ts", "tests/bot/provider-no-admin.test.ts", "tests/bot/listing-isolation.test.ts", "tests/unit/listing-isolation-texts.test.ts", "tests/unit/miniapp-home.test.ts", "tests/e2e/home.spec.ts", "tests/e2e/provider-no-admin.spec.ts"]) ALLOWED.add(file);
+
   const F032_GUARDS = new Set(["tests/helpers/protected-operations.ts", "tests/helpers/role-denial.ts", "tests/integration/review-database.test.ts", "tests/unit/f013-matrix.test.ts", "tests/unit/init-data-coverage.test.ts", "tests/unit/role-routes-structure.test.ts", "tests/integration/role-access-denied.test.ts", "tests/integration/provider-no-admin.test.ts", "tests/integration/experience-type-filter.test.ts"]);
   const F032_REMOVED = [
     "registrationId: (ID|id), grantId", "Operaciones de rol con ruta", "ADMIN_OPERATION_IDS, \"createListing\"", "UNROUTED_OPERATION_IDS", "listMyBusinessInformationRequests", "^-\\];",
@@ -113,7 +116,9 @@ describe("criterio 17: menús existentes", () => {
       const f185 = file === "tests/unit/f013-matrix.test.ts" || file === "tests/unit/init-data-coverage.test.ts" ? "|operaciones protegidas es exactamente el de las 38|la matriz de F009 tiene 38|toHaveLength\\(38\\)" : "";
       // F032 (D-189): líneas que cambian por los conteos de la matriz, el orden de migraciones y el criterio 20 de F024.
       const f032 = F032_GUARDS.has(file) ? `|${F032_REMOVED}` : "";
-      const allowedRemoved = new RegExp(`Revocar mi autorización|registerButton|selfRevoke\\.button|myListings|revoke\\.button|MENU_BUTTONS|buttons|keyboardOf${f018}${d175}${f030}${f185}${f032}`, "i");
+      // D-204: el bot ya no envía menu.providerAvailable después del menú del prestador; se retiran sus aserciones.
+      const d204 = "|providerAvailable|Ya tienes el rol de prestador|providerMenu = \\[noRoleMenu|reply_markup\\).toBeUndefined";
+      const allowedRemoved = new RegExp(`Revocar mi autorización|registerButton|selfRevoke\\.button|myListings|revoke\\.button|MENU_BUTTONS|buttons|keyboardOf${f018}${d175}${f030}${f185}${f032}${d204}`, "i");
       for (const l of removed) expect(l, `${file}: ${l}`).toMatch(allowedRemoved);
     }
   });

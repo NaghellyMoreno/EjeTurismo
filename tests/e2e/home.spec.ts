@@ -15,7 +15,7 @@ const REJECTED = 900000065;
 const OLD_NOTICE = 900000067;
 
 const TEXT = {
-  "role-provider": "Ya tienes el rol de prestador. Las opciones de prestador estarán disponibles pronto.",
+  "role-provider": "Desde aquí creas y editas tus fichas y las envías a revisión. Las solicitudes de los visitantes las atiendes en el bot, con el botón «Mis solicitudes».",
   "role-admin": "Eres administrador. Las opciones de administración se usan desde el bot de Telegram.",
   "register-hint": "Para registrarte como prestador, escribe /start en el bot de Telegram y pulsa «Registrarme como prestador».",
   "role-revoked": "Tu rol de prestador fue revocado y ya no tienes acceso a las opciones de prestador. Si tienes dudas, comunícate con el administrador.",
